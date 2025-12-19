@@ -16,6 +16,7 @@ import (
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
+	"daml.com/x/assistant/pkg/licenseutils"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocipuller/localpuller"
@@ -195,6 +196,7 @@ func createFromManifest(ctx context.Context, client *assistantremote.Remote, man
 
 	comps := lo.Values(manifest.Spec.Components)
 	comps = append(comps, manifest.Spec.Assistant)
+	licenses := make(map[string]string)
 	for _, comp := range comps {
 		repoName := ociconsts.ComponentRepoPrefix + comp.Name
 		tag := assembler.ComputeTagOrDigest(comp)
@@ -204,12 +206,19 @@ func createFromManifest(ctx context.Context, client *assistantremote.Remote, man
 			return "", fmt.Errorf("failed to pull component '%s:%s'. %w", repoName, tag, err)
 		}
 
+		imageManifestPath := filepath.Join(localRegistryPath, repoName, "blobs", "sha256", desc.Digest.Hex())
+
 		// put a symlink to the assistant binary at known location in the bundle
 		if comp == manifest.Spec.Assistant {
-			imageManifestPath := filepath.Join(localRegistryPath, repoName, "blobs", "sha256", desc.Digest.Hex())
-			if err := linkAssistant(platformBundlePath, imageManifestPath); err != nil {
+			if err := linkAssistant(platform, platformBundlePath, imageManifestPath); err != nil {
 				return "", err
 			}
+		} else {
+			licenseBlob, _, err := findFileInOciBlobs(imageManifestPath, licenseutils.ComponentLicenseFilename)
+			if err != nil {
+				return "", fmt.Errorf("couldn't find file named %q in component %q: %w", licenseutils.ComponentLicenseFilename, comp.Name, err)
+			}
+			licenses[comp.Name] = licenseBlob
 		}
 	}
 
@@ -237,11 +246,42 @@ func createFromManifest(ctx context.Context, client *assistantremote.Remote, man
 		return "", err
 	}
 
+	fmt.Printf("Writing LICENSES file for platform %q\n", platform.String())
+	if err := licenseutils.WriteLicensesFile(licenses, filepath.Join(platformBundlePath)); err != nil {
+		return "", err
+	}
+
 	fmt.Printf("Bundle for %s created at %q.\n", platform.String(), platformBundlePath)
 	return platformBundlePath, nil
 }
 
-func linkAssistant(dir, imageManifestPath string) error {
+// findFileInOciBlobs returns the path to the blob (which has hashy name) of the desired file
+func findFileInOciBlobs(imageManifestPath, filename string) (string, *v1.Descriptor, error) {
+	bytes, err := os.ReadFile(imageManifestPath)
+	if err != nil {
+		return "", nil, err
+	}
+	manifest := v1.Manifest{}
+	if err := json.Unmarshal(bytes, &manifest); err != nil {
+		return "", nil, err
+	}
+
+	layer, ok := lo.Find(manifest.Layers, func(l v1.Descriptor) bool {
+		fname, ok := l.Annotations[fileinfo.FileNameAnnotation]
+		if !ok {
+			slog.Warn("layer missing annotation", "annotation", fileinfo.FileNameAnnotation)
+			return false
+		}
+		return fname == filename
+	})
+
+	if !ok {
+		return "", nil, fmt.Errorf("could not determine file's OCI layer for filename %q", filename)
+	}
+	return filepath.Join(filepath.Dir(imageManifestPath), layer.Digest.Hex()), &layer, nil
+}
+
+func linkAssistant(platform *simpleplatform.NonGeneric, dir, imageManifestPath string) error {
 	bytes, err := os.ReadFile(imageManifestPath)
 	if err != nil {
 		return err
@@ -251,19 +291,14 @@ func linkAssistant(dir, imageManifestPath string) error {
 		return err
 	}
 
-	dpmBinLayer, ok := lo.Find(manifest.Layers, func(l v1.Descriptor) bool {
-		filename, ok := l.Annotations[fileinfo.FileNameAnnotation]
-		if !ok {
-			slog.Warn("layer missing annotation", "annotation", fileinfo.FileNameAnnotation)
-			return false
-		}
-		return filename == assembler.AssistantBinNameWindows || filename == assembler.AssistantBinNameUnix
-	})
-
-	if !ok {
-		return fmt.Errorf("could not determine assistant binary's layer")
+	binFileName := assembler.AssistantBinNameUnix
+	if platform.OS == "windows" {
+		binFileName = assembler.AssistantBinNameWindows
 	}
-	binBlobPath := filepath.Join(filepath.Dir(imageManifestPath), dpmBinLayer.Digest.Hex())
+	binBlobPath, dpmBinLayer, err := findFileInOciBlobs(imageManifestPath, binFileName)
+	if err != nil {
+		return fmt.Errorf("could not determine assistant binary's layer and file: %w", err)
+	}
 
 	// TODO figure out why running linked blob fails on windows, instead of this.
 	// (seems windows isn't happy with the blob filename not having a .exe)
