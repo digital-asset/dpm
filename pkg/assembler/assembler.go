@@ -264,14 +264,16 @@ func (a *Assembler) collectAssistant(ctx context.Context, assistant *sdkmanifest
 		return "", err
 	}
 	msg := "collected assistant binary is invalid"
-	if len(entries) > 1 {
-		return "", fmt.Errorf("%s: expected exactly one file", msg)
-	}
+	filenames := lo.Map(entries, func(de os.DirEntry, _ int) string {
+		return de.Name()
+	})
 
 	// TODO this can be improved by instead using the platform metadata of the pulled OCI image
-	bin := entries[0]
-	if !lo.Contains([]string{AssistantBinNameUnix, AssistantBinNameWindows}, entries[0].Name()) {
-		return "", fmt.Errorf("%s: wrong file name %q", msg, bin.Name())
+	bin, ok := lo.Find(entries, func(de os.DirEntry) bool {
+		return lo.Contains([]string{AssistantBinNameUnix, AssistantBinNameWindows}, de.Name())
+	})
+	if !ok {
+		return "", fmt.Errorf("%s: could not determine the dpm binary file among %v", msg, filenames)
 	}
 
 	absPath := filepath.Join(p, bin.Name())
