@@ -1,0 +1,6 @@
+packages:
+  - ../../daml-package/unix
+
+override-components:
+  multipak:
+    local-path: ../component

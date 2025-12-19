@@ -1,0 +1,16 @@
+name: gcloud login
+description: gcloud login
+inputs:
+  key:
+    description: auth key
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: gcloud login
+      run: |
+        mkdir -p "${HOME}/.config/gcloud"
+        echo '${{ inputs.key }}' >"${HOME}/.config/gcloud/application_default_credentials.json"
+        gcloud beta auth activate-service-account --key-file="${HOME}/.config/gcloud/application_default_credentials.json"
+        gcloud auth configure-docker "europe-docker.pkg.dev"
+      shell: bash -euo pipefail -c "source nix.source && exec bash {0}"

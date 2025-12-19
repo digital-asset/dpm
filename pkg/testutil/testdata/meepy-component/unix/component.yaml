@@ -1,0 +1,25 @@
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: ./meep
+      name: meep
+      aliases: ["mm"]
+      desc: this will meep meep
+
+    - path: ./show-env-vars
+      name: show-env-vars
+      aliases: [ "sev" ]
+      desc: this will show environment variables
+
+  exports:
+    MEEP_EXTERNAL_DAR:
+      conflict-strategy: extend
+      paths:
+        - ./just-a-dir/xyz
+        - ./meep
+
+    SHEEP_EXTERNAL_DAR:
+      conflict-strategy: extend
+      paths:
+        - ./just-a-dir/xyz

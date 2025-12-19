@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# mock java
+echo "i am a fake java!"
+echo "$@"

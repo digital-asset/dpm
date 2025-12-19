@@ -1,0 +1,6 @@
+packages:
+  - ../../daml-package/windows
+
+override-components:
+  multipak:
+    local-path: ../component

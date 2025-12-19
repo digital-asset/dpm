@@ -1,0 +1,46 @@
+sdk-version: 1.2.123
+build-options:
+  - --target=2.1
+codegen:
+  #  js:
+  #    output-directory: ui/daml.js
+  #    npm-scope: daml.js
+  java:
+    package-prefix: com.daml.quickstart.model
+    output-directory: target/generated-sources/iou
+    decoderClass: com.daml.quickstart.iou.TemplateDecoder
+data-dependencies:
+  - ../other-component/.daml/dist/some-1.0.0.dar
+dependencies:
+  - daml-prim
+  - daml-stdlib
+  - daml-script
+exposed-modules:
+  - Main
+init-script: Foo:foo
+module-prefixes:
+  upgrades-example-main-1.0.0: V1
+  upgrades-example-main-2.0.0: V2
+name: assembly-plan-command-conflict-testcase
+parties:
+  - Potato
+  - Bar
+script-service:
+  grpc-max-message-size: 134217728
+  grpc-timeout: 60
+  jvm-options: [ ]
+sandbox-options: #a list of options that will be passed to Sandbox in daml start.
+navigator-options: #a list of options that will be passed to Navigator in daml start
+json-api-options: #a list of options that will be passed to the HTTP JSON API in daml start.
+source: ../bar-component
+start-navigator: no
+typecheck-upgrades: true
+upgrades: ..
+version: 0.0.0.1
+#module-prefixes: !java.util.LinkedHashMap
+override-components:
+  # add
+  bar:
+    local-path: ../bar-component
+
+

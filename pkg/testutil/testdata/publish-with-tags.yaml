@@ -1,0 +1,19 @@
+edition: open-source
+version: 0.0.1-whatever
+components:
+  meep:
+    platforms:
+      - windows/amd64
+      - linux/amd64
+      - darwin/amd64
+      - darwin/arm64
+    image-tag: main
+  javabro:
+    version: 6.7.8
+assistant:
+  platforms:
+    - windows/amd64
+    - linux/amd64
+    - darwin/amd64
+    - darwin/arm64
+  version: 4.5.6

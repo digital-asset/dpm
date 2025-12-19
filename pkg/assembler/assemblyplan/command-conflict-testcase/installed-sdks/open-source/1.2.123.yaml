@@ -1,0 +1,8 @@
+apiVersion: digitalasset.com/v1
+kind: SdkManifest
+spec:
+  version: 1.2.123
+  edition: open-source
+  components:
+    foo:
+      local-path: ../../foo-component

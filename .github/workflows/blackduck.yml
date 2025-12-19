@@ -1,0 +1,37 @@
+name: blackduck
+defaults:
+  run:
+    shell: bash -euo pipefail -c "source nix.source && source .envrc.vars && exec bash {0}"
+on:
+  push:
+    branches:
+      - 'blackduck*'
+  schedule:
+    - cron: '0 10 * * *' # 5am US Eastern Time (UTC+5)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  USER: gha
+  BLACKDUCK_HUBDETECT_TOKEN: ${{ secrets.DA_BLACKDUCK }}
+
+jobs:
+  scan:
+    runs-on: dach-ny-dpm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/nix
+      - uses: ./.github/actions/gcloud-login
+        with:
+          key: ${{ inputs.key }}
+      - name: Build and Test Go Project
+        run: |
+          go build -o target/ ./cmd/...
+          go test -v ./...
+        shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
+      - uses: ./.github/actions/blackduck-scan
+

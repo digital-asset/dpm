@@ -1,0 +1,8 @@
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: ./non-existent
+      name: meep
+      aliases: ["mm"]
+      desc: this will meep meep

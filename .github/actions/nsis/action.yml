@@ -1,0 +1,16 @@
+name: nsis
+description: create windows installer
+inputs:
+  bin-path:
+    type: string
+    required: true
+  out:
+    type: string
+    default: /dev/null
+runs:
+  using: composite
+  steps:
+      - run: sudo apt update && sudo apt install -y nsis
+        shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
+      - run: makensis -DDPM_BIN_PATH=${{ inputs.bin-path }} -DOUT=${{ inputs.out }} dpm-bin.nsi
+        shell: bash -euo pipefail -c "source nix.source && exec bash {0}"

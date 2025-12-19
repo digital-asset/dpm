@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+project_name: dpm
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: cli
+    main: ./cmd/dpm/
+    binary: ./{{ .Os }}/{{ .Arch }}/dpm
+    no_unique_dist_dir: true
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -X 'daml.com/x/assistant/pkg/assistantversion.AssistantVersion={{.Version}}'
+      - -X 'daml.com/x/assistant/pkg/assistantversion.Build={{.ShortCommit}}'
+      - -X 'daml.com/x/assistant/pkg/assistantversion.BuildDate={{.CommitDate}}'
+
+    ignore:
+      - goos: darwin
+        goarch: s390x
+      - goos: darwin
+        goarch: ppc64le
+      - goos: windows
+        goarch: s390x
+      - goos: windows
+        goarch: ppc64le
+      - goos: windows
+        goarch: arm64
+
+release:
+  prerelease: yes
+
+archives:
+  - format: binary
+
+snapshot:
+  version_template: '{{ incpatch .Version }}-snapshot-{{ .Now.Format "20060102" }}.{{ .Env.GIT_COMMIT_COUNT }}.0.v{{ .ShortCommit }}'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

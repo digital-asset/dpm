@@ -1,0 +1,14 @@
+apiVersion: digitalasset.com/v1
+kind: SdkManifest
+spec:
+  version: 0.0.1-whatever
+  edition: open-source
+  components:
+    meep:
+      local-path: ../../meepy-component/windows
+
+    javabro:
+      local-path: ../../javabro-component
+
+    needy:
+      local-path: ../../components/needy/windows

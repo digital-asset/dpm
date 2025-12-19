@@ -1,0 +1,4 @@
+
+override-components:
+  useless:
+    local-path: ./
