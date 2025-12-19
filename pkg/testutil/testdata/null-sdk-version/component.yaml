@@ -1,0 +1,7 @@
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: ./useless
+      name: hello-from-null-sdk-daml-yaml
+      desc: pretty useless command

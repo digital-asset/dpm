@@ -1,0 +1,7 @@
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: ./component.yaml
+      name: foo  # conflicts with foo-component
+      desc: foo bar

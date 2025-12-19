@@ -1,0 +1,20 @@
+# $schema: https://raw.githubusercontent.com/DACH-NY/dpm/refs/heads/json-schema/schema/component.schema.json
+# Edit as needed!
+
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+#    - path:
+#      name:
+#      desc:
+#      exec-args: []
+#      aliases: []
+
+  jar-commands:
+#    - path:
+#      name:
+#      desc:
+#      jar-args: []
+#      jvm-args: []
+#      aliases: []

@@ -1,0 +1,20 @@
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: "whatever/potato.exe"
+      name: potato
+      desc: peels a potato
+      exec-args: ["--shredded"]
+      aliases: ["p"]
+    - path: "meep/meep.exe"
+      name: meep
+      desc: meeps a lot
+      exec-args: ["run-meeper"]
+      aliases: ["m"]
+  jar-commands:
+    - path: "jars/banana.jar"
+      name: banana
+      desc: a banana in a jar
+      aliases: ["b"]
+      jar-args: ["--peel"]

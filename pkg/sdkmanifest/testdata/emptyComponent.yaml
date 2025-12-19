@@ -1,0 +1,7 @@
+apiVersion: digitalasset.com/v1
+kind: SdkManifest
+spec:
+  version: 1.2.3
+  edition: open-source
+  components:
+    meep-shell: {}

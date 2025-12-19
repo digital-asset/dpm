@@ -1,0 +1,14 @@
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: "whatever/potato.exe"
+      name: potato
+      desc: peels a potato
+      exec-args: ["--shredded"]
+      aliases: ["p"]
+  exports:
+    FOO:
+      conflict-strategy: oops
+      paths:
+        - "./irrelevant.exe"

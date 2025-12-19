@@ -1,0 +1,10 @@
+apiVersion: digitalasset.com/v1
+kind: component
+spec:
+  commands:
+    - path: "whatever/potato.exe"
+      name: potato
+      desc: peels a potato
+      exec-args: [ "--shredded" ]
+      aliases: [ "p" ]
+      meepmeep: oops

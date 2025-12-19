@@ -1,0 +1,7 @@
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  jar-commands:
+    - path: ./component.yaml
+      name: foo
+      desc: foo

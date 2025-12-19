@@ -1,0 +1,19 @@
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: ./needy.bat
+      name: needy
+      desc: needy
+  dependency-paths:
+    meep: 'THE_MEEPY_PATH'
+
+  exports:
+    MEEP_EXTERNAL_DAR:
+      conflict-strategy: extend
+      paths:
+        - ./needy.bat
+    SHEEP_EXTERNAL_DAR:
+      conflict-strategy: extend
+      paths:
+        - ./needy.bat

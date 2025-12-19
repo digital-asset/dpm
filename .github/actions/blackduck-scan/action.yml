@@ -1,0 +1,18 @@
+name: blackduck-scan
+description: blackduck scan
+runs:
+  using: composite
+  steps:
+    - name: Run Blackduck Detect for Dpm
+      run: |
+        bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) \
+        ci-build ${GITHUB_REPOSITORY} ${GITHUB_REF_NAME} \
+        --logging.level.com.synopsys.integration=DEBUG  \
+        --detect.notices.report=false \
+        --detect.timeout=600 \
+        --detect.included.detector.types=GO_MOD \
+        --detect.go.mod.dependency.types.excluded=UNUSED \
+        --detect.code.location.name=${GITHUB_REPOSITORY}_${GITHUB_JOB} \
+        --detect.follow.symbolic.links=false
+      shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
+    

@@ -1,0 +1,7 @@
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: ./uselessbinary
+      name: useless
+      desc: this component will be overridden so this command won't see the light of day

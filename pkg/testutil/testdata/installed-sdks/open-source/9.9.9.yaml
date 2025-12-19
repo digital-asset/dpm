@@ -1,0 +1,8 @@
+apiVersion: digitalasset.com/v1
+kind: SdkManifest
+spec:
+  version: 9.9.9
+  edition: open-source
+  components:
+    meep:
+      local-path: ../../components/unused

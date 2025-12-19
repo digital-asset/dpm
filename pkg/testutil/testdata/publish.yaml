@@ -1,0 +1,27 @@
+edition: open-source
+version: 0.0.1-whatever
+components:
+  no-windows:
+    version: 1.2.3-no.windows
+    platforms:
+      - linux/amd64
+      - darwin/amd64
+      - darwin/arm64
+  meep:
+    platforms:
+      - windows/amd64
+      - linux/amd64
+      - darwin/amd64
+      - darwin/arm64
+    version: 1.2.3
+  javabro:
+    # omitting 'platforms' field is a shortcut for not having to specify all the SDK platforms
+    # (which are the same platforms of the 'assistant' component)
+    version: 6.7.8
+assistant:
+  platforms:
+    - windows/amd64
+    - linux/amd64
+    - darwin/amd64
+    - darwin/arm64
+  version: 4.5.6

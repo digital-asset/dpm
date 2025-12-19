@@ -1,0 +1,3 @@
+override-components:
+  my-local-component:
+    local-path: .
