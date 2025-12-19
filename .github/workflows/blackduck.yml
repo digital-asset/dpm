@@ -39,10 +39,10 @@ jobs:
         run: |
           files=( *Black_Duck_Notices_Report.txt )
           if [ "${#files[@]}" -eq 1 ]; then
-          mv -- "${files[0]}" NOTICES.txt
+            mv -- "${files[0]}" NOTICES.txt
           else
-              echo "Expected exactly one *Black_Duck_Notices_Report.txt file, found ${#files[@]}" >&2
-              exit 1
+            echo "Expected exactly one *Black_Duck_Notices_Report.txt file, found ${#files[@]}" >&2
+            exit 1
           fi
         shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
 
