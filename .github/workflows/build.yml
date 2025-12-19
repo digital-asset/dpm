@@ -36,6 +36,7 @@ jobs:
         shell: bash
       - name: Run Go tests and generate in json format
         run: go test -json -v ./... | tee report.json
+        shell: bash
       - name: Publish Test Report
         uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
         with:
