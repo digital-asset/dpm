@@ -15,6 +15,7 @@ jobs:
       - run: go build -o target/ ./cmd/...
       - name: Run Go tests and generate in json format
         run: go test -json -v ./... | tee report.json
+        continue-on-error: true
       - name: Publish Test Report
         uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
         with:
@@ -36,6 +37,7 @@ jobs:
         shell: bash
       - name: Run Go tests and generate in json format
         run: go test -json -v ./... | tee report.json
+        continue-on-error: true
         shell: bash
       - name: Publish Test Report
         uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
