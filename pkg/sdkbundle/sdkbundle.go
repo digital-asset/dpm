@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -250,17 +251,24 @@ func linkAssistant(dir, imageManifestPath string) error {
 		return err
 	}
 
-	if len(manifest.Layers) != 1 {
-		return fmt.Errorf(
-			"cannot determine assistant binary's layer: image has %d layers instead of a single layer",
-			len(manifest.Layers))
+	dpmBinLayer, ok := lo.Find(manifest.Layers, func(l v1.Descriptor) bool {
+		filename, ok := l.Annotations[fileinfo.FileNameAnnotation]
+		if !ok {
+			slog.Warn("layer missing annotation", "annotation", fileinfo.FileNameAnnotation)
+			return false
+		}
+		return filename == assembler.AssistantBinNameWindows || filename == assembler.AssistantBinNameUnix
+	})
+
+	if !ok {
+		return fmt.Errorf("could not determine assistant binary's layer")
 	}
-	binBlobPath := filepath.Join(filepath.Dir(imageManifestPath), manifest.Layers[0].Digest.Hex())
+	binBlobPath := filepath.Join(filepath.Dir(imageManifestPath), dpmBinLayer.Digest.Hex())
 
 	// TODO figure out why running linked blob fails on windows, instead of this.
 	// (seems windows isn't happy with the blob filename not having a .exe)
 	if runtime.GOOS == "windows" {
-		return utils.CopyFile(binBlobPath, filepath.Join(dir, "bin", manifest.Layers[0].Annotations[fileinfo.FileNameAnnotation]))
+		return utils.CopyFile(binBlobPath, filepath.Join(dir, "bin", dpmBinLayer.Annotations[fileinfo.FileNameAnnotation]))
 	}
 
 	// re-use the assistant linking functionality from `dpm install <version>`
@@ -270,7 +278,7 @@ func linkAssistant(dir, imageManifestPath string) error {
 		return err
 	}
 
-	renamed := filepath.Join(filepath.Dir(p), manifest.Layers[0].Annotations[fileinfo.FileNameAnnotation])
+	renamed := filepath.Join(filepath.Dir(p), dpmBinLayer.Annotations[fileinfo.FileNameAnnotation])
 	if err := os.Rename(p, renamed); err != nil {
 		return err
 	}
