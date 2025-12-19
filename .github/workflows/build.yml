@@ -19,7 +19,7 @@ jobs:
       - name: Run Go tests and generate JUnit report
         run: go test -v ./... | go-junit-report > report.xml
       - name: Publish Test Report
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
         with:
           name: Go Tests
           path: report.xml
