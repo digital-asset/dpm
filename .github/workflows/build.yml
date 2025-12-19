@@ -13,7 +13,14 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/nix
       - run: go build -o target/ ./cmd/...
-      - run: go test -v ./...
+      - name: Run Go tests and generate in json format
+        run: go test -json -v ./... | tee report.json
+      - name: Publish Test Report
+        uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
+        with:
+          name: Go Tests
+          path: report.json
+          reporter: golang-json
       - uses: ./.github/actions/nsis
         with:
           bin-path: target/dpm
@@ -27,8 +34,15 @@ jobs:
           go-version: '1.23.5'
       - run: go build -o target/ ./cmd/...
         shell: bash
-      - run: go test -v ./...
+      - name: Run Go tests and generate in json format
+        run: go test -json -v ./... | tee report.json
         shell: bash
+      - name: Publish Test Report
+        uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
+        with:
+          name: Go Tests
+          path: report.json
+          reporter: golang-json
 
   release-public:
     runs-on: digital-asset-dpm
