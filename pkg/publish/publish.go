@@ -230,6 +230,13 @@ func (p *Publisher) prepareComponent(ctx context.Context, platform simpleplatfor
 	p.printer.Printf("Component manifest is valid ✅\n")
 	p.printer.Println()
 
+	p.printer.Printf("📦 Checking %q includes license file...\n", platform.String())
+	if err := checkHasLicense(dir); err != nil {
+		return nil, err
+	}
+	p.printer.Printf("License file included ✅\n")
+	p.printer.Println()
+
 	p.printer.Println("Content:")
 	if err := p.displayContent(dir); err != nil {
 		return nil, err
@@ -357,6 +364,20 @@ func (p *Publisher) displayContent(dir string) error {
 
 		return nil
 	})
+}
+
+func checkHasLicense(dir string) error {
+	des, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	_, ok := lo.Find(des, func(de os.DirEntry) bool {
+		return de.Name() == "LICENSE" && de.Type().IsRegular()
+	})
+	if !ok {
+		return fmt.Errorf("required LICENSE file is missing at component root (%q)", dir)
+	}
+	return nil
 }
 
 func checkSymlinkWithinRoot(dir, symlink string) error {
