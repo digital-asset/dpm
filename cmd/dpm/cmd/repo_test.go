@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
-	"daml.com/x/assistant/pkg/licenseutils"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/testutil"
@@ -55,23 +54,6 @@ func (suite *RepoSuite) TestRepoCreateTarball() {
 		cmd.SetArgs(appendRegistryArgsFromEnv(args))
 		require.NoError(t, cmd.Execute())
 		assert.NoError(t, w.Close())
-	})
-
-	t.Run("LICENSES file", func(t *testing.T) {
-
-		entries, err := os.ReadDir(bundlePath)
-		require.NoError(t, err)
-		for _, platformBundle := range entries {
-			expected, err := os.ReadFile(testutil.TestdataPath(t, "licenses-for-publish-yaml-tarballs", "unix.golden"))
-			if platformBundle.Name() == "windows-amd64" {
-				expected, err = os.ReadFile(testutil.TestdataPath(t, "licenses-for-publish-yaml-tarballs", "windows.golden"))
-			}
-			require.NoError(t, err)
-
-			got, err := os.ReadFile(filepath.Join(bundlePath, platformBundle.Name(), licenseutils.TarballLicensesFilename))
-			require.NoError(t, err)
-			assert.Equal(t, expected, got)
-		}
 	})
 
 	t.Run("bootstrap from bundle", func(t *testing.T) {

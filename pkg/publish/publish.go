@@ -16,7 +16,6 @@ import (
 
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
-	"daml.com/x/assistant/pkg/licenseutils"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocilister"
@@ -373,10 +372,10 @@ func checkHasLicense(dir string) error {
 		return err
 	}
 	_, ok := lo.Find(des, func(de os.DirEntry) bool {
-		return de.Name() == licenseutils.ComponentLicenseFilename && de.Type().IsRegular()
+		return de.Name() == "LICENSE" && de.Type().IsRegular()
 	})
 	if !ok {
-		return fmt.Errorf("required %s file is missing at component root (%q)", licenseutils.ComponentLicenseFilename, dir)
+		return fmt.Errorf("required LICENSE file is missing at component root (%q)", dir)
 	}
 	return nil
 }
