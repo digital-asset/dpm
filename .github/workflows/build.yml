@@ -14,6 +14,12 @@ jobs:
       - uses: ./.github/actions/nix
       - run: go build -o target/ ./cmd/...
       - run: go test -v ./...
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v1
+        with:
+          name: Go Tests
+          path: report.xml
+          reporter: junit
       - uses: ./.github/actions/nsis
         with:
           bin-path: target/dpm
