@@ -8,9 +8,9 @@ defaults:
 
 jobs:
   linux:
-    runs-on: dach-ny-dpm
+    runs-on: digital-asset-dpm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/nix
       - run: go build -o target/ ./cmd/...
       - run: go test -v ./...
@@ -21,8 +21,8 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: '1.23.5'
       - run: go build -o target/ ./cmd/...
@@ -31,13 +31,13 @@ jobs:
         shell: bash
 
   release-public:
-    runs-on: dach-ny-dpm
+    runs-on: digital-asset-dpm
     needs: 
       - windows
       - linux
     if: success() && github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
       - uses: ./.github/actions/release
@@ -47,7 +47,7 @@ jobs:
           key: ${{ secrets.DA_IMAGES }}
 
   release-public-unstable:
-    runs-on: dach-ny-dpm
+    runs-on: digital-asset-dpm
     needs: 
       - windows
       - linux
@@ -58,7 +58,7 @@ jobs:
         startsWith(github.ref, 'refs/heads/adhoc')
       )
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/release
         with:
           repo: da-images/public-unstable
