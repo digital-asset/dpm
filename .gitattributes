@@ -1,1 +1,3 @@
 docs/cli/** linguist-generated
+LICENSE text eol=lf
+*.golden text eol=lf
