@@ -43,7 +43,7 @@ release:
   prerelease: yes
 
 archives:
-  - format: binary
+  - formats: [ binary ]
 
 snapshot:
   version_template: '{{ incpatch .Version }}-snapshot-{{ .Now.Format "20060102" }}.{{ .Env.GIT_COMMIT_COUNT }}.0.v{{ .ShortCommit }}'
