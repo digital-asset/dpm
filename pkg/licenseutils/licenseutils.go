@@ -19,10 +19,11 @@ func WriteLicensesFile(licenses map[string]string, outputDir string) error {
 	var b strings.Builder
 
 	// Header
-	b.WriteString("LICENSES\n")
-	b.WriteString("============================================================\n\n")
-	b.WriteString("This product includes multiple software components.\n")
-	b.WriteString("The license terms for each component are provided below.")
+	fmt.Fprintln(&b, "LICENSES")
+	fmt.Fprintln(&b, "============================================================")
+	fmt.Fprintln(&b, "")
+	fmt.Fprintln(&b, "This product includes multiple software components.")
+	fmt.Fprint(&b, "The license terms for each component are provided below.")
 
 	sortedComponents := lo.Keys(licenses)
 	sort.Strings(sortedComponents)
@@ -33,11 +34,13 @@ func WriteLicensesFile(licenses map[string]string, outputDir string) error {
 			return err
 		}
 
-		b.WriteString("\n\n------------------------------------------------------------\n")
-		b.WriteString(fmt.Sprintf("Component: %s\n\n", comp))
+		fmt.Fprintln(&b, "")
+		fmt.Fprintln(&b, "")
+		fmt.Fprintln(&b, "------------------------------------------------------------")
+		fmt.Fprintf(&b, "Component: %s\n\n", comp)
 		b.WriteString(strings.TrimSpace(string(license)))
 	}
-	b.WriteString("\n")
+	fmt.Fprintln(&b, "")
 
 	return os.WriteFile(filepath.Join(outputDir, TarballLicensesFilename), []byte(b.String()), 0644)
 }
