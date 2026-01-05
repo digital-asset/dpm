@@ -35,7 +35,7 @@ runs:
       run: make publish-release-to-gar ASSISTANT_ARGS='-d'
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
     - name: dpm publish to ${{ inputs.repo }}
-      run: make publish-release-to-gar ASSISTANT_ARGS='--registry ${{ inputs.registry }}/${{ inputs.repo }} -t latest'
+      run: make publish-release-to-gar ASSISTANT_ARGS='--registry ${{ inputs.registry }}/${{ inputs.repo }} -t latest -t ${{ github.ref }}'
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
     - uses: ./.github/actions/nsis
       with:
