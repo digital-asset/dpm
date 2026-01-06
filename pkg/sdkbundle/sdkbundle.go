@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 
+	root "daml.com/x/assistant"
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
@@ -62,7 +63,18 @@ func bootstrap(ctx context.Context, config *assistantconfig.Config, bundlePath s
 	}
 
 	sdkVersion := manifest.Spec.Version.Value()
-	if _, err := sdkinstall.LinkAssistantIfNewerSdk(config, *assemblyResult.AssistantAbsolutePath, &sdkVersion); err != nil {
+	assistantBinPath := *assemblyResult.AssistantAbsolutePath
+	if _, err := sdkinstall.LinkAssistantIfNewerSdk(config, assistantBinPath, &sdkVersion); err != nil {
+		return err
+	}
+
+	// Copy LICENSE file into $DPM_HOME/cache/components/dpm/<version>/
+	// We'll assume the `dpm` binary running this bootstrap is of the same <version>
+
+	// Note that bootstrap only runs once, namely when installing a tarball, and doesn't run when dpm install <sdk version>
+	// This means only the first dpm version under $DPM_HOME/cache/components/dpm/ will have the LICENSE file,
+	// but later ones obtained via dpm install won't!
+	if err := os.WriteFile(filepath.Join(filepath.Dir(assistantBinPath), "LICENSE"), root.License, 0666); err != nil {
 		return err
 	}
 

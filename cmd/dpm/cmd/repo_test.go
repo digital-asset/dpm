@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	root "daml.com/x/assistant"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/licenseutils"
 	"daml.com/x/assistant/pkg/ocilister"
@@ -91,6 +92,12 @@ func (suite *RepoSuite) TestRepoCreateTarball() {
 			entries, err := os.ReadDir(dir)
 			require.NoError(t, err)
 			verifyLnkAtPath(t, filepath.Join(dir, entries[0].Name()))
+		})
+		t.Run("verify LICENSE file", func(t *testing.T) {
+			licenseFile := filepath.Join(tmpDamlHome, "cache", "components", "dpm", "4.5.6", "LICENSE")
+			bytes, err := os.ReadFile(licenseFile)
+			require.NoError(t, err)
+			assert.Equal(t, bytes, root.License)
 		})
 	})
 
