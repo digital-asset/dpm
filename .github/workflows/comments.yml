@@ -1,0 +1,43 @@
+name: blackduck-add-comment
+defaults:
+  run:
+    shell: bash -euo pipefail -c "source nix.source && source .envrc.vars && exec bash {0}"
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - go.mod
+      - go.sum
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  USER: gha
+
+jobs:
+  scan:
+    runs-on: digital-asset-dpm
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.AUTO_REBASE_PAT }}
+      - uses: ./.github/actions/nix
+      - name: Comment on the Pull Request
+        if: github.ref != 'refs/heads/main'
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # Use the comment action
+        with:
+          message: |
+            The NOTICES file has been updated on this PR due to a change in 
+            your library dependencies.
+            
+            The workflow run ID is **${{ github.run_id }}**.
+          github-token: ${{ secrets.AUTO_REBASE_PAT }}

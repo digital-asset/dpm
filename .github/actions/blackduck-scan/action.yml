@@ -8,7 +8,7 @@ runs:
         bash <(curl -s https://raw.githubusercontent.com/DACH-NY/security-blackduck/master/synopsys-detect) \
         ci-build ${GITHUB_REPOSITORY} ${GITHUB_REF_NAME} \
         --logging.level.com.synopsys.integration=DEBUG  \
-        --detect.notices.report=false \
+        --detect.notices.report=true \
         --detect.timeout=600 \
         --detect.included.detector.types=GO_MOD \
         --detect.go.mod.dependency.types.excluded=UNUSED \
