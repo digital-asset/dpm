@@ -4,10 +4,9 @@ defaults:
     shell: bash -euo pipefail -c "source nix.source && source .envrc.vars && exec bash {0}"
 on:
   push:
-    branches:
-      - 'blackduck*'
-  schedule:
-    - cron: '0 10 * * *' # 5am US Eastern Time (UTC+5)
+    paths:
+      - go.mod
+      - go.sum
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,19 +18,42 @@ env:
 
 jobs:
   scan:
-    runs-on: dach-ny-dpm
+    runs-on: digital-asset-dpm
+    permissions:
+      contents: write
+      pull-requests: write    
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
+          token: ${{ secrets.AUTO_REBASE_PAT }}
       - uses: ./.github/actions/nix
       - uses: ./.github/actions/gcloud-login
         with:
-          key: ${{ inputs.key }}
+          key: ${{ secrets.DA_IMAGES }}
       - name: Build and Test Go Project
         run: |
           go build -o target/ ./cmd/...
           go test -v ./...
         shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
-      - uses: ./.github/actions/blackduck-scan
-
+      - if: ${{ ! contains(github.event.head_commit.message, '[skip notices]') }}
+        uses: ./.github/actions/blackduck-scan
+      - if: ${{ ! contains(github.event.head_commit.message, '[skip notices]') }}
+        name: Rename notices file
+        run: |
+          files=( *Black_Duck_Notices_Report.txt )
+          if [ "${#files[@]}" -eq 1 ]; then
+            mv -- "${files[0]}" NOTICES
+          else
+            echo "Expected exactly one *Black_Duck_Notices_Report.txt file, found ${#files[@]}" >&2
+            exit 1
+          fi
+        shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add NOTICES
+          git commit -m "Update NOTICES after go.mod change" || echo "No changes to commit"
+          git push
+        shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
