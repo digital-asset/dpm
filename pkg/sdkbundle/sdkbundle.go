@@ -208,7 +208,7 @@ func createFromManifest(ctx context.Context, client *assistantremote.Remote, man
 
 	comps := lo.Values(manifest.Spec.Components)
 	comps = append(comps, manifest.Spec.Assistant)
-	licenses := make(map[string]string)
+	licenses := make(map[string][]byte)
 	for _, comp := range comps {
 		repoName := ociconsts.ComponentRepoPrefix + comp.Name
 		tag := assembler.ComputeTagOrDigest(comp)
@@ -225,12 +225,18 @@ func createFromManifest(ctx context.Context, client *assistantremote.Remote, man
 			if err := linkAssistant(platform, platformBundlePath, imageManifestPath); err != nil {
 				return "", err
 			}
+			// the assistant's OCI image doesn't include LICENSE.
+			// so we'll use the embedded LICENSE from the dpm repo.
+			licenses[comp.Name] = root.License
 		} else {
 			licenseBlob, _, err := findFileInOciBlobs(imageManifestPath, licenseutils.ComponentLicenseFilename)
 			if err != nil {
 				return "", fmt.Errorf("couldn't find file named %q in component %q: %w", licenseutils.ComponentLicenseFilename, comp.Name, err)
 			}
-			licenses[comp.Name] = licenseBlob
+			licenses[comp.Name], err = os.ReadFile(licenseBlob)
+			if err != nil {
+				return "", err
+			}
 		}
 	}
 
