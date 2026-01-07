@@ -1,4 +1,4 @@
-.. Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+.. Copyright (c) 2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 .. SPDX-License-Identifier: Apache-2.0
 
 .. _dpm:
@@ -56,46 +56,9 @@ Windows Installation
 
 Download and run the `windows installer <https://get.digitalasset.com/install/latest-windows.html>`_, which will install the dpm sdk and set up the PATH variable for you.
 
-.. _dpm-manual-installation:
-
 Manual Installation Instructions
 ================================
-
-If you cannot / wish not to use the shell script to install for Linux or OSX, you can alternatively install dpm manually by running this set of commands in your terminal:
-
-.. code:: shell
-
-    #get latest version number
-    readonly VERSION="$(curl -sS "https://get.digitalasset.com/install/latest")"
-
-    # set your architecture to either amd64 | arm64
-    readonly ARCH="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
-
-    # set your OS to either darwin or linux
-    readonly OS="$(uname | tr '[:upper:]' '[:lower:]')"
-
-    #pull down appropriate tarball for your OS and architecture
-    readonly TARBALL="dpm-${VERSION}-${OS}-${ARCH}.tar.gz"
-
-    # determine location of tarball to download
-    TARBALL_URL="https://artifactregistry.googleapis.com/download/v1/projects/da-images/locations/europe/repositories/public-generic/files/dpm-sdk:${VERSION}:${TARBALL}:download?alt=media"
-
-    # make tmpdir
-    TMPDIR="$(mktemp -d)"
-
-    # download tarball
-    curl -SLf "${TARBALL_URL}" --output "${TMPDIR}/${TARBALL}" --progress-bar "$@"
-
-    # create directory to extract into
-    extracted="${TMPDIR}/extracted"
-    mkdir -p "${extracted}"
-
-    # untar
-    tar xzf "${TMPDIR}/${TARBALL}" -C "${extracted}" --strip-components 1
-
-    # bootstrap dpm
-    "${extracted}/bin/dpm" bootstrap "${extracted}"
-
+If you prefer a more manual installation process, see :ref:`here <dpm-manual-installation>`.
 
 .. _dpm-manual-managing-releases:
 
