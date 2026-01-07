@@ -36,10 +36,8 @@ jobs:
           go build -o target/ ./cmd/...
           go test -v ./...
         shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
-      - if: ${{ ! contains(github.event.head_commit.message, '[skip notices]') }}
-        uses: ./.github/actions/blackduck-scan
-      - if: ${{ ! contains(github.event.head_commit.message, '[skip notices]') }}
-        name: Rename notices file
+      - uses: ./.github/actions/blackduck-scan
+      - name: Rename notices file
         run: |
           files=( *Black_Duck_Notices_Report.txt )
           if [ "${#files[@]}" -eq 1 ]; then
@@ -50,6 +48,7 @@ jobs:
           fi
         shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
       - name: Commit and push changes
+        if: github.ref != 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
