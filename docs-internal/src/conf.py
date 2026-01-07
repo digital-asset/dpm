@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'dpm'
-copyright = '2025, digitalasset'
+copyright = '2026, digitalasset'
 author = 'digitalasset'
 
 # -- General configuration ---------------------------------------------------
