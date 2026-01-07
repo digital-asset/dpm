@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2017-2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package localpuller
@@ -9,12 +9,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ocicache"
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocipuller"
+	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"

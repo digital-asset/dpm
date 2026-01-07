@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2017-2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package assembler
@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/testutil"
 	"github.com/google/go-containerregistry/pkg/registry"
 	"github.com/samber/lo"
