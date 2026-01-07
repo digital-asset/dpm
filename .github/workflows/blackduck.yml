@@ -54,6 +54,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add NOTICES
-          git commit -m "Update NOTICES after go.mod change" || echo "No changes to commit"
-          git push
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update NOTICES after go.mod change"
+            git push
+          fi
         shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
