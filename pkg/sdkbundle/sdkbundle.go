@@ -225,6 +225,8 @@ func createFromManifest(ctx context.Context, client *assistantremote.Remote, man
 			if err := linkAssistant(platform, platformBundlePath, imageManifestPath); err != nil {
 				return "", err
 			}
+			// the assistant's OCI image doesn't include LICENSE.
+			// so we'll use the embedded LICENSE from the dpm repo.
 			licenses[comp.Name] = root.License
 		} else {
 			licenseBlob, _, err := findFileInOciBlobs(imageManifestPath, licenseutils.ComponentLicenseFilename)
