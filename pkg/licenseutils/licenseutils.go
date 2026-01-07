@@ -15,7 +15,7 @@ const TarballLicensesFilename = "LICENSES"
 
 // WriteLicensesFile combines components licenses into single LICENSES file.
 // licenses is map from component name to its LICENSE's file path
-func WriteLicensesFile(licenses map[string]string, outputDir string) error {
+func WriteLicensesFile(licenses map[string][]byte, outputDir string) error {
 	var b strings.Builder
 
 	// Header
@@ -29,16 +29,12 @@ func WriteLicensesFile(licenses map[string]string, outputDir string) error {
 	sort.Strings(sortedComponents)
 
 	for _, comp := range sortedComponents {
-		license, err := os.ReadFile(licenses[comp])
-		if err != nil {
-			return err
-		}
-
+		license := licenses[comp]
 		fmt.Fprintln(&b, "")
 		fmt.Fprintln(&b, "")
 		fmt.Fprintln(&b, "------------------------------------------------------------")
 		fmt.Fprintf(&b, "Component: %s\n\n", comp)
-		b.WriteString(strings.TrimSpace(string(license)))
+		b.WriteString(strings.TrimSuffix(strings.TrimPrefix(string(license), "\n"), "\n"))
 	}
 	fmt.Fprintln(&b, "")
 
