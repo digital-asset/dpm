@@ -61,6 +61,9 @@ Download and run the `windows installer <https://get.digitalasset.com/install/la
 Manual Installation Instructions
 ================================
 
+Mac/Linux
+---------
+
 If you cannot / wish not to use the shell script to install for Linux or OSX, you can alternatively install dpm manually by running this set of commands in your terminal:
 
 .. code:: shell
@@ -96,6 +99,15 @@ If you cannot / wish not to use the shell script to install for Linux or OSX, yo
     # bootstrap dpm
     "${extracted}/bin/dpm" bootstrap "${extracted}"
 
+Windows
+-------
+
+Download and upack the latest dpm sdk version's `archive (.zip) <https://get.digitalasset.com/install/latest-windows-archive.html>`_, then run:
+
+.. code:: powershell
+
+  # assuming $EXTRACATED is the path to the extracted archive
+  "$EXTRACTED\bin\dpm.exe" bootstrap $EXTRACTED
 
 .. _dpm-manual-managing-releases:
 
