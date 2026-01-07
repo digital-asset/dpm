@@ -4,7 +4,7 @@ defaults:
     shell: bash -euo pipefail -c "source nix.source && source .envrc.vars && exec bash {0}"
 on:
   pull_request:
-    events:
+    types:
       - opened
       - synchronize
       - reopened
