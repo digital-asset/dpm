@@ -26,7 +26,7 @@ If you cannot / wish not to use the shell script to install for Linux or OSX, yo
     readonly TARBALL="dpm-${VERSION}-${OS}-${ARCH}.tar.gz"
 
     # determine location of tarball to download
-    TARBALL_URL="https://artifactregistry.googleapis.com/download/v1/projects/da-images/locations/europe/repositories/public-generic/files/dpm-sdk:${VERSION}:${TARBALL}:download?alt=media"
+    TARBALL_URL="https://get.digitalasset.com/install/dpm-sdk/${TARBALL}"
 
     # make tmpdir
     TMPDIR="$(mktemp -d)"
@@ -38,7 +38,7 @@ If you cannot / wish not to use the shell script to install for Linux or OSX, yo
     extracted="${TMPDIR}/extracted"
     mkdir -p "${extracted}"
 
-    # untar
+    # untar to extracted directory
     tar xzf "${TMPDIR}/${TARBALL}" -C "${extracted}" --strip-components 1
 
     # bootstrap dpm
