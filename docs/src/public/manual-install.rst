@@ -14,13 +14,13 @@ If you cannot / wish not to use the shell script to install for Linux or OSX, yo
 .. code:: shell
 
     #get latest version number
-    readonly VERSION="$(curl -sS "https://get.digitalasset.com/install/latest")"
+    VERSION="$(curl -sS "https://get.digitalasset.com/install/latest")"
 
     # set your architecture to either amd64 | arm64
-    readonly ARCH="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+    ARCH="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
 
     # set your OS to either darwin or linux
-    readonly OS="$(uname | tr '[:upper:]' '[:lower:]')"
+    OS="$(uname | tr '[:upper:]' '[:lower:]')"
 
     #pull down appropriate tarball for your OS and architecture
     readonly TARBALL="dpm-${VERSION}-${OS}-${ARCH}.tar.gz"
@@ -43,6 +43,9 @@ If you cannot / wish not to use the shell script to install for Linux or OSX, yo
 
     # bootstrap dpm
     "${extracted}/bin/dpm" bootstrap "${extracted}"
+
+    # cleanup tmpdir
+    rm -rf "${TMPDIR}"
 
 Windows
 -------
