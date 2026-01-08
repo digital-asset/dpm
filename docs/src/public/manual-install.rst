@@ -47,7 +47,7 @@ If you cannot / wish not to use the shell script to install for Linux or OSX, yo
 Windows
 -------
 
-Download and upack the latest dpm sdk version's `archive (.zip) <https://get.digitalasset.com/install/latest-windows-archive.html>`_, then:
+Download and unpack the latest dpm sdk version's `archive (.zip) <https://get.digitalasset.com/install/latest-windows-archive.html>`_, then:
 
 .. code:: powershell
 
