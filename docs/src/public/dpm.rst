@@ -48,7 +48,7 @@ Mac/Linux Installation
 
 .. code:: shell
 
-   > curl https://get.digitalasset.com/install/install.sh | sh
+   curl https://get.digitalasset.com/install/install.sh | sh
 
 
 Windows Installation
@@ -71,26 +71,32 @@ To install the SDK version specified in the daml.yaml, run:
 
 .. code:: shell
 
-  > dpm install package
+  dpm install package
 
 To install a specific SDK version, for example version ``3.4.9``, run:
 
 .. code:: shell
 
-  > dpm install 3.4.9
+  dpm install 3.4.9
 
 To see the active SDK version
 
 .. code:: shell
 
-  > dpm version --active
-  3.4.0-snapshot.20251002.1372.4055ddd
+  dpm version --active
+
+.. code:: shell
+
+  3.4.0-snapshot.20251006.1451.85eca5a
 
 To list the installed SDK versions, including the currently active one (marked with `*`):
 
 .. code:: shell
 
-  > dpm version
+  dpm version
+
+.. code:: shell
+
     3.4.0-snapshot.20251003.1412.3fe167f
   * 3.4.0-snapshot.20251006.1451.85eca5a
 
@@ -98,13 +104,13 @@ To additionally list all the SDK versions that can be installed, as well as the 
 
 .. code:: shell
 
-  > dpm version --all
+  dpm version --all
 
 To get the list in a machine readable format:
 
 .. code:: shell
 
-  > dpm version --all -o json
+  dpm version --all -o json
 
 .. code:: json
 
@@ -135,7 +141,7 @@ To install unstable SDKs you need to :ref:`configure dpm <dpm-configuration>` to
 
 .. code:: shell
 
-  > dpm install <unstable SDK version>
+  dpm install <unstable SDK version>
 
 
 .. _dpm-operate:
