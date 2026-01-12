@@ -48,7 +48,7 @@ Mac/Linux Installation
 
 .. code:: shell
 
-   > curl https://get.digitalasset.com/install/install.sh | sh
+   curl https://get.digitalasset.com/install/install.sh | sh
 
 
 Windows Installation
@@ -80,10 +80,6 @@ To install a specific SDK version, for example version ``3.4.9``, run:
   dpm install 3.4.9
 
 To see the active SDK version
-
-.. code:: shell
-
-  dpm version --active
 
 .. code:: shell
 
