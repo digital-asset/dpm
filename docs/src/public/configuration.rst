@@ -137,6 +137,6 @@ Components specified in ``override-components`` must be installed by running
 
 .. code:: shell
 
-    > dpm install package
+    dpm install package
 
 in a package containing the ``daml.yaml`` or ``multi-package.yaml``
