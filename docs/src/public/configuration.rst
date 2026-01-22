@@ -36,6 +36,10 @@ DAML_PACKAGE            allows running ``dpm`` commands in a package context wit
 DPM_SDK_VERSION         allows overriding the SDK version being used. It's a global override that overrides the sdk version specified in any and all daml.yaml(s). It also overrides the SDK version used outside package or multi-package context. It doesn't affect the behavior of the `install` command(s)
 ======================= ====================================================================================================================================
 
+Additionally, DPM (and DPM's installation process) make use of the system's default temp directory.
+On Unix systems, it uses ``$TMPDIR`` if non-empty, else ``/tmp``.
+On Windows, it uses ``GetTempPath``, returning the first non-empty value from ``%TMP%``, ``%TEMP%``, ``%USERPROFILE%``, or the ``Windows`` directory.
+
 Project Configuration
 *********************
 
