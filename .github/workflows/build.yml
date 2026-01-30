@@ -49,7 +49,7 @@ jobs:
           reporter: golang-json
       - name: Run manual installation
         run: docs/src/public/manual-install-windows.ps1
-        shell: powershell
+        shell: pwsh
 
   release-public:
     runs-on: digital-asset-dpm
