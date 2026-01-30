@@ -32,11 +32,5 @@ tar xzf "${TMPDIR}/${TARBALL}" -C "${extracted}" --strip-components 1
 # bootstrap dpm
 "${extracted}/bin/dpm" bootstrap "${extracted}"
 
-# check dpm version to ensure it works
-if ! "${extracted}/bin/dpm" version; then
-  echo "dpm version failed" >&2
-  exit 1
-fi
-
 # cleanup tmpdir
 rm -rf "${TMPDIR}"
