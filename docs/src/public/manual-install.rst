@@ -64,7 +64,7 @@ The unstable tarball can be retrieved from the following URL:
 .. code:: shell
 
    # determine location of tarball to download
-   TARBALL_URL="https://get.digitalasset.com/install/dpm-sdk/${TARBALL}"
+   TARBALL_URL="https://get.digitalasset.com/unstable/install/dpm-sdk/${TARBALL}"
 
 
 Unstable Windows
