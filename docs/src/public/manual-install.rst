@@ -11,6 +11,13 @@ Mac/Linux
 
 If you cannot / wish not to use the shell script to install for Linux or OSX, you can alternatively install dpm manually by running this set of commands in your terminal:
 
+The latest stable release version can be found by 
+
+.. code:: shell
+   VERSION="$(curl -sS "https://get.digitalasset.com/install/latest")"
+
+And you can then use this to retrieve the tarball of the full installation, extract, and install, as outlined in the full instructions below.
+
 .. code:: shell
 
     #get latest version number
@@ -66,3 +73,25 @@ Download and unpack the latest dpm sdk version's `archive (.zip) <https://get.di
     $env:DPM_HOME = "<user-owned directory>"
 
     & "$EXTRACTED\windows-amd64\bin\dpm.exe" bootstrap $EXTRACTED\windows-amd64
+
+
+Unstable Versions
+-----------------
+
+Preview / unstable versions are also available for experimentation, though it is always recommended to use the stable versions listed above.
+
+
+Unstable Mac / Linux
+--------------------
+
+.. code:: shell
+   UNSTABLE_VERSION="$(curl -sS "https://get.digitalasset.com/unstable/install/latest")"
+
+   UNSTABLE_TARBALL_URL="https://get.digitalasset.com/unstable/install/dpm-sdk/${UNSTABLE_VERSION}"
+
+
+Unstable Windows
+--------------------
+
+Download and unpack the latest unstable dpm sdk version's `archive (.zip) <https://get.digitalasset.com/unstable/install/latest-windows-archive.html>`_, then:
+
