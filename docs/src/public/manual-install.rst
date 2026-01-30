@@ -24,6 +24,8 @@ And you can then use this to retrieve the tarball of the full installation, extr
    :lineno-start: 4
 
 
+.. _dpm-manual-installation-windows:
+
 Windows
 -------
 
@@ -54,14 +56,16 @@ Preview / unstable versions are also available for experimentation, though it is
 Unstable Mac / Linux
 --------------------
 
-.. code:: shell
-   UNSTABLE_VERSION="$(curl -sS "https://get.digitalasset.com/unstable/install/latest")"
+You can follow the same :ref:dpm-manual-installation above to install an unstable version, but note the changes in the VERSION and TARBALL_URL variables below:
 
-   UNSTABLE_TARBALL_URL="https://get.digitalasset.com/unstable/install/dpm-sdk/${UNSTABLE_VERSION}"
+.. code:: shell
+   VERSION="$(curl -sS "https://get.digitalasset.com/unstable/install/latest")"
+
+   TARBALL_URL="https://get.digitalasset.com/unstable/install/dpm-sdk/${UNSTABLE_VERSION}"
 
 
 Unstable Windows
 --------------------
 
-Download and unpack the latest unstable dpm sdk version's `archive (.zip) <https://get.digitalasset.com/unstable/install/latest-windows-archive.html>`_, then:
+Download and unpack the latest unstable dpm sdk version's `archive (.zip) <https://get.digitalasset.com/unstable/install/latest-windows-archive.html>`_, then follow :ref:dpm-manual-installation-windows above.
 
