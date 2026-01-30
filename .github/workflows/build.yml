@@ -49,8 +49,6 @@ jobs:
           name: Go Tests
           path: report.json
           reporter: golang-json
-      - name: Run manual installation
-        run: docs/src/public/manual-install.sh
       - uses: ./.github/actions/nsis
         with:
           bin-path: target/dpm
