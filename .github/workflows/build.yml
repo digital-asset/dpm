@@ -24,7 +24,6 @@ jobs:
           reporter: golang-json
       - name: Run manual installation
         run: docs/src/public/manual-install.sh
-        continue-on-error: true
       - uses: ./.github/actions/nsis
         with:
           bin-path: target/dpm
@@ -48,6 +47,9 @@ jobs:
           name: Go Tests
           path: report.json
           reporter: golang-json
+      - name: Run manual installation
+        run: docs/src/public/manual-install-windows.ps1
+        shell: powershell
 
   release-public:
     runs-on: digital-asset-dpm
