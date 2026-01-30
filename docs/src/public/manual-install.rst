@@ -11,7 +11,7 @@ Mac/Linux
 
 If you cannot / wish not to use the shell script to install for Linux or OSX, you can alternatively install dpm manually by running this set of commands in your terminal:
 
-The latest stable release version can be found by 
+The latest stable release version can be found by hitting the following URL:
 
 .. code:: shell
    VERSION="$(curl -sS "https://get.digitalasset.com/install/latest")"
@@ -21,7 +21,7 @@ And you can then use this to retrieve the tarball of the full installation, extr
 .. literalinclude:: manual-install.sh
    :caption: Manual installation script for Mac/Linux
    :language: shell
-   :linenos:
+   :lineno-start: 4
 
 
 Windows
