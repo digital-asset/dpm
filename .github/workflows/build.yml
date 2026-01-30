@@ -33,7 +33,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: cachix/install-nix-action@v31
+      - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
