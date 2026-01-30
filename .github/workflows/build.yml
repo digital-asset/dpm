@@ -36,9 +36,9 @@ jobs:
       - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: cachix/cachix-action@v14
-        with:
-          name: digital-asset-dpm
+#      - uses: cachix/cachix-action@v14
+#        with:
+#          name: digital-asset-dpm
       - uses: ./.github/actions/nix
       - run: go build -o target/ ./cmd/...
       - name: Run Go tests and generate in json format
