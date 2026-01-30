@@ -32,7 +32,7 @@ And you can then use this to retrieve the tarball of the full installation, extr
 Windows Installation
 --------------------
 
-Download and unpack the latest windows dpm sdk `archive (.zip) <https://get.digitalasset.com/install/latest-windows-archive.html>`_, then:
+Download and unpack the `windows dpm-sdk archive (.zip) <https://get.digitalasset.com/install/latest-windows-archive.html>`_, then:
 
 .. literalinclude:: manual-install-windows.ps1
    :caption: Manual installation script for Windows
@@ -70,5 +70,6 @@ The unstable tarball can be retrieved from the following URL:
 Unstable Windows
 ----------------
 
-Download and unpack the latest unstable windows dpm sdk `archive (.zip) <https://get.digitalasset.com/unstable/install/latest-windows-archive.html>`_, then follow :ref:`dpm-manual-installation-windows` instructions.
+Download and unpack the latest `windows unstable dpm-sdk archive (.zip) <https://get.digitalasset.com/unstable/install/latest-windows-archive.html>`_, then follow :ref:`dpm-manual-installation-windows` instructions.
+
 
