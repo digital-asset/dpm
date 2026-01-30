@@ -36,6 +36,9 @@ jobs:
       - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: cachix/cachix-action@v14
+        with:
+          name: digital-asset-dpm
       - name: 'Nix Setup'
         run: 'nix --extra-experimental-features "nix-command flakes" print-dev-env .#ci > nix.source'
         shell: bash
@@ -104,4 +107,3 @@ jobs:
           repo: da-images/public-unstable
           flags: "--snapshot"
           key: ${{ secrets.DA_IMAGES }}
-
