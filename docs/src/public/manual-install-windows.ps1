@@ -4,7 +4,6 @@ echo "Determining latest SDK tarball link..."
 $curlResult = Invoke-WebRequest -Uri "https://get.digitalasset.com/install/latest-windows-archive.html" -UseBasicParsing
 $ZIP_URL = ($curlResult.Content -match 'https://[^ ]+\.zip') | Out-Null; $matches[0]
 $ZIP_PATH = Join-Path $env:RUNNER_TEMP "dpm-windows-amd64.zip"
-Invoke-WebRequest -Uri $ZIP_URL -OutFile $ZIP_PATH
 
 # Extract the downloaded zip ($ZIP_PATH) to temp directory ($EXTRACTED)
 # Avoid using the system's temp directory as the user may not have rights to it
