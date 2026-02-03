@@ -1,6 +1,6 @@
 Copyright 2026
 
-[digital-asset/dpm : enable-notices-generation]
+[digital-asset/dpm : uptick-some-go-lib-vulns]
 
 Phase: DEVELOPMENT
 Distribution: EXTERNAL
@@ -17,7 +17,7 @@ aymanbagabas/go-osc52 v2.0.1: https://github.com/aymanbagabas/go-osc52 : MIT Lic
 aymanbagabas/go-udiff v0.2.0: https://github.com/aymanbagabas/go-udiff : BSD 3-clause "New" or "Revised" License
 blackfriday v2.1.0-pre.1: https://github.com/russross/blackfriday : BSD 2-clause "Simplified" License
 charmbracelet/lipgloss v1.1.0: https://github.com/charmbracelet/lipgloss : MIT License
-clipperhouse/displaywidth v0.6.2 : Unknown License
+clipperhouse/displaywidth v0.6.2 : MIT License
 clipperhouse/uax29 v2.3.0 : MIT License
 cloudflare/circl v1.6.2: https://github.com/cloudflare/circl : BSD 3-clause "New" or "Revised" License
 containerd/stargz-snapshotter v0.18.1: https://github.com/containerd/stargz-snapshotter : Apache License 2.0
@@ -34,7 +34,7 @@ github.com/charmbracelet/x 20240806-snapshot-69247e0a: https://github.com/charmb
 github.com/charmbracelet/x ansi/v0.11.3: https://github.com/charmbracelet/x : MIT License
 github.com/charmbracelet/x cellbuf/v0.0.14: https://github.com/charmbracelet/x : MIT License
 github.com/charmbracelet/x term/v0.2.2: https://github.com/charmbracelet/x : MIT License
-github.com/clipperhouse/stringish v0.1.1 : MIT License
+github.com/clipperhouse/stringish v0.1.1: https://pkg.go.dev/github.com/clipperhouse/uax29/v2 : MIT License
 github.com/go-git/gcfg 20230307-snapshot-3a3c6141: https://github.com/go-git/gcfg : BSD 3-clause "New" or "Revised" License
 github.com/google/go-containerregistry v0.20.7: https://github.com/google/go-containerregistry : Apache License 2.0
 github.com/jdx/go-netrc v1.0.0 : MIT License
@@ -52,13 +52,14 @@ go-git/go-git v5.16.4: https://github.com/go-git/go-git : Apache License 2.0
 go-git/go-git-fixtures 20231010-snapshot-55a94097: https://github.com/go-git/go-git-fixtures : Apache License 2.0
 golang-github-spf13-pflag-dev v1.0.10: https://github.com/spf13/pflag : BSD 3-clause "New" or "Revised" License
 golang.org/x/crypto v0.46.0: https://godoc.org/golang.org/x/crypto : BSD 3-clause "New" or "Revised" License
-golang.org/x/mod v0.30.0 : BSD 3-clause "New" or "Revised" License
+golang.org/x/mod v0.30.0: https://go.googlesource.com/mod : BSD 3-clause "New" or "Revised" License
 golang.org/x/net v0.48.0: https://godoc.org/golang.org/x/net : BSD 3-clause "New" or "Revised" License
 golang.org/x/sys v0.39.0: https://pkg.go.dev/golang.org/x/sync : BSD 3-clause "New" or "Revised" License
 golang.org/x/term v0.38.0: https://go.googlesource.com/term : BSD 3-clause "New" or "Revised" License
 golang.org/x/tools v0.39.0: https://pkg.go.dev/golang.org/x/tools : BSD 3-clause "New" or "Revised" License
 golang/sync v0.19.0: https://pkg.go.dev/golang.org/x/sync : BSD 3-clause "New" or "Revised" License
 golang/text v0.32.0: https://github.com/golang/text : BSD 3-clause "New" or "Revised" License
+Go Logrus v1.9.3: https://github.com/sirupsen/logrus : MIT License
 gomega 1.34.1: https://github.com/onsi/gomega : MIT License
 google/go-cmp v0.7.0: https://github.com/google/go-cmp : BSD 3-clause "New" or "Revised" License
 goproxy v1.7.2: https://github.com/elazarl/goproxy : BSD 3-clause "New" or "Revised" License
@@ -90,7 +91,6 @@ pmezard-go-difflib 1.0.0: https://github.com/pmezard/go-difflib : BSD 3-clause "
 ProtonMail/go-crypto 1.3.0: https://github.com/ProtonMail/go-crypto : BSD 3-clause "New" or "Revised" License
 rogpeppe/go-internal v1.14.1: http://github.com/rogpeppe/go-internal/ : BSD 3-clause "New" or "Revised" License
 sergi/go-diff v1.4.0: https://github.com/sergi/go-diff : MIT License
-Sirupsen/logrus v1.9.3: https://github.com/Sirupsen/logrus : MIT License
 spf13-cobra 1.10.2: https://github.com/spf13/cobra : Apache License 2.0
 vbatts-tar-split v0.12.2: https://github.com/vbatts/tar-split : BSD 3-clause "New" or "Revised" License
 xanzy-ssh-agent v0.3.3: https://github.com/xanzy/ssh-agent : Apache License 2.0
@@ -1407,7 +1407,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 ---
 
 MIT License
-(aymanbagabas/go-osc52 v2.0.1, charmbracelet/lipgloss v1.1.0, clipperhouse/uax29 v2.3.0, cpuguy83-go-md2man v2.0.7, fatih-color v1.18.0, github.com/charmbracelet/colorprofile v0.4.1, github.com/charmbracelet/x 20240806-snapshot-69247e0a, github.com/charmbracelet/x ansi/v0.11.3, github.com/charmbracelet/x cellbuf/v0.0.14, github.com/charmbracelet/x term/v0.2.2, github.com/clipperhouse/stringish v0.1.1, github.com/jdx/go-netrc v1.0.0, github.com/rivo/uniseg v0.4.7, github.com/samber/lo v1.52.0, Go Testify v1.11.1, go-colorful v1.3.0, go.yaml.in/yaml/v2 v3.0.4, goccy/go-yaml v1.19.1, gomega 1.34.1, klauspost-cpuid v2.3.0, kr/pretty v0.3.1, Masterminds-semver v3.4.0, mattn-go-colorable v0.1.14, mattn-go-isatty v0.0.20, mattn-go-runewidth v0.0.19, Microsoft-go-winio v0.6.2, muesli/termenv v0.16.0, sergi/go-diff v1.4.0, Sirupsen/logrus v1.9.3, xo/terminfo 20220910-snapshot-abceb7e1, yaml for Go v3.0.1)
+(aymanbagabas/go-osc52 v2.0.1, charmbracelet/lipgloss v1.1.0, clipperhouse/displaywidth v0.6.2, clipperhouse/uax29 v2.3.0, cpuguy83-go-md2man v2.0.7, fatih-color v1.18.0, github.com/charmbracelet/colorprofile v0.4.1, github.com/charmbracelet/x 20240806-snapshot-69247e0a, github.com/charmbracelet/x ansi/v0.11.3, github.com/charmbracelet/x cellbuf/v0.0.14, github.com/charmbracelet/x term/v0.2.2, github.com/clipperhouse/stringish v0.1.1, github.com/jdx/go-netrc v1.0.0, github.com/rivo/uniseg v0.4.7, github.com/samber/lo v1.52.0, Go Logrus v1.9.3, Go Testify v1.11.1, go-colorful v1.3.0, go.yaml.in/yaml/v2 v3.0.4, goccy/go-yaml v1.19.1, gomega 1.34.1, klauspost-cpuid v2.3.0, kr/pretty v0.3.1, Masterminds-semver v3.4.0, mattn-go-colorable v0.1.14, mattn-go-isatty v0.0.20, mattn-go-runewidth v0.0.19, Microsoft-go-winio v0.6.2, muesli/termenv v0.16.0, sergi/go-diff v1.4.0, xo/terminfo 20220910-snapshot-abceb7e1, yaml for Go v3.0.1)
 
 The MIT License
 ===============
