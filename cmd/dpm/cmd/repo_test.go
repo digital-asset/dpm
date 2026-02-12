@@ -299,6 +299,24 @@ func publishComponents(t *testing.T, extraTags ...string) {
 		require.NoError(t, cmd.Execute())
 	})
 
+	t.Run("publish component skipping existing", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t)
+		if extraTags == nil || len(extraTags) == 0 {
+			extraTags = []string{"latest"}
+		}
+		args := []string{"repo", "publish-component", "meep", "1.2.3", "--skip-existing",
+			"-p", "windows/amd64=" + testutil.TestdataPath(t, "meepy-component", "windows"),
+			"-p", "linux/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
+			"-p", "darwin/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
+			"-p", "darwin/arm64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
+		}
+		for _, tag := range extraTags {
+			args = append(args, []string{"--extra-tags", tag}...)
+		}
+		cmd.SetArgs(appendRegistryArgsFromEnv(args))
+		require.NoError(t, cmd.Execute())
+	})
+
 	t.Run("publish assistant", func(t *testing.T) {
 		cmd := createStdTestRootCmd(t)
 		args := []string{"repo", "publish-dpm", "4.5.6",

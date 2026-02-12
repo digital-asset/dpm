@@ -45,6 +45,7 @@ func Cmd() *cobra.Command {
 				AuthFilePath:   c.RegistryAuth,
 				Insecure:       c.Insecure,
 				ExtraTags:      c.ExtraTags,
+				SkipExisting:   c.SkipExisting,
 			}
 			return publish.New(publishConfig, cmd).Publish(cmd.Context())
 		},
@@ -62,6 +63,7 @@ func Cmd() *cobra.Command {
 	cmd.Flags().StringVar(&c.Registry, "registry", "", "OCI registry to use for pushing")
 	cmd.Flags().BoolVar(&c.Insecure, "insecure", false, "use http instead of https for OCI registry")
 	cmd.Flags().StringVar(&c.RegistryAuth, "auth", "", "path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json")
+	cmd.Flags().BoolVar(&c.SkipExisting, "skip-existing", false, "skip publishing of existing versions of a component")
 
 	return cmd
 }
