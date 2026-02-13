@@ -5,6 +5,8 @@ package resolve
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log/slog"
 
 	"daml.com/x/assistant/pkg/assembler"
@@ -15,6 +17,8 @@ import (
 	"github.com/goccy/go-yaml"
 	"github.com/spf13/cobra"
 )
+
+var output string
 
 func getDeepResolutionOutput(ctx context.Context, config *assistantconfig.Config) (string, error) {
 	puller, err := remotepuller.NewFromRemoteConfig(config)
@@ -29,17 +33,26 @@ func getDeepResolutionOutput(ctx context.Context, config *assistantconfig.Config
 		return "", err
 	}
 
-	bytes, err := yaml.Marshal(deepResolution)
+	var bytes []byte
+
+	switch output {
+	case "json":
+		bytes, err = json.MarshalIndent(deepResolution, "", "  ")
+	case "yaml":
+		bytes, err = yaml.Marshal(deepResolution)
+	default:
+		return "", fmt.Errorf("output format not supported: %s", output)
+	}
+
 	if err != nil {
-		slog.ErrorContext(ctx, "failed marshal deep resolution", "error", err)
-		return "", err
+		return "", fmt.Errorf("failed marshal deep resolution: %w", err)
 	}
 
 	return string(bytes), nil
 }
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:    string(builtincommand.Resolve),
 		Long:   "completes deep resolution and generates the associated file",
 		Hidden: true,
@@ -52,4 +65,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVarP(&output, "output", "o", "yaml", "output format: json, yaml")
+	return cmd
 }
