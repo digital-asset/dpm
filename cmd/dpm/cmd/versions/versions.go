@@ -4,12 +4,13 @@
 package versions
 
 import (
-	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
-	"daml.com/x/assistant/pkg/damlpackage"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+
+	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
+	"daml.com/x/assistant/pkg/damlpackage"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
