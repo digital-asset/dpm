@@ -1,6 +1,6 @@
 Copyright 2026
 
-[digital-asset/dpm : update-go-git]
+[digital-asset/dpm : go-update-all-dependencies]
 
 Phase: DEVELOPMENT
 Distribution: EXTERNAL
@@ -17,11 +17,11 @@ aymanbagabas/go-osc52 v2.0.1: https://github.com/aymanbagabas/go-osc52 : MIT Lic
 aymanbagabas/go-udiff v0.2.0: https://github.com/aymanbagabas/go-udiff : BSD 3-clause "New" or "Revised" License
 blackfriday v2.1.0-pre.1: https://github.com/russross/blackfriday : BSD 2-clause "Simplified" License
 charmbracelet/lipgloss v1.1.0: https://github.com/charmbracelet/lipgloss : MIT License
-clipperhouse/displaywidth v0.6.2 : MIT License
-clipperhouse/uax29 v2.3.0 : MIT License
-cloudflare/circl v1.6.2: https://github.com/cloudflare/circl : BSD 3-clause "New" or "Revised" License
+clipperhouse/displaywidth v0.10.0 : Unknown License
+clipperhouse/uax29 v2.7.0 : MIT License
+cloudflare/circl v1.6.3: https://github.com/cloudflare/circl : BSD 3-clause "New" or "Revised" License
 containerd/stargz-snapshotter v0.18.1: https://github.com/containerd/stargz-snapshotter : Apache License 2.0
-cpuguy83-go-md2man v2.0.7: https://github.com/cpuguy83/go-md2man : MIT License
+cpuguy83-go-md2man 2.0.7: https://github.com/cpuguy83/go-md2man : MIT License
 cyphar/filepath-securejoin v0.6.1: https://github.com/cyphar/filepath-securejoin : (BSD 3-clause "New" or "Revised" License AND Mozilla Public License 2.0)
 docker-cli v29.0.3: https://github.com/docker/cli : Apache License 2.0
 docker-org v0.9.3: https://github.com/docker/migrator : Apache License 2.0
@@ -29,21 +29,20 @@ docker-registry 2.8.3: http://docker.io : Apache License 2.0
 emirpasic-gods v1.18.1: https://github.com/emirpasic/gods : (BSD 2-clause "Simplified" License AND ISC License)
 exp 20240711-snapshot-8a7402ab: http://code.google.com/p/go.exp : BSD 3-clause "New" or "Revised" License
 fatih-color v1.18.0: http://godoc.org/github.com/fatih/color : MIT License
-github.com/charmbracelet/colorprofile v0.4.1: https://github.com/charmbracelet/colorprofile : MIT License
+github.com/charmbracelet/colorprofile v0.4.2: https://github.com/charmbracelet/colorprofile : MIT License
 github.com/charmbracelet/x 20240806-snapshot-69247e0a: https://github.com/charmbracelet/x : MIT License
-github.com/charmbracelet/x ansi/v0.11.3: https://github.com/charmbracelet/x : MIT License
-github.com/charmbracelet/x cellbuf/v0.0.14: https://github.com/charmbracelet/x : MIT License
+github.com/charmbracelet/x ansi/v0.11.6: https://github.com/charmbracelet/x : MIT License
+github.com/charmbracelet/x cellbuf/v0.0.15: https://github.com/charmbracelet/x : MIT License
 github.com/charmbracelet/x term/v0.2.2: https://github.com/charmbracelet/x : MIT License
-github.com/clipperhouse/stringish v0.1.1: https://pkg.go.dev/github.com/clipperhouse/uax29/v2 : MIT License
 github.com/go-git/gcfg 20230307-snapshot-3a3c6141: https://github.com/go-git/gcfg : BSD 3-clause "New" or "Revised" License
-github.com/google/go-containerregistry v0.20.7: https://github.com/google/go-containerregistry : Apache License 2.0
+github.com/google/go-containerregistry 0.20.7: https://github.com/google/go-containerregistry : Apache License 2.0
 github.com/jdx/go-netrc v1.0.0 : MIT License
 github.com/pjbgf/sha1cd v0.5.0: https://github.com/pjbgf/sha1cd : Apache License 2.0
 github.com/rivo/uniseg v0.4.7: https://github.com/rivo/uniseg : MIT License
 github.com/samber/lo v1.52.0: https://github.com/samber/lo : MIT License
 github.com/skeema/knownhosts 1.3.2: https://github.com/skeema/knownhosts : Apache License 2.0
 gliderlabs/ssh v0.3.8: https://godoc.org/github.com/gliderlabs/ssh : BSD 3-clause "New" or "Revised" License
-goccy/go-yaml v1.19.1: https://github.com/goccy/go-yaml : MIT License
+goccy/go-yaml v1.19.2: https://github.com/goccy/go-yaml : MIT License
 go-check-check 20201130-snapshot-10cb9826: http://labix.org/gocheck : BSD 2-clause "Simplified" License
 go-colorful v1.3.0: https://github.com/lucasb-eyer/go-colorful : MIT License
 GoDoc Text v0.2.0: http://godoc.org/github.com/kr/text : MIT License
@@ -51,15 +50,14 @@ go-git/go-billy v5.7.0: https://github.com/go-git/go-billy : Apache License 2.0
 go-git/go-git v5.16.5: https://github.com/go-git/go-git : Apache License 2.0
 go-git/go-git-fixtures 20231010-snapshot-55a94097: https://github.com/go-git/go-git-fixtures : Apache License 2.0
 golang-github-spf13-pflag-dev v1.0.10: https://github.com/spf13/pflag : BSD 3-clause "New" or "Revised" License
-golang.org/x/crypto v0.46.0: https://godoc.org/golang.org/x/crypto : BSD 3-clause "New" or "Revised" License
-golang.org/x/mod v0.30.0: https://go.googlesource.com/mod : BSD 3-clause "New" or "Revised" License
-golang.org/x/net v0.48.0: https://godoc.org/golang.org/x/net : BSD 3-clause "New" or "Revised" License
-golang.org/x/sys v0.39.0: https://pkg.go.dev/golang.org/x/sync : BSD 3-clause "New" or "Revised" License
-golang.org/x/term v0.38.0: https://go.googlesource.com/term : BSD 3-clause "New" or "Revised" License
-golang.org/x/tools v0.39.0: https://pkg.go.dev/golang.org/x/tools : BSD 3-clause "New" or "Revised" License
+golang.org/x/crypto v0.48.0: https://godoc.org/golang.org/x/crypto : BSD 3-clause "New" or "Revised" License
+golang.org/x/mod v0.32.0: https://go.googlesource.com/mod : BSD 3-clause "New" or "Revised" License
+golang.org/x/net v0.50.0: https://godoc.org/golang.org/x/net : BSD 3-clause "New" or "Revised" License
+golang.org/x/sys v0.41.0: https://pkg.go.dev/golang.org/x/sync : BSD 3-clause "New" or "Revised" License
+golang.org/x/term v0.40.0: https://go.googlesource.com/term : BSD 3-clause "New" or "Revised" License
+golang.org/x/tools v0.41.0: https://pkg.go.dev/golang.org/x/tools : BSD 3-clause "New" or "Revised" License
 golang/sync v0.19.0: https://pkg.go.dev/golang.org/x/sync : BSD 3-clause "New" or "Revised" License
-golang/text v0.32.0: https://github.com/golang/text : BSD 3-clause "New" or "Revised" License
-Go Logrus v1.9.3: https://github.com/sirupsen/logrus : MIT License
+golang/text v0.34.0: https://github.com/golang/text : BSD 3-clause "New" or "Revised" License
 gomega 1.34.1: https://github.com/onsi/gomega : MIT License
 google/go-cmp v0.7.0: https://github.com/google/go-cmp : BSD 3-clause "New" or "Revised" License
 goproxy v1.7.2: https://github.com/elazarl/goproxy : BSD 3-clause "New" or "Revised" License
@@ -71,14 +69,14 @@ groupcache 20241129-snapshot-2c02b820: https://github.com/golang/groupcache : Ap
 inconshreveable/mousetrap v1.1.0: https://github.com/inconshreveable/mousetrap : Apache License 2.0
 jbenet/go-context 20150711-snapshot-d14ea06f: https://github.com/jbenet/go-context : MIT License
 juju/fslock 20160525-snapshot-4d5c94c6 : GNU Lesser General Public License v3.0 or later
-kevinburke/ssh_config 1.4.0: https://github.com/kevinburke/ssh_config : Expat License
+kevinburke/ssh_config v1.6.0: https://github.com/kevinburke/ssh_config : (X.Net License AND MIT License)
 klauspost-compress v1.18.1: https://github.com/klauspost/compress : BSD 3-clause "New" or "Revised" License
 klauspost-cpuid v2.3.0: https://github.com/klauspost/cpuid : MIT License
 kr/pretty v0.3.1: https://github.com/kr/pretty : MIT License
 Masterminds-semver v3.4.0: https://github.com/Masterminds/semver : MIT License
 mattn-go-colorable v0.1.14: http://godoc.org/github.com/mattn/go-colorable : MIT License
 mattn-go-isatty v0.0.20: http://godoc.org/github.com/mattn/go-isatty : MIT License
-mattn-go-runewidth v0.0.19: https://github.com/mattn/go-runewidth : MIT License
+mattn-go-runewidth v0.0.9: https://github.com/mattn/go-runewidth : MIT License
 mergo v1.0.2: https://github.com/imdario/mergo : BSD 3-clause "New" or "Revised" License
 Microsoft-go-winio v0.6.2: https://github.com/Microsoft/go-winio/ : MIT License
 mitchellh-go-homedir v1.1.0: https://github.com/mitchellh/go-homedir : MIT License
@@ -91,6 +89,7 @@ pmezard-go-difflib 1.0.0: https://github.com/pmezard/go-difflib : BSD 3-clause "
 ProtonMail/go-crypto 1.3.0: https://github.com/ProtonMail/go-crypto : BSD 3-clause "New" or "Revised" License
 rogpeppe/go-internal v1.14.1: http://github.com/rogpeppe/go-internal/ : BSD 3-clause "New" or "Revised" License
 sergi/go-diff v1.4.0: https://github.com/sergi/go-diff : MIT License
+Sirupsen/logrus v1.9.3: https://github.com/Sirupsen/logrus : MIT License
 spf13-cobra 1.10.2: https://github.com/spf13/cobra : Apache License 2.0
 vbatts-tar-split v0.12.2: https://github.com/vbatts/tar-split : BSD 3-clause "New" or "Revised" License
 xanzy-ssh-agent v0.3.3: https://github.com/xanzy/ssh-agent : Apache License 2.0
@@ -100,7 +99,7 @@ yaml for Go v3.0.1: https://github.com/go-yaml/yaml : (MIT License AND Apache Li
 Licenses: 
 
 Apache License 2.0
-(containerd/stargz-snapshotter v0.18.1, docker-cli v29.0.3, docker-org v0.9.3, docker-registry 2.8.3, github.com/google/go-containerregistry v0.20.7, github.com/pjbgf/sha1cd v0.5.0, github.com/skeema/knownhosts 1.3.2, go-git/go-billy v5.7.0, go-git/go-git v5.16.5, go-git/go-git-fixtures 20231010-snapshot-55a94097, groupcache 20241129-snapshot-2c02b820, inconshreveable/mousetrap v1.1.0, opencontainers/go-digest 1.0.0, opencontainers/image-spec v1.1.1, oras.land/oras-go v2.6.0, spf13-cobra 1.10.2, xanzy-ssh-agent v0.3.3, yaml for Go v3.0.1)
+(containerd/stargz-snapshotter v0.18.1, docker-cli v29.0.3, docker-org v0.9.3, docker-registry 2.8.3, github.com/google/go-containerregistry 0.20.7, github.com/pjbgf/sha1cd v0.5.0, github.com/skeema/knownhosts 1.3.2, go-git/go-billy v5.7.0, go-git/go-git v5.16.5, go-git/go-git-fixtures 20231010-snapshot-55a94097, groupcache 20241129-snapshot-2c02b820, inconshreveable/mousetrap v1.1.0, opencontainers/go-digest 1.0.0, opencontainers/image-spec v1.1.1, oras.land/oras-go v2.6.0, spf13-cobra 1.10.2, xanzy-ssh-agent v0.3.3, yaml for Go v3.0.1)
 
 Apache License
 Version 2.0, January 2004
@@ -419,7 +418,7 @@ Redistribution and use in source and binary forms, with or without
 ---
 
 BSD 3-clause "New" or "Revised" License
-(aymanbagabas/go-udiff v0.2.0, cloudflare/circl v1.6.2, cyphar/filepath-securejoin v0.6.1, exp 20240711-snapshot-8a7402ab, github.com/go-git/gcfg 20230307-snapshot-3a3c6141, gliderlabs/ssh v0.3.8, golang-github-spf13-pflag-dev v1.0.10, golang.org/x/crypto v0.46.0, golang.org/x/mod v0.30.0, golang.org/x/net v0.48.0, golang.org/x/sys v0.39.0, golang.org/x/term v0.38.0, golang.org/x/tools v0.39.0, golang/sync v0.19.0, golang/text v0.32.0, google/go-cmp v0.7.0, goproxy v1.7.2, klauspost-compress v1.18.1, mergo v1.0.2, ProtonMail/go-crypto 1.3.0, rogpeppe/go-internal v1.14.1, vbatts-tar-split v0.12.2)
+(aymanbagabas/go-udiff v0.2.0, cloudflare/circl v1.6.3, cyphar/filepath-securejoin v0.6.1, exp 20240711-snapshot-8a7402ab, github.com/go-git/gcfg 20230307-snapshot-3a3c6141, gliderlabs/ssh v0.3.8, golang-github-spf13-pflag-dev v1.0.10, golang.org/x/crypto v0.48.0, golang.org/x/mod v0.32.0, golang.org/x/net v0.50.0, golang.org/x/sys v0.41.0, golang.org/x/term v0.40.0, golang.org/x/tools v0.41.0, golang/sync v0.19.0, golang/text v0.34.0, google/go-cmp v0.7.0, goproxy v1.7.2, klauspost-compress v1.18.1, mergo v1.0.2, ProtonMail/go-crypto 1.3.0, rogpeppe/go-internal v1.14.1, vbatts-tar-split v0.12.2)
 
 Copyright (c) <YEAR>, <OWNER>
 All rights reserved.
@@ -449,35 +448,6 @@ OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
----
-
-Expat License
-(kevinburke/ssh_config 1.4.0)
-
-Expat License
-=============
-
-Copyright (c) 1998, 1999, 2000 Thai Open Source Software Center Ltd
-?????????????? ????????????????and Clark Cooper
-Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006 Expat maintainers.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in the
-Software without restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
-Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
-AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ---
 
@@ -1381,6 +1351,41 @@ Permission is hereby granted, free of charge, to any person obtaining a copy
 ---
 
 MIT License
+(mattn-go-runewidth v0.0.9)
+
+Source: https://github.com/mattn/go-runewidth
+
+Files: *
+Copyright: 2013-2016 Yasuhiro Matsumoto <mattn.jp@gmail.com>, http://mattn.kaoriya.net
+License: Expat
+
+Files: debian/*
+Copyright: 2016 Dmitry Smirnov <onlyjob@debian.org>
+License: Expat
+
+License: Expat
+
+Permission is hereby granted, free of charge, to any person obtaining a
+ copy of this software and associated documentation files (the ?Software?),
+ to deal in the Software without restriction, including without limitation
+ the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ and/or sell copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following conditions:
+ .
+  The above copyright notice and this permission notice shall be included
+  in all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED ?AS IS?, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ DEALINGS IN THE SOFTWARE
+
+---
+
+MIT License
 (armon/go-socks5 20160902-snapshot-e7533296)
 
 The MIT License (MIT)
@@ -1407,7 +1412,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 ---
 
 MIT License
-(aymanbagabas/go-osc52 v2.0.1, charmbracelet/lipgloss v1.1.0, clipperhouse/displaywidth v0.6.2, clipperhouse/uax29 v2.3.0, cpuguy83-go-md2man v2.0.7, fatih-color v1.18.0, github.com/charmbracelet/colorprofile v0.4.1, github.com/charmbracelet/x 20240806-snapshot-69247e0a, github.com/charmbracelet/x ansi/v0.11.3, github.com/charmbracelet/x cellbuf/v0.0.14, github.com/charmbracelet/x term/v0.2.2, github.com/clipperhouse/stringish v0.1.1, github.com/jdx/go-netrc v1.0.0, github.com/rivo/uniseg v0.4.7, github.com/samber/lo v1.52.0, Go Logrus v1.9.3, Go Testify v1.11.1, go-colorful v1.3.0, go.yaml.in/yaml/v2 v3.0.4, goccy/go-yaml v1.19.1, gomega 1.34.1, klauspost-cpuid v2.3.0, kr/pretty v0.3.1, Masterminds-semver v3.4.0, mattn-go-colorable v0.1.14, mattn-go-isatty v0.0.20, mattn-go-runewidth v0.0.19, Microsoft-go-winio v0.6.2, muesli/termenv v0.16.0, sergi/go-diff v1.4.0, xo/terminfo 20220910-snapshot-abceb7e1, yaml for Go v3.0.1)
+(aymanbagabas/go-osc52 v2.0.1, charmbracelet/lipgloss v1.1.0, clipperhouse/uax29 v2.7.0, cpuguy83-go-md2man 2.0.7, fatih-color v1.18.0, github.com/charmbracelet/colorprofile v0.4.2, github.com/charmbracelet/x 20240806-snapshot-69247e0a, github.com/charmbracelet/x ansi/v0.11.6, github.com/charmbracelet/x cellbuf/v0.0.15, github.com/charmbracelet/x term/v0.2.2, github.com/jdx/go-netrc v1.0.0, github.com/rivo/uniseg v0.4.7, github.com/samber/lo v1.52.0, Go Testify v1.11.1, go-colorful v1.3.0, go.yaml.in/yaml/v2 v3.0.4, goccy/go-yaml v1.19.2, gomega 1.34.1, kevinburke/ssh_config v1.6.0, klauspost-cpuid v2.3.0, kr/pretty v0.3.1, Masterminds-semver v3.4.0, mattn-go-colorable v0.1.14, mattn-go-isatty v0.0.20, Microsoft-go-winio v0.6.2, muesli/termenv v0.16.0, sergi/go-diff v1.4.0, Sirupsen/logrus v1.9.3, xo/terminfo 20220910-snapshot-abceb7e1, yaml for Go v3.0.1)
 
 The MIT License
 ===============
@@ -1897,6 +1902,36 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 
   This Source Code Form is "Incompatible With Secondary Licenses", as defined
   by the Mozilla Public License, v. 2.0.
+
+---
+
+X.Net License
+(kevinburke/ssh_config v1.6.0)
+
+The X.Net, Inc. License
+=======================
+
+Copyright (c) 2000-2001 X.Net, Inc. Lafayette, California, USA
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in the
+Software without restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+This agreement shall be governed in all respects by the laws of the State of
+California and by the laws of the United States of America
 
 ---
 
