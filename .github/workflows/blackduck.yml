@@ -48,7 +48,7 @@ jobs:
           fi
         shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
       - name: Commit and push changes
-        if: github.ref != 'refs/heads/main'
+        if: github.ref != 'refs/heads/main' && github.event_name == 'pull_request'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
