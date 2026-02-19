@@ -73,11 +73,11 @@ To install the SDK version specified in the daml.yaml, run:
 
   dpm install package
 
-To install a specific SDK version, for example version ``3.4.9``, run:
+To install a specific SDK version, for example version ``3.4.11``, run:
 
 .. code:: shell
 
-  dpm install 3.4.9
+  dpm install 3.4.11
 
 To see the active SDK version
 
@@ -87,7 +87,7 @@ To see the active SDK version
 
 .. code:: shell
 
-  3.4.0-snapshot.20251006.1451.85eca5a
+  3.4.12-snapshot.20251006.1451.85eca5a
 
 To list the installed SDK versions, including the currently active one (marked with `*`):
 
@@ -97,8 +97,8 @@ To list the installed SDK versions, including the currently active one (marked w
 
 .. code:: shell
 
-    3.4.0-snapshot.20251003.1412.3fe167f
-  * 3.4.0-snapshot.20251006.1451.85eca5a
+    3.4.12-snapshot.20251003.1412.3fe167f
+  * 3.4.12-snapshot.20251006.1451.85eca5a
 
 To additionally list all the SDK versions that can be installed, as well as the installed versions:
 
@@ -116,16 +116,16 @@ To get the list in a machine readable format:
 
      [
         {
-            "version": "3.4.0-rc2",
+            "version": "3.4.9",
             "remote": true
         },
         {
-            "version": "3.4.8",
+            "version": "3.4.10",
             "installed": true,
             "remote": true
         },
         {
-            "version": "3.4.9",
+            "version": "3.4.11",
             "installed": true,
             "remote": true,
             "active": true
