@@ -322,6 +322,7 @@ func (suite *MainSuite) TestComponentPublish() {
 	t.Run("overwrite latest tag", func(t *testing.T) {
 		publish(t, "4.5.6")
 	})
+
 }
 
 func (suite *MainSuite) TestComponentPublishDryRun() {
@@ -335,6 +336,40 @@ func (suite *MainSuite) TestComponentPublishDryRun() {
 	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
 	assert.Contains(t, string(output), "")
+}
+
+func (suite *MainSuite) TestComponentPublishSkipExisting() {
+	t := suite.T()
+	ctx := testutil.Context(t)
+	client, _ := testutil.StartRegistry(t)
+
+	publish := func(t *testing.T, version string) {
+		args := []string{"repo", "publish-component", "--skip-existing", "meepy-repo", version,
+			"-p", "generic=" + testutil.TestdataPath(t, "meepy-component", testutil.OS),
+			"-t", "latest",
+		}
+		cmd, _, w := createTestRootCmd(t, appendRegistryArgsFromEnv(args)...)
+		assert.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		reg, err := remote.NewRegistry(client.Registry)
+		require.NoError(t, err)
+		_, err = reg.Repository(ctx, ociconsts.ComponentRepoPrefix+"meepy-repo")
+		assert.NoError(t, err)
+	}
+
+	t.Run("publish", func(t *testing.T) {
+		publish(t, "1.2.3")
+	})
+
+	t.Run("overwrite latest tag", func(t *testing.T) {
+		publish(t, "4.5.6")
+	})
+	// retry command on existing tag and confirm command completion
+	t.Run("publish", func(t *testing.T) {
+		publish(t, "1.2.3")
+	})
+
 }
 
 func (suite *MainSuite) TestAssistantVersionCommand() {

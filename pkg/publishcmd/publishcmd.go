@@ -20,6 +20,7 @@ type PublishCmd struct {
 	Insecure     bool
 	Registry     string
 	RegistryAuth string
+	SkipExisting bool
 }
 
 func (c *PublishCmd) ParsePlatforms() (map[simpleplatform.Platform]string, error) {

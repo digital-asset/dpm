@@ -44,6 +44,7 @@ type Config struct {
 	Registry     string
 	AuthFilePath string
 	Insecure     bool
+	SkipExisting bool
 }
 
 func (config *Config) RequiredAnnotations() ociconsts.DescriptorAnnotations {
@@ -111,7 +112,7 @@ func (p *Publisher) Publish(ctx context.Context) (err error) {
 		return v.String()
 	}), p.config.Version.String())
 
-	if alreadyExists {
+	if alreadyExists && !p.config.SkipExisting {
 		p.printer.Println("skipped pushing because component's index already exists in remote")
 	} else {
 		var descriptors []v1.Descriptor
