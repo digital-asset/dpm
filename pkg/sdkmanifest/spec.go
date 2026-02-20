@@ -68,6 +68,18 @@ type Component struct {
 	LocalPath *string `yaml:"local-path,omitempty"`
 }
 
+// String returns representation meant for humans
+func (c *Component) String() string {
+	if c.Version != nil {
+		return fmt.Sprintf("%s:%s", c.Name, c.Version.Value().String())
+	} else if c.ImageTag != nil {
+		return fmt.Sprintf("%s:%s", c.Name, *c.ImageTag)
+	} else if c.LocalPath != nil {
+		return fmt.Sprintf("%s@%s", c.Name, *c.LocalPath)
+	}
+	return c.Name
+}
+
 func (c *Component) UnmarshalYAML(bytes []byte) error {
 	type Alias Component
 	alias := Alias{}
