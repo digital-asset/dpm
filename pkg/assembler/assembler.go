@@ -212,11 +212,16 @@ func extractCommands(comps map[string]*ResolvedComponent) map[string][]*Validate
 }
 
 func validate(commands []*ValidatedCommand) error {
-	uniqueByName := lo.UniqBy(commands, func(cmd *ValidatedCommand) string {
-		return cmd.GetName()
+	var errs []error
+
+	groupedByName := lo.GroupByMap(commands, func(cmd *ValidatedCommand) (string, string) {
+		return cmd.GetName(), cmd.ComponentName
 	})
-	if len(uniqueByName) != len(commands) {
-		return fmt.Errorf("commands from all components conflict and aren't unique")
+
+	for cmd, comps := range groupedByName {
+		if len(comps) > 1 {
+			errs = append(errs, fmt.Errorf("command named %q is defined in multiple components %v", cmd, comps))
+		}
 	}
 
 	builtin := lo.SliceToMap(builtincommand.BuiltinCommands, func(b builtincommand.BuiltinCommand) (string, struct{}) {
@@ -225,15 +230,25 @@ func validate(commands []*ValidatedCommand) error {
 	for _, cmd := range commands {
 		_, ok := builtin[cmd.GetName()]
 		if ok {
-			return fmt.Errorf("command names conflict with the assistant's built-in commands: %s", cmd.GetName())
+			errs = append(errs, fmt.Errorf("command named %q (from component %q) conflicts with the assistant's built-in commands", cmd.GetName(), cmd.ComponentName))
 		}
 	}
 
-	aliases := lo.FlatMap(commands, func(cmd *ValidatedCommand, _ int) []string {
-		return cmd.GetAliases()
+	aliases := lo.FlatMap(commands, func(c *ValidatedCommand, _ int) []lo.Entry[string, string] {
+		return lo.Map(c.GetAliases(), func(alias string, _ int) lo.Entry[string, string] {
+			return lo.Entry[string, string]{
+				Key:   alias,
+				Value: c.ComponentName,
+			}
+		})
 	})
-	if len(lo.Uniq(aliases)) != len(aliases) {
-		return fmt.Errorf("command aliases across components conflict and aren't unique")
+	groupedByAlias := lo.GroupByMap(aliases, func(p lo.Entry[string, string]) (string, string) {
+		return p.Key, p.Value
+	})
+	for alias, comps := range groupedByAlias {
+		if len(comps) > 1 {
+			errs = append(errs, fmt.Errorf("command alias %q is used by multiple components %v", alias, comps))
+		}
 	}
 
 	uniqueByPath := lo.UniqBy(commands, func(cmd *ValidatedCommand) string { return cmd.AbsolutePath })
@@ -241,14 +256,15 @@ func validate(commands []*ValidatedCommand) error {
 		errMsg := fmt.Sprintf("component %q command validation failed for command %q", c.ComponentName, c.GetName())
 		f, err := os.Stat(c.AbsolutePath)
 		if err != nil {
-			return fmt.Errorf("%s: %w", errMsg, err)
+			errs = append(errs, fmt.Errorf("%s: %w", errMsg, err))
+			continue
 		}
 		if f.IsDir() {
-			return fmt.Errorf("%s: %q is a directory", errMsg, c.AbsolutePath)
+			errs = append(errs, fmt.Errorf("%s: %q is a directory", errMsg, c.AbsolutePath))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (a *Assembler) collectAssistant(ctx context.Context, assistant *sdkmanifest.Component) (string, error) {
