@@ -306,15 +306,21 @@ func (a *Assembler) collectAssistant(ctx context.Context, assistant *sdkmanifest
 
 // component name -> *ResolvedComponent
 func (a *Assembler) collectComponents(ctx context.Context, assemblyManifest *sdkmanifest.SdkManifest) (result map[string]*ResolvedComponent, err error) {
+	var errs []error
+
 	result = make(map[string]*ResolvedComponent)
 	for _, comp := range assemblyManifest.Spec.Components {
 		resolved, err := a.collectComponent(ctx, assemblyManifest.AbsolutePath, comp)
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 		result[comp.Name] = resolved
 	}
 
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
+	}
 	return result, nil
 }
 
@@ -366,7 +372,7 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 			// As auto-installation of SDKs is disabled by default, so is pulling overridden remote components, as both SDKs and remote overrides
 			// are using the same AutoInstall config variable...
 			// so currently the only way the assistant to have the assistant pull remote overrides is to have the user enable auto-install
-			return "", fmt.Errorf("sdk component is missing and won't be downloaded because auto-install is disabled")
+			return "", fmt.Errorf("sdk component %q is missing and won't be downloaded because auto-install is disabled", comp.String())
 		}
 		platform := simpleplatform.CurrentPlatform()
 		if a.overridePlatform != nil {
