@@ -1,0 +1,13 @@
+dependencies:
+  - daml-script
+  - ./meep.dar
+  - foo:devnet
+  - oci://localhost:$TEST_DPM_REGISTRY_PORT/some/dars/foo:1.2.3
+  - "@my-location/foo:4.5.6"
+
+artifact-locations:
+  "@digital-asset":
+     default: true
+     url: oci://localhost:$TEST_DPM_REGISTRY_PORT/more/official/dars
+  "@my-location":
+      url: oci://localhost:$TEST_DPM_REGISTRY_PORT/some/dars/n/stuff
