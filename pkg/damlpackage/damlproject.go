@@ -12,8 +12,11 @@ import (
 )
 
 type DamlPackage struct {
-	SdkVersion         string                            `yaml:"sdk-version"`
-	OverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components"`
+	SdkVersion           string                            `yaml:"sdk-version"`
+	OverrideComponents   map[string]*sdkmanifest.Component `yaml:"override-components"`
+	Dependencies         []string                          `yaml:"dependencies"`
+	ArtifactLocations    ArtifactLocations                 `yaml:"artifact-locations"`
+	ResolvedDependencies map[string]*ResolvedDependency    `yaml:"-"`
 }
 
 func Read(filePath string) (*DamlPackage, error) {
@@ -39,6 +42,19 @@ func ReadFromContents(contents []byte) (*DamlPackage, error) {
 			comp.Name = name
 		}
 	}
+
+	_, defaultLocation, err := obj.ArtifactLocations.GetDefaultLocation()
+	if err != nil {
+		return nil, fmt.Errorf("invalid artifact locations: %w", err)
+	}
+
+	if len(obj.Dependencies) > 0 {
+		obj.ResolvedDependencies, err = obj.computeResolvedDependencies(defaultLocation)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve provided dependencies: %w", err)
+		}
+	}
+
 	return &obj, nil
 }
 
