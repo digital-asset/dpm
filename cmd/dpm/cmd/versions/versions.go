@@ -39,7 +39,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var activeVersion *semver.Version
 			installedVersions := []*semver.Version{}
-			remoteVersions := []*semver.Version{}
+			remoteVersions := map[*semver.Version][]string{}
 
 			// get remote versions if applicable
 			if all && !activeOnly {

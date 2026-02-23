@@ -107,7 +107,7 @@ func (p *Publisher) Publish(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	alreadyExists := lo.Contains(lo.Map(existingVersions, func(v *semver.Version, _ int) string {
+	alreadyExists := lo.Contains(lo.Map(lo.Keys(existingVersions), func(v *semver.Version, _ int) string {
 		return v.String()
 	}), p.config.Version.String())
 

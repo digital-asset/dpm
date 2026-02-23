@@ -6,12 +6,20 @@ package ocilister
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"regexp"
 
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	ociconsts "daml.com/x/assistant/pkg/oci"
+	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"github.com/Masterminds/semver/v3"
+	"github.com/samber/lo"
 	"oras.land/oras-go/v2/registry/remote/errcode"
+)
+
+var platformTagRegex = regexp.MustCompile(
+	`^\d+\.\d+\.\d+.*\.(?:generic|[^._]+_[^._]+)$`,
 )
 
 // TODO this file should be a Lister interface, implemented by be methods on assistantremote.Remote
@@ -38,7 +46,7 @@ func ListTags(ctx context.Context, client *assistantremote.Remote, repoName stri
 }
 
 func ListComponentVersions(ctx context.Context, name string, client *assistantremote.Remote) (map[*semver.Version][]string, error) {
-	return listSemverTags(ctx, ociconsts.ComponentRepoPrefix+name, client)
+	return listTags(ctx, ociconsts.ComponentRepoPrefix+name, client)
 }
 
 func ListSDKVersions(ctx context.Context, edition sdkmanifest.Edition, client *assistantremote.Remote) (map[*semver.Version][]string, error) {
@@ -46,81 +54,55 @@ func ListSDKVersions(ctx context.Context, edition sdkmanifest.Edition, client *a
 	if err != nil {
 		return nil, err
 	}
-	return listSemverTags(ctx, repo, client)
+	return listTags(ctx, repo, client)
 }
 
-func listSemverTags(ctx context.Context, repoName string, client *assistantremote.Remote) (map[*semver.Version][]string, error) {
-	repo, err := client.Repo(repoName)
-	if err != nil {
-		return nil, err
-	}
-	
-	repo.Manifests()
-
-	//results := map[*semver.Version][]string{}
-	nonFloatyToFloaty := map[*semver.Version][]string{}
+func listTags(ctx context.Context, repoName string, client *assistantremote.Remote) (map[*semver.Version][]string, error) {
 	tags, found, err := ListTags(ctx, client, repoName)
 	if err != nil {
 		return nil, err
 	}
 
-	//if !found {
-	//	return results, nil
-	//}
 	if !found {
-		return nonFloatyToFloaty, nil
+		return map[*semver.Version][]string{}, nil
 	}
 
-	//floaty, NonFloaty := lo.FilterReject(tags, func(t string, _ int) bool {
-	//	return isFloaty(t)
-	//})
-
-	var floaty, nonFloaty map[string]string
-
-	digestToTags := map[string][]string{}
+	nonFloaty := map[string][]string{}
 	for _, tag := range tags {
-		desc, err := repo.Resolve(ctx, tag)
-		if err != nil {
-			return nil, err
+		if IsPlatformTag(tag) {
+			// skip 1.2.3.<platform>
+			continue
 		}
-		digestToTags[desc.Digest.String()] =
-			append(digestToTags[desc.Digest.String()], tag)
 
-		if isFloaty(tag) {
-			floaty[tag] = desc.Digest.String()
-		} else {
-			nonFloaty[tag] = desc.Digest.String()
+		if IsFloaty(tag) {
+			version, err := ociindex.ResolveTag(ctx, client, &ociconsts.SdkManifestArtifact{repoName}, tag)
+			if err != nil {
+				slog.Warn("failed to resolve floaty tag to semver",
+					slog.String("repo", repoName),
+					slog.String("tag", tag),
+					slog.Any("err", err),
+				)
+				continue
+			}
+			nonFloaty[version.String()] = append(nonFloaty[version.String()], tag)
+		} else if _, ok := nonFloaty[tag]; !ok {
+			nonFloaty[tag] = []string{}
 		}
 	}
 
-	for nonFloatyTag, digest := range nonFloaty {
-		v, _ := semver.NewVersion(nonFloatyTag)
-		nonFloatyToFloaty[v] = append(nonFloatyToFloaty[v], digestToTags[digest]...)
-	}
-
-	//result := lo.FilterMap(tags, func(t string, _ int) (*semver.Version, bool) {
-	//	v, err := semver.NewVersion(t)
-	//	if err != nil {
-	//		return nil, false
-	//	}
-	//	return v, true
-	//})
-	//
-	//slices.SortFunc(result, func(a, b *semver.Version) int {
-	//	return a.Compare(b)
-	//})
-	//
-	//return result, nil
-
-	return nonFloatyToFloaty, nil
+	return lo.MapKeys(nonFloaty, func(_ []string, tag string) *semver.Version {
+		v, _ := semver.NewVersion(tag)
+		return v
+	}), nil
 }
 
-func isFloaty(tag string) bool {
-	v, err := semver.NewVersion(tag)
-	if err != nil {
-		return true
-	}
-	return v.String() == tag
+func IsFloaty(tag string) bool {
+	_, err := semver.StrictNewVersion(tag)
+	return err != nil
+}
+
+func IsPlatformTag(tag string) bool {
+	return platformTagRegex.MatchString(tag)
 }
 
 func Cmp(a, b *semver.Version) int {

@@ -4,7 +4,9 @@
 package versions
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/charmbracelet/lipgloss"
@@ -17,13 +19,14 @@ type Version struct {
 	Installed bool            `json:"installed,omitempty"`
 	Remote    bool            `json:"remote,omitempty"`
 	Active    bool            `json:"active,omitempty"`
+	Tags      []string        `json:"tags,omitempty"`
 }
 
 type Versions []*Version
 
 type versionsMap map[string]*Version
 
-func New(active *semver.Version, installed, remote []*semver.Version) Versions {
+func New(active *semver.Version, installed []*semver.Version, remote map[*semver.Version][]string) Versions {
 	m := versionsMap{}
 
 	if active != nil {
@@ -34,8 +37,8 @@ func New(active *semver.Version, installed, remote []*semver.Version) Versions {
 		m.add(&Version{Version: v, Installed: true})
 	}
 
-	for _, v := range remote {
-		m.add(&Version{Version: v, Remote: true})
+	for v, tags := range remote {
+		m.add(&Version{Version: v, Remote: true, Tags: tags})
 	}
 
 	r := Versions(lo.Values(m))
@@ -55,6 +58,7 @@ func (v versionsMap) add(e *Version) {
 	v[key].Installed = v[key].Installed || e.Installed
 	v[key].Remote = v[key].Remote || e.Remote
 	v[key].Active = v[key].Active || e.Active
+	v[key].Tags = append(v[key].Tags, e.Tags...)
 }
 
 func (v Versions) Copy() Versions {
@@ -71,6 +75,7 @@ func (v Versions) Copy() Versions {
 			Installed: e.Installed,
 			Remote:    e.Remote,
 			Active:    e.Active,
+			Tags:      e.Tags,
 		}
 	})
 	return r
@@ -108,7 +113,13 @@ func (v Versions) Table() string {
 		BorderBottom(false).
 		Rows(lo.Map(newV, func(row *Version, _ int) []string {
 			indicator := ""
+
 			version := row.Version.String()
+
+			if len(row.Tags) > 0 {
+				tags := strings.Join(row.Tags, ", ")
+				version = fmt.Sprintf("%s\t(%s)", version, tags)
+			}
 
 			switch {
 			case row.Active:
