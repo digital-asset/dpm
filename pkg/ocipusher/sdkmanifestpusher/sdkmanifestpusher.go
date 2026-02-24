@@ -48,7 +48,7 @@ func (p *AssemblyPusher) PushSdkManifest(ctx context.Context, client *assistantr
 		return nil, err
 	}
 
-	alreadyExists := lo.Contains(lo.Map(existingVersions, func(v *semver.Version, _ int) string {
+	alreadyExists := lo.Contains(lo.Map(lo.Keys(existingVersions), func(v *semver.Version, _ int) string {
 		return v.String()
 	}), p.config.Version.String())
 

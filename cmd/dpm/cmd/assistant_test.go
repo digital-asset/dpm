@@ -555,12 +555,12 @@ func (suite *MainSuite) TestListSDKVersion() {
 
 	sdkVersions := []string{"0.0.1-whatever", "2.0.0-alpha", "1.0.0", "1.0.1", "3.0.0", "1.1.0"}
 	sorted := []string{
-		"  0.0.1-whatever ",
-		"  1.0.0          ",
-		"  1.0.1          ",
-		"  1.1.0          ",
-		"  2.0.0-alpha    ",
-		"  3.0.0          ",
+		"  0.0.1-whatever    ",
+		"  1.0.0             ",
+		"  1.0.1             ",
+		"  1.1.0    (latest) ",
+		"  2.0.0-alpha       ",
+		"  3.0.0             ",
 	}
 	lo.ForEach(sdkVersions, func(v string, _ int) {
 		testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, v, testutil.TestdataPath(t, "remote-components.yaml"))
