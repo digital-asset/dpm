@@ -6,6 +6,11 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
+	"oras.land/oras-go/v2/registry"
+	"oras.land/oras-go/v2/registry/remote"
+	"oras.land/oras-go/v2/registry/remote/auth"
 )
 
 type ArtifactLocations map[string]*ArtifactLocation
@@ -14,6 +19,9 @@ type ArtifactLocation struct {
 	Url     string `yaml:"url"`
 	Default bool   `yaml:"default"`
 	Auth    string `yaml:"auth"`
+
+	// For unit tests
+	Client *auth.Client
 }
 
 type ResolvedDependency struct {
@@ -22,6 +30,30 @@ type ResolvedDependency struct {
 
 	// can be nil when the corresponding dependency is already fully qualified and doesn't rely on an artifact-location
 	Location *ArtifactLocation
+}
+
+func (d *ResolvedDependency) GetOciRepo() (*remote.Repository, *registry.Reference, error) {
+	ref, err := registry.ParseReference(strings.TrimPrefix(d.FullUrl.String(), "oci://"))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var assistantRemote *assistantremote.Remote
+	if d.Location.Client != nil {
+		assistantRemote = assistantremote.NewWithCustomClient(ref.Registry, d.Location.Client, false)
+	} else {
+		assistantRemote, err = assistantremote.New(ref.Registry, d.Location.Auth, false)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	repo, err := assistantRemote.Repo(ref.Repository)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return repo, &ref, nil
 }
 
 var regex = regexp.MustCompile(`^(@[a-zA-Z0-9_-]+)/[^/]+$`)
