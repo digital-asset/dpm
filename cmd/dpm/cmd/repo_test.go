@@ -313,6 +313,27 @@ func publishComponents(t *testing.T, extraTags ...string) {
 	})
 }
 
+func publishDar(t *testing.T, extraTags ...string) {
+	t.Run("publish dar", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t)
+		if extraTags == nil || len(extraTags) == 0 {
+			extraTags = []string{"latest"}
+		}
+		args := []string{"repo", "publish-dar", "meep", "1.2.3",
+			"-p", "windows/amd64=" + testutil.TestdataPath(t, "test-dar", "windows"),
+			"-p", "linux/amd64=" + testutil.TestdataPath(t, "test-dar", "unix"),
+			"-p", "darwin/amd64=" + testutil.TestdataPath(t, "test-dar", "unix"),
+			"-p", "darwin/arm64=" + testutil.TestdataPath(t, "test-dar", "unix"),
+		}
+		for _, tag := range extraTags {
+			args = append(args, []string{"--extra-tags", tag}...)
+		}
+		cmd.SetArgs(appendRegistryArgsFromEnv(args))
+		require.NoError(t, cmd.Execute())
+	})
+
+}
+
 func verifyLink(t *testing.T) {
 	verifyLnkAtPath(t, activeAssistantPath(t, os.Getenv(assistantconfig.DpmHomeEnvVar)))
 }

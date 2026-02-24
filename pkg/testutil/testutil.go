@@ -77,6 +77,38 @@ func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server,
 	}
 }
 
+func PushDar(t *testing.T, ctx context.Context, registry *httptest.Server, darName, tag, pathToComponent string) {
+	r := getRemote(registry)
+	v, err := semver.NewVersion(tag)
+	require.NoError(t, err)
+	requiredAnnotations := ociconsts.DescriptorAnnotations{
+		Name:    darName,
+		Version: v,
+	}
+	opts := ocipusher.Opts{
+		Artifact:            &ociconsts.DarArtifact{DarName: darName},
+		RawTag:              tag,
+		Dir:                 pathToComponent,
+		RequiredAnnotations: requiredAnnotations,
+		ExtraAnnotations:    map[string]string{},
+		Platform:            &simpleplatform.Generic{},
+	}
+	pushOp, err := ocipusher.New(ctx, opts)
+	require.NoError(t, err)
+	desc, err := pushOp.Do(ctx, r)
+	require.NoError(t, err)
+
+	indexOpts := ociindex.Opts{
+		Artifact:            &ociconsts.DarArtifact{DarName: darName},
+		Tag:                 tag,
+		Manifests:           []v1.Descriptor{*desc},
+		ExtraAnnotations:    map[string]string{},
+		RequiredAnnotations: requiredAnnotations,
+	}
+	_, err = ociindex.PushIndex(ctx, r, indexOpts)
+	require.NoError(t, err)
+}
+
 // PushAssembly pushes assembly manifest to OCI registry for all platforms
 func PushAssembly(t *testing.T, ctx context.Context, edition sdkmanifest.Edition, registry *httptest.Server, tag, pathToAssembly string) {
 	platforms := []string{

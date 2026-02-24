@@ -16,6 +16,10 @@ const (
 	AssemblyFileMediaType  = "application/vnd.assembly.file"
 	ComponentRepoPrefix    = "components/"
 
+	DarArtifactType  = "application/vnd.dar.artifact"
+	DarFileMediaType = "application/vnd.dar.file"
+	DarRepoPrefix    = "dar/"
+
 	sdkManifestsRepoPrefix     = "sdk-manifests/"
 	SdkManifestsOpenSourceRepo = sdkManifestsRepoPrefix + "open-source"
 	SdkManifestsEnterpriseRepo = sdkManifestsRepoPrefix + "enterprise"

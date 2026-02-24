@@ -9,15 +9,31 @@ type Artifact interface {
 	FileMediaType() string
 }
 
+type Dar interface {
+	DarRepoName() string
+}
+
 type ComponentArtifact struct {
 	ComponentName string
+}
+
+type DarArtifact struct {
+	DarName string
 }
 
 func (a *ComponentArtifact) RepoName() string {
 	return ComponentRepoPrefix + a.ComponentName
 }
+
+func (a *DarArtifact) RepoName() string {
+	return DarRepoPrefix + a.DarName
+}
+
 func (a *ComponentArtifact) ArtifactType() string  { return ComponentArtifactType }
 func (a *ComponentArtifact) FileMediaType() string { return ComponentFileMediaType }
+
+func (a *DarArtifact) ArtifactType() string  { return DarArtifactType }
+func (a *DarArtifact) FileMediaType() string { return DarFileMediaType }
 
 type SdkManifestArtifact struct {
 	SdkManifestsRepo string
