@@ -23,8 +23,8 @@ type PackageLock struct {
 }
 
 type Dar struct {
-	Name   string `yaml:"name"`
-	Digest string `yaml:"digest"`
+	URI    string `yaml:"uri"`
+	Digest string `yaml:"digest,omitempty"`
 }
 
 func ReadPackageLock(filePath string) (*PackageLock, error) {
