@@ -5,12 +5,13 @@ package testutil
 
 import (
 	"context"
-	"daml.com/x/assistant/pkg/ocipusher/sdkmanifestpusher"
 	"net/http/httptest"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"daml.com/x/assistant/pkg/ocipusher/sdkmanifestpusher"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"

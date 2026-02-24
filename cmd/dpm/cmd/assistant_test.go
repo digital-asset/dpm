@@ -21,7 +21,6 @@ import (
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/testutil"
-	"daml.com/x/assistant/pkg/utils"
 	"github.com/goccy/go-yaml"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -410,11 +409,7 @@ func installSdk(t *testing.T, installArg string) {
 	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
 	testutil.PushComponent(t, ctx, reg, sdkmanifest.AssistantName, "4.5.6", testutil.TestdataPath(t, "assistant-binary", testutil.OS))
 
-	tmpDamlHome, deleteFn, err := utils.MkdirTemp("", "")
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = deleteFn()
-	})
+	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
 	cmd, r, w := createTestRootCmd(t, "install", installArg)
@@ -461,17 +456,13 @@ func (suite *MainSuite) TestHelpCommandUsesShallowResolution() {
 
 	for _, tc := range testcases {
 		t.Run(tc.Name, func(t *testing.T) {
-			tmpDir, deleteFn, err := utils.MkdirTemp("", "")
-			require.NoError(t, err)
-			t.Cleanup(func() {
-				_ = deleteFn()
-			})
+			tmpDir := t.TempDir()
 
 			t.Setenv(assistantconfig.ResolutionFilePathEnvVar, filepath.Join(tmpDir, "deep.yaml"))
 			cmd := createStdTestRootCmd(t, tc.Args...)
 			require.NoError(t, cmd.Execute())
 
-			_, err = os.ReadFile(filepath.Join(tmpDir, "deep.yaml"))
+			_, err := os.ReadFile(filepath.Join(tmpDir, "deep.yaml"))
 			require.ErrorIs(t, err, os.ErrNotExist)
 
 		})
@@ -515,11 +506,7 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 	installSdk(t, "0.0.1-whatever")
 
 	t.Run("single package", func(t *testing.T) {
-		tmpDir, deleteFn, err := utils.MkdirTemp("", "")
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			_ = deleteFn()
-		})
+		tmpDir := t.TempDir()
 
 		t.Setenv(damlPackageEnvVar, testutil.TestdataPath(t, "another-daml-package"))
 		t.Setenv(assistantconfig.ResolutionFilePathEnvVar, filepath.Join(tmpDir, "deep.yaml"))
@@ -537,11 +524,7 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 	})
 
 	t.Run("multi package", func(t *testing.T) {
-		tmpDir, deleteFn, err := utils.MkdirTemp("", "")
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			_ = deleteFn()
-		})
+		tmpDir := t.TempDir()
 		t.Setenv(assistantconfig.ResolutionFilePathEnvVar, filepath.Join(tmpDir, "deep.yaml"))
 
 		cwd, err := os.Getwd()
@@ -610,11 +593,7 @@ func (suite *MainSuite) TestListSDKVersion() {
 	})
 
 	t.Run("active sdk version from daml yaml not installed", func(t *testing.T) {
-		tmpDir, deleteFn, err := utils.MkdirTemp("", "")
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			_ = deleteFn()
-		})
+		tmpDir := t.TempDir()
 
 		t.Setenv(assistantconfig.DamlPackageEnvVar, tmpDir)
 		err = os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(`sdk-version: 1.2.3-not-installed`), 0666)
@@ -755,11 +734,7 @@ func (suite *MainSuite) TestNoHomeRequired() {
 		os.Setenv("HOME", home)
 	})
 
-	tmpDamlHome, deleteFn, err := utils.MkdirTemp("", "")
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = deleteFn()
-	})
+	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
 	cmd := createStdTestRootCmd(t)
