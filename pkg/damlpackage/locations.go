@@ -16,9 +16,10 @@ import (
 type ArtifactLocations map[string]*ArtifactLocation
 
 type ArtifactLocation struct {
-	Url     string `yaml:"url"`
-	Default bool   `yaml:"default"`
-	Auth    string `yaml:"auth"`
+	Url      string `yaml:"url"`
+	Default  bool   `yaml:"default"`
+	Auth     string `yaml:"auth"`
+	Insecure bool   `yaml:"insecure"`
 
 	// For unit tests
 	Client *auth.Client
@@ -38,11 +39,17 @@ func (d *ResolvedDependency) GetOciRepo() (*remote.Repository, *registry.Referen
 		return nil, nil, err
 	}
 
+	insecure := d.Location != nil && d.Location.Insecure
+
 	var assistantRemote *assistantremote.Remote
-	if d.Location.Client != nil {
-		assistantRemote = assistantremote.NewWithCustomClient(ref.Registry, d.Location.Client, false)
+	if d.Location != nil && d.Location.Client != nil {
+		assistantRemote = assistantremote.NewWithCustomClient(ref.Registry, d.Location.Client, insecure)
 	} else {
-		assistantRemote, err = assistantremote.New(ref.Registry, d.Location.Auth, false)
+		auth := ""
+		if d.Location != nil {
+			auth = d.Location.Auth
+		}
+		assistantRemote, err = assistantremote.New(ref.Registry, auth, insecure)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -56,7 +63,7 @@ func (d *ResolvedDependency) GetOciRepo() (*remote.Repository, *registry.Referen
 	return repo, &ref, nil
 }
 
-var regex = regexp.MustCompile(`^(@[a-zA-Z0-9_-]+)/[^/]+$`)
+var regex = regexp.MustCompile(`^(@[a-zA-Z0-9_-]+)/`)
 
 func (ls ArtifactLocations) GetDefaultLocation() (name string, location *ArtifactLocation, err error) {
 	for s, l := range ls {
