@@ -1,6 +1,8 @@
 package update
 
 import (
+	"fmt"
+
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/packagelock"
@@ -16,6 +18,10 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 		Hidden: true,
 		Args:   cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if force && checkOnly {
+				return fmt.Errorf("--force and --check can't be used together")
+			}
+
 			op := packagelock.Regular
 			if force {
 				op = packagelock.Force
