@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/schema"
+	"daml.com/x/assistant/pkg/utils/stringset"
 	"github.com/goccy/go-yaml"
+	"oras.land/oras-go/v2/registry"
 )
 
 const (
@@ -54,4 +58,63 @@ func ReadPackageLockContents(contents []byte) (*PackageLock, error) {
 	}
 
 	return &c, nil
+}
+
+// toDiffableMap separates the tag from the rest of the URI which is helpful for
+// diffing existing lockfile against the expected one
+// example: { "oci://example.com/foo/bar" -> [latest, 3.4], ... }
+func (l *PackageLock) toDiffableMap() (map[string]stringset.StringSet, error) {
+	m := map[string]stringset.StringSet{}
+	for _, d := range l.Dars {
+		ref, err := registry.ParseReference(strings.TrimPrefix(d.URI, "oci://"))
+		if err != nil {
+			return nil, err
+		}
+		k := fmt.Sprintf("%s/%s", ref.Registry, ref.Repository)
+
+		if _, ok := m[k]; !ok {
+			m[k] = make(stringset.StringSet)
+		}
+		m[k].Add(ref.Reference)
+	}
+	return m, nil
+}
+
+// areDiff checks whether an existing lockfile is out-dated by diffing against an expected lockfile
+// it takes into account the fact that tags in the expected lockfile might be floaty
+func areDiff(expected, existing *PackageLock) (bool, error) {
+	expectedMap, err := expected.toDiffableMap()
+	if err != nil {
+		return false, err
+	}
+	existingMap, err := existing.toDiffableMap()
+	if err != nil {
+		return false, err
+	}
+
+	if len(existingMap) != len(expectedMap) {
+		return true, nil
+	}
+
+	for k, xs := range expectedMap {
+		ys, ok := existingMap[k]
+		if !ok {
+			return true, nil
+		}
+
+		if len(xs) != len(ys) {
+			return true, nil
+		}
+
+		for x := range xs {
+			if ocilister.IsFloaty(x) {
+				continue
+			}
+			if !ys.Contains(x) {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
