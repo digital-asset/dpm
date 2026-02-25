@@ -22,15 +22,15 @@ func TestOciDarPuller(t *testing.T) {
 	registry := httptest.NewTLSServer(registry.New())
 	defer registry.Close()
 
-	tag := "1.2.3"
+	version := "1.2.3"
 
 	// TODO: using a PushComponent() for lack of a PushDar() for now
-	testutil.PushComponent(t, ctx, registry, "meep", tag, testutil.TestdataPath(t, "some-dar"))
+	testutil.PushComponent(t, ctx, registry, "meep", version, testutil.TestdataPath(t, "some-dar"), "latest")
 
 	u, err := url.Parse(fmt.Sprintf("oci://%s/%s:%s",
 		strings.TrimPrefix(registry.URL, "https://"),
 		"components/meep",
-		tag,
+		"latest",
 	))
 	if err != nil {
 		require.NoError(t, err)
@@ -43,9 +43,11 @@ func TestOciDarPuller(t *testing.T) {
 		},
 	}
 
-	_, destPath, err := fake(t).PullDar(ctx, dar)
+	descriptor, v, destPath, err := fake(t).PullDar(ctx, dar)
 	require.NoError(t, err)
 	assert.NotEmpty(t, destPath)
+	assert.NotEmpty(t, descriptor.Digest)
+	assert.Equal(t, version, v.String())
 }
 
 func fake(t *testing.T) *OciDarPuller {
