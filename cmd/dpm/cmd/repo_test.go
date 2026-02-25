@@ -320,10 +320,7 @@ func publishDar(t *testing.T, extraTags ...string) {
 			extraTags = []string{"latest"}
 		}
 		args := []string{"repo", "publish-dar", "meep", "1.2.3",
-			"-p", "windows/amd64=" + testutil.TestdataPath(t, "test-dar", "windows"),
-			"-p", "linux/amd64=" + testutil.TestdataPath(t, "test-dar", "unix"),
-			"-p", "darwin/amd64=" + testutil.TestdataPath(t, "test-dar", "unix"),
-			"-p", "darwin/arm64=" + testutil.TestdataPath(t, "test-dar", "unix"),
+			"-f", " " + testutil.TestdataPath(t, "test-dar"),
 		}
 		for _, tag := range extraTags {
 			args = append(args, []string{"--extra-tags", tag}...)

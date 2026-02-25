@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"strings"
 
-	"daml.com/x/assistant/pkg/publish"
 	"daml.com/x/assistant/pkg/publishcmd"
+	"daml.com/x/assistant/pkg/publishdar"
 	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/cobra"
 )
 
 func Cmd() *cobra.Command {
-	c := publishcmd.PublishCmd{}
+	c := publishcmd.PublishDarCmd{}
 	cmd := &cobra.Command{
 		Use:     "publish-dar <name> <version>",
 		Short:   "Publish a dar to an OCI registry",
@@ -27,14 +27,9 @@ func Cmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("invalid version argument: %w", err)
 			}
-			platforms, err := c.ParsePlatforms()
-			if err != nil {
-				return err
-			}
-
 			cmd.SilenceUsage = true
-			publishConfig := &publish.Config{
-				Platforms:      platforms, //Initalizing empty slice for publish-dar since we don't need it, and it avoids the need to parse platforms from the CLI args
+			publishDarConfig := &publishdar.DarConfig{
+				File:           c.File,
 				Name:           name,
 				Version:        version,
 				DryRun:         c.DryRun,
@@ -45,15 +40,15 @@ func Cmd() *cobra.Command {
 				Insecure:       c.Insecure,
 				ExtraTags:      c.ExtraTags,
 			}
-			return publish.New(publishConfig, cmd).PublishDar(cmd.Context())
+			return publishdar.New(publishDarConfig, cmd).PublishDar(cmd.Context())
 		},
 	}
 	cmd.Flags().BoolVarP(&c.DryRun, "dry-run", "d", false, "don't actually push to the registry")
 	cmd.Flags().BoolVarP(&c.IncludeGitInfo, "include-git-info", "g", false, "include git info as annotations on the published manifest")
 	cmd.Flags().StringToStringVarP(&c.Annotations, "annotations", "a", map[string]string{}, "annotations to include in the published OCI artifact")
 
-	cmd.Flags().StringToStringVarP(&c.Platforms, publishcmd.PlatformFlagName, "p", map[string]string{}, `REQUIRED <os>/<arch>=<path-to-component> or generic=<path-to-component>`)
-	cmd.MarkFlagRequired(publishcmd.PlatformFlagName)
+	cmd.Flags().StringVarP(&c.File, "file", "f", "", `REQUIRED path to the dar file to publish`)
+	cmd.MarkFlagRequired(publishcmd.FileFlagName)
 
 	cmd.Flags().StringSliceVarP(&c.ExtraTags, "extra-tags", "t", []string{}, "publish extra tags besides the semver")
 

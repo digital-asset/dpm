@@ -18,7 +18,7 @@ const (
 
 	DarArtifactType  = "application/vnd.dar.artifact"
 	DarFileMediaType = "application/vnd.dar.file"
-	DarRepoPrefix    = "dar/"
+	DarRepoPrefix    = "dars/"
 
 	sdkManifestsRepoPrefix     = "sdk-manifests/"
 	SdkManifestsOpenSourceRepo = sdkManifestsRepoPrefix + "open-source"

@@ -156,67 +156,6 @@ func (p *Publisher) Publish(ctx context.Context) (err error) {
 	return nil
 }
 
-func (p *Publisher) PublishDar(ctx context.Context) (err error) {
-	var pushOps []*ocipusher.PushOperation
-
-	pushOps, err = p.prepareDars(ctx)
-	if err != nil {
-		return err
-	}
-
-	if p.config.DryRun {
-		p.printer.Println("Skipping push due to --dry-run")
-		return nil
-	}
-
-	if p.config.Registry == "" {
-		return fmt.Errorf("--registy must be provided when not in dry-run mode")
-	}
-
-	client, err := assistantremote.New(p.config.Registry, p.config.AuthFilePath, p.config.Insecure)
-	if err != nil {
-		return err
-	}
-
-	// skip pushing both index and platforms' images if index already exists
-	existingVersions, err := ocilister.ListDarVersions(ctx, p.config.Name, client)
-	if err != nil {
-		return err
-	}
-	alreadyExists := lo.Contains(lo.Map(lo.Keys(existingVersions), func(v *semver.Version, _ int) string {
-		return v.String()
-	}), p.config.Version.String())
-
-	if alreadyExists {
-		p.printer.Println("skipped pushing because dar's index already exists in remote")
-	} else {
-		var descriptors []v1.Descriptor
-		for _, pushOp := range pushOps {
-			desc, err := p.push(ctx, client, pushOp)
-			if err != nil {
-				return err
-			}
-			switch p := pushOp.Platform().(type) {
-			case *simpleplatform.NonGeneric:
-				desc.Platform = p.ToOras()
-			case *simpleplatform.Generic:
-			default:
-				return fmt.Errorf("unknown platform type %t", p)
-			}
-			descriptors = append(descriptors, *desc)
-		}
-	}
-	if p.config.ExtraTags != nil && len(p.config.ExtraTags) > 0 {
-		p.printer.Println("pushing extra tags...")
-		err := ociindex.Tag(ctx, client, &ociconsts.DarArtifact{DarName: p.config.Name}, p.config.Version, p.config.ExtraTags)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (p *Publisher) prepareAssistant(ctx context.Context) (pushOps []*ocipusher.PushOperation, close func() error, err error) {
 	var deleteFns []func() error
 	close = func() error {
@@ -260,7 +199,7 @@ func (p *Publisher) prepareAssistant(ctx context.Context) (pushOps []*ocipusher.
 			return nil, close, err
 		}
 
-		pushOp, err := p.prepare(ctx, platform, dir, true)
+		pushOp, err := p.prepare(ctx, platform, dir)
 		if err != nil {
 			return nil, close, err
 		}
@@ -303,34 +242,10 @@ func (p *Publisher) prepareComponent(ctx context.Context, platform simpleplatfor
 		return nil, err
 	}
 	p.printer.Println()
-	return p.prepare(ctx, platform, dir, true)
+	return p.prepare(ctx, platform, dir)
 }
 
-func (p *Publisher) prepareDars(ctx context.Context) ([]*ocipusher.PushOperation, error) {
-	var pushOps []*ocipusher.PushOperation
-	for platform, dir := range p.config.Platforms {
-		pushOp, err := p.prepareDar(ctx, platform, dir)
-		if err != nil {
-			return nil, err
-		}
-
-		pushOps = append(pushOps, pushOp)
-	}
-	return pushOps, nil
-}
-
-func (p *Publisher) prepareDar(ctx context.Context, platform simpleplatform.Platform, dir string) (*ocipusher.PushOperation, error) {
-	p.printer.Printf("📦 Checking %q includes license file...\n", platform.String())
-	if err := checkHasLicense(dir); err != nil {
-		return nil, err
-	}
-	p.printer.Printf("License file included ✅\n")
-	p.printer.Println()
-
-	return p.prepare(ctx, platform, dir, false)
-}
-
-func (p *Publisher) prepare(ctx context.Context, platform simpleplatform.Platform, dir string, isComponent bool) (*ocipusher.PushOperation, error) {
+func (p *Publisher) prepare(ctx context.Context, platform simpleplatform.Platform, dir string) (*ocipusher.PushOperation, error) {
 	annotations := maps.Clone(p.config.Annotations)
 	if p.config.IncludeGitInfo {
 		gitAnnotations, err := collectGitAnnotations()
@@ -340,11 +255,8 @@ func (p *Publisher) prepare(ctx context.Context, platform simpleplatform.Platfor
 		maps.Copy(annotations, gitAnnotations)
 	}
 	var artifact ociconsts.Artifact
-	if isComponent {
-		artifact = &ociconsts.ComponentArtifact{ComponentName: p.config.Name}
-	} else {
-		artifact = &ociconsts.DarArtifact{DarName: p.config.Name}
-	}
+	artifact = &ociconsts.ComponentArtifact{ComponentName: p.config.Name}
+
 	opts := ocipusher.Opts{
 		Artifact:            artifact,
 		RawTag:              p.config.Version.String(),
