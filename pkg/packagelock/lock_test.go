@@ -26,39 +26,39 @@ func TestDiff(t *testing.T) {
 			name:     "no diff",
 			expected: mk("oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
 			existing: mk("oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
-			want:     false,
+			want:     true,
 		},
 		{
 			name:     "only removed",
 			expected: mk("oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
 			existing: mk("oci://example1.com/a:latest"),
-			want:     true,
+			want:     false,
 		},
 		{
 			name:     "only added",
 			expected: mk("oci://example1.com/a:latest"),
 			existing: mk("oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
-			want:     true,
+			want:     false,
 		},
 		{
 			name:     "added and removed",
 			expected: mk("oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
 			existing: mk("oci://example2.com/b:1.2.3", "oci://example3.com/c:4.5.6"),
-			want:     true,
+			want:     false,
 		},
 		{
 			name:     "only floaty diff",
 			expected: mk("oci://example2.com/b:latest"),
 			existing: mk("oci://example2.com/b:1.2.3"),
-			want:     false,
+			want:     true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			diff, err := areDiff(tt.expected, tt.existing)
+			got, err := tt.existing.isInSync(tt.expected)
 			require.NoError(t, err)
-			assert.Equal(t, tt.want, diff)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

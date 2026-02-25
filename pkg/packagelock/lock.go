@@ -80,30 +80,30 @@ func (l *PackageLock) toDiffableMap() (map[string]stringset.StringSet, error) {
 	return m, nil
 }
 
-// areDiff checks whether an existing lockfile is out-dated by diffing against an expected lockfile
+// isInSync checks whether this (existing) lockfile matches an expected lockfile.
 // it takes into account the fact that tags in the expected lockfile might be floaty
-func areDiff(expected, existing *PackageLock) (bool, error) {
+func (l *PackageLock) isInSync(expected *PackageLock) (bool, error) {
 	expectedMap, err := expected.toDiffableMap()
 	if err != nil {
 		return false, err
 	}
-	existingMap, err := existing.toDiffableMap()
+	existingMap, err := l.toDiffableMap()
 	if err != nil {
 		return false, err
 	}
 
 	if len(existingMap) != len(expectedMap) {
-		return true, nil
+		return false, nil
 	}
 
 	for k, xs := range expectedMap {
 		ys, ok := existingMap[k]
 		if !ok {
-			return true, nil
+			return false, nil
 		}
 
 		if len(xs) != len(ys) {
-			return true, nil
+			return false, nil
 		}
 
 		for x := range xs {
@@ -111,10 +111,10 @@ func areDiff(expected, existing *PackageLock) (bool, error) {
 				continue
 			}
 			if !ys.Contains(x) {
-				return true, nil
+				return false, nil
 			}
 		}
 	}
 
-	return false, nil
+	return true, nil
 }
