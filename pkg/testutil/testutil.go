@@ -40,7 +40,7 @@ func TestdataPath(t *testing.T, path ...string) string {
 	return filepath.Join(p...)
 }
 
-func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server, componentName, tag, pathToComponent string) {
+func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server, componentName, tag, pathToComponent string, extraTags ...string) {
 	r := getRemote(registry)
 	v, err := semver.NewVersion(tag)
 	require.NoError(t, err)
@@ -70,6 +70,11 @@ func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server,
 	}
 	_, err = ociindex.PushIndex(ctx, r, indexOpts)
 	require.NoError(t, err)
+
+	if len(extraTags) > 0 {
+		err = ociindex.Tag(ctx, r, &ociconsts.ComponentArtifact{ComponentName: componentName}, v, extraTags)
+		require.NoError(t, err)
+	}
 }
 
 // PushAssembly pushes assembly manifest to OCI registry for all platforms
