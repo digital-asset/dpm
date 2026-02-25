@@ -86,32 +86,7 @@ func (l *Locker) ensureLockfiles(ctx context.Context, packages ...string) (map[s
 }
 
 func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (*PackageLock, error) {
-	p, err := damlpackage.Read(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO de-duplicate p.ResolvedDependencies first
-	expectedDars := lo.MapToSlice(p.ResolvedDependencies, func(_ string, d *damlpackage.ResolvedDependency) *Dar {
-		return &Dar{
-			URI:        d.FullUrl.String(),
-			Dependency: d,
-
-			// TODO diff digests too
-			// Digest:
-		}
-	})
-	slices.SortFunc(expectedDars, func(a, b *Dar) int {
-		return strings.Compare(a.URI, b.URI)
-	})
-
-	expectedLockfile := &PackageLock{
-		ManifestMeta: schema.ManifestMeta{
-			APIVersion: PackageLockAPIVersion,
-			Kind:       PackageLockKind,
-		},
-		Dars: expectedDars,
-	}
+	expectedLockfile, err := computeExpectedLockfile(packageDirAbsPath)
 
 	lockfilePath := filepath.Join(packageDirAbsPath, assistantconfig.DpmLockFileName)
 	existingLockfile, err := ReadPackageLock(lockfilePath)
@@ -170,4 +145,33 @@ func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath
 		return nil, err
 	}
 	return expected, nil
+}
+
+func computeExpectedLockfile(packageDirAbsPath string) (*PackageLock, error) {
+	p, err := damlpackage.Read(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO de-duplicate p.ResolvedDependencies first
+	expectedDars := lo.MapToSlice(p.ResolvedDependencies, func(_ string, d *damlpackage.ResolvedDependency) *Dar {
+		return &Dar{
+			URI:        d.FullUrl.String(),
+			Dependency: d,
+
+			// TODO diff digests too
+			// Digest:
+		}
+	})
+	slices.SortFunc(expectedDars, func(a, b *Dar) int {
+		return strings.Compare(a.URI, b.URI)
+	})
+
+	return &PackageLock{
+		ManifestMeta: schema.ManifestMeta{
+			APIVersion: PackageLockAPIVersion,
+			Kind:       PackageLockKind,
+		},
+		Dars: expectedDars,
+	}, nil
 }
