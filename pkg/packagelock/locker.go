@@ -20,7 +20,7 @@ import (
 	"oras.land/oras-go/v2/registry"
 )
 
-var ErrLockfileOutOfSync = errors.New("lockfile out of sync")
+var ErrLockfileOutOfSync = errors.New(assistantconfig.DpmLockFileName + " needs to be updated; please run 'dpm update'")
 
 type Locker struct {
 	config *assistantconfig.Config
@@ -99,11 +99,14 @@ func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (
 		if l.op == Force {
 			return l.create(ctx, expectedLockfile, lockfilePath)
 		}
-		return nil, fmt.Errorf("error checking existing lockfile: %w", err)
+		return nil, fmt.Errorf("error reading existing %s file: %w", assistantconfig.DpmLockFileName, err)
 	} else {
 		inSync, err := existingLockfile.isInSync(expectedLockfile)
 		if err != nil {
-			slog.Warn("error while checking existing lockfile. Will assume it to be out of sync", slog.Any("err", err))
+			slog.Warn("error while checking existing dpm lockfile. Will assume it to be out of sync",
+				slog.String("lockfile", lockfilePath),
+				slog.Any("err", err),
+			)
 		}
 
 		// no diff

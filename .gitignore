@@ -41,4 +41,4 @@ docs-internal/_site/
 _build/
 generated/
 
-dpm-lock.yaml
+dpm.lock

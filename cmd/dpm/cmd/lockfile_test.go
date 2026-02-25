@@ -42,4 +42,5 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	assert.Equal(t, fmt.Sprintf("oci://%s/components/sheep:4.5.6", os.Getenv(assistantconfig.OciRegistryEnvVar)), bLock.Dars[0].URI)
 	assert.NotEmpty(t, bLock.Dars[0].Digest)
 
+	// TODO test bumping dar versions
 }
