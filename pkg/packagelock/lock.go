@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/schema"
 	"daml.com/x/assistant/pkg/utils/stringset"
@@ -29,6 +30,8 @@ type PackageLock struct {
 type Dar struct {
 	URI    string `yaml:"uri"`
 	Digest string `yaml:"digest,omitempty"`
+
+	Dependency *damlpackage.ResolvedDependency `yaml:"-"`
 }
 
 func ReadPackageLock(filePath string) (*PackageLock, error) {

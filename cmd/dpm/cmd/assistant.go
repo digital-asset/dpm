@@ -5,10 +5,12 @@ package cmd
 
 import (
 	"context"
-	"daml.com/x/assistant/cmd/dpm/cmd/uninstall"
 	"errors"
 	"fmt"
 	"log/slog"
+
+	"daml.com/x/assistant/cmd/dpm/cmd/uninstall"
+	"daml.com/x/assistant/cmd/dpm/cmd/update"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/bootstrap"
 	componentCmd "daml.com/x/assistant/cmd/dpm/cmd/component"
@@ -77,6 +79,7 @@ func RootCmd(ctx context.Context, da *assistant.DamlAssistant) (*cobra.Command, 
 		setCmdMetaGroup(login.Cmd(config)),
 		setCmdMetaGroup(repo.Cmd(config)),
 		setCmdMetaGroup(resolve.Cmd(config)),
+		setCmdMetaGroup(update.Cmd(config)),
 		componentCmd.Cmd(config),
 	)
 

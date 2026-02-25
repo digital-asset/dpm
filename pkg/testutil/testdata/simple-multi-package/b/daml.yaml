@@ -1,0 +1,8 @@
+dependencies:
+  - sheep:4.5.6
+
+artifact-locations:
+  "@digital-asset":
+    default: true
+    insecure: true
+    url: oci://$DPM_REGISTRY/components
