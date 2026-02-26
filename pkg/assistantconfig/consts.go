@@ -6,6 +6,7 @@ package assistantconfig
 const (
 	DamlMultiPackageFilename = "multi-package.yaml"
 	DamlPackageFilename      = "daml.yaml"
+	DpmLockFileName          = "dpm.lock"
 	DamlLocalFilename        = "dpm.local.yaml"
 	DefaultOciRegistry       = "europe-docker.pkg.dev/da-images/public" // stable prod public registry as the default
 
