@@ -28,54 +28,68 @@ type OciDarPuller struct {
 	config *assistantconfig.Config
 }
 
+type PulledDar struct {
+	Descriptor      *v1.Descriptor
+	DarFilePath     string
+	PulledImagePath string
+	Version         *semver.Version
+}
+
 func New(config *assistantconfig.Config) *OciDarPuller {
 	return &OciDarPuller{
 		config: config,
 	}
 }
 
-func (a *OciDarPuller) PullDar(ctx context.Context, dar *damlpackage.ResolvedDependency) (*v1.Descriptor, *semver.Version, string, error) {
-	desc, v, destPath, err := a.doPullDar(ctx, dar)
-	darPath, err := findDar(destPath)
+func (a *OciDarPuller) PullDar(ctx context.Context, dar *damlpackage.ResolvedDependency) (*PulledDar, error) {
+	result, err := a.doPullDar(ctx, dar)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, err
 	}
-	return desc, v, darPath, nil
+	result.DarFilePath, err = findDar(result.PulledImagePath)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-func (a *OciDarPuller) doPullDar(ctx context.Context, dar *damlpackage.ResolvedDependency) (*v1.Descriptor, *semver.Version, string, error) {
+func (a *OciDarPuller) doPullDar(ctx context.Context, dar *damlpackage.ResolvedDependency) (*PulledDar, error) {
 	repo, ref, err := dar.GetOciRepo()
 	if err != nil {
-		return nil, nil, "", err
+		return nil, err
 	}
 
 	src, err := ocicache.CachedTarget(repo, a.config.OciLayoutCache)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, err
 	}
 
 	desc, err := repo.Resolve(ctx, ref.Reference)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, err
 	}
 	version, err := a.getVersion(ctx, repo, desc)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, err
 	}
 
 	destPath := a.getPath(ref, version)
 
 	ok, err := utils.DirExists(destPath)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, err
 	}
 	if ok {
-		return &desc, version, destPath, nil
+		return &PulledDar{
+			Descriptor:      &desc,
+			PulledImagePath: destPath,
+			Version:         version,
+		}, nil
 	}
 
 	dest, err := file.New(destPath)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, err
 	}
 	dest.PreservePermissions = true
 	// errors out if dest already exists
@@ -83,11 +97,15 @@ func (a *OciDarPuller) doPullDar(ctx context.Context, dar *damlpackage.ResolvedD
 
 	_, err = oras.Copy(ctx, src, ref.Reference, dest, ref.Reference, oras.CopyOptions{})
 	if err != nil {
-		return nil, nil, "", err
+		return nil, err
 	}
 
 	// TODO validate the pulled DAR is actually a DAR (?)
-	return &desc, version, destPath, err
+	return &PulledDar{
+		Descriptor:      &desc,
+		PulledImagePath: destPath,
+		Version:         version,
+	}, err
 }
 
 // figure out the dar's non-floaty semver
