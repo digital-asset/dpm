@@ -16,7 +16,7 @@ import (
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocilister"
-	"daml.com/x/assistant/pkg/ocipusher"
+	"daml.com/x/assistant/pkg/ocipusher/darpusher"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
@@ -50,7 +50,7 @@ func New(config *DarConfig, printer utils.RawPrinter) *DarPublisher {
 }
 
 func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
-	var pushOp *ocipusher.PushOperation
+	var pushOp *darpusher.DarPushOperation
 
 	pushOp, err = p.prepareDar(ctx, p.config.File)
 
@@ -83,6 +83,7 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 	}
 	if p.config.ExtraTags != nil && len(p.config.ExtraTags) > 0 {
 		p.printer.Println("pushing extra tags...")
+		// Function below is not specifically for a generated index, can be utilized to setting tags to artifacts in general
 		err := ociindex.Tag(ctx, client, &ociconsts.DarArtifact{DarName: p.config.Name}, p.config.Version, p.config.ExtraTags)
 		if err != nil {
 			return err
@@ -91,7 +92,7 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 	return nil
 }
 
-func (p *DarPublisher) prepareDar(ctx context.Context, dir string) (*ocipusher.PushOperation, error) {
+func (p *DarPublisher) prepareDar(ctx context.Context, dir string) (*darpusher.DarPushOperation, error) {
 	p.printer.Printf("📦 Checking %q includes license file...\n", dir)
 	if err := checkHasLicense(dir); err != nil {
 		return nil, err
@@ -102,7 +103,7 @@ func (p *DarPublisher) prepareDar(ctx context.Context, dir string) (*ocipusher.P
 	return p.prepare(ctx, dir)
 }
 
-func (p *DarPublisher) prepare(ctx context.Context, dir string) (*ocipusher.PushOperation, error) {
+func (p *DarPublisher) prepare(ctx context.Context, dir string) (*darpusher.DarPushOperation, error) {
 	annotations := maps.Clone(p.config.Annotations)
 	if p.config.IncludeGitInfo {
 		gitAnnotations, err := collectGitAnnotations()
@@ -114,13 +115,13 @@ func (p *DarPublisher) prepare(ctx context.Context, dir string) (*ocipusher.Push
 	var artifact ociconsts.Artifact
 	artifact = &ociconsts.DarArtifact{DarName: p.config.Name}
 
-	opts := ocipusher.DarOpts{
+	opts := darpusher.DarOpts{
 		Artifact: artifact,
 		RawTag:   p.config.Version.String(),
 		Dir:      dir,
 	}
 
-	pushOp, err := ocipusher.DarNew(ctx, opts)
+	pushOp, err := darpusher.DarNew(ctx, opts)
 	if err != nil {
 		if errors.Is(err, errdef.ErrSizeExceedsLimit) {
 			p.printer.PrintErrln(`Failed to construct OCI manifest due to size limit.
@@ -132,7 +133,7 @@ Consider reducing the number of files at the root by moving them to subdirectori
 	return pushOp, nil
 }
 
-func (p *DarPublisher) push(ctx context.Context, client *assistantremote.Remote, pushOp *ocipusher.PushOperation) (*v1.Descriptor, error) {
+func (p *DarPublisher) push(ctx context.Context, client *assistantremote.Remote, pushOp *darpusher.DarPushOperation) (*v1.Descriptor, error) {
 	coloredDest := color.GreenString(pushOp.DarDestination(client.Registry))
 
 	p.printer.Printf("Pushing %q...\n", coloredDest)
@@ -163,7 +164,7 @@ func checkHasLicense(dir string) error {
 	return nil
 }
 
-func (p *DarPublisher) checkVersionExists(ctx context.Context, op *ocipusher.PushOperation, client *assistantremote.Remote) (bool, error) {
+func (p *DarPublisher) checkVersionExists(ctx context.Context, op *darpusher.DarPushOperation, client *assistantremote.Remote) (bool, error) {
 	var tags []string
 
 	tags, found, err := ocilister.ListTags(ctx, client, ociconsts.DarRepoPrefix+p.config.Name)
@@ -172,7 +173,7 @@ func (p *DarPublisher) checkVersionExists(ctx context.Context, op *ocipusher.Pus
 	}
 	if found {
 		for _, tag := range tags {
-			if tag == op.RawTag() {
+			if tag == op.Tag() {
 				return true, nil
 			}
 		}
@@ -180,6 +181,7 @@ func (p *DarPublisher) checkVersionExists(ctx context.Context, op *ocipusher.Pus
 	return false, nil
 }
 
+// TODO : Currently not attaching annotations below, to be added in follow up PR
 func (config *DarConfig) RequiredAnnotations() ociconsts.DescriptorAnnotations {
 	return ociconsts.DescriptorAnnotations{
 		Name:    config.Name,
