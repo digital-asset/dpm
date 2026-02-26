@@ -13,10 +13,12 @@ import (
 	"daml.com/x/assistant/pkg/damlpackage"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ocicache"
+	"daml.com/x/assistant/pkg/utils"
 	"github.com/Masterminds/semver/v3"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
+	"oras.land/oras-go/v2/registry"
 )
 
 type OciDarPuller struct {
@@ -40,7 +42,25 @@ func (a *OciDarPuller) PullDar(ctx context.Context, dar *damlpackage.ResolvedDep
 		return nil, nil, "", err
 	}
 
-	destPath := a.getPath(dar.FullUrl.String())
+	desc, err := repo.Resolve(ctx, ref.Reference)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	version, err := a.getVersion(ctx, repo, desc)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	destPath := a.getPath(ref, version)
+
+	ok, err := utils.DirExists(destPath)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	if ok {
+		return &desc, version, destPath, nil
+	}
+
 	dest, err := file.New(destPath)
 	if err != nil {
 		return nil, nil, "", err
@@ -49,36 +69,41 @@ func (a *OciDarPuller) PullDar(ctx context.Context, dar *damlpackage.ResolvedDep
 	// errors out if dest already exists
 	dest.DisableOverwrite = true
 
-	desc, err := oras.Copy(ctx, src, ref.Reference, dest, ref.Reference, oras.CopyOptions{})
+	_, err = oras.Copy(ctx, src, ref.Reference, dest, ref.Reference, oras.CopyOptions{})
 	if err != nil {
 		return nil, nil, "", err
 	}
 
-	// figure out the dar's non-floaty semver
-	annotations, err := getAnnotations(ctx, src, desc)
+	// TODO validate the pulled DAR is actually a DAR (?)
+	return &desc, version, destPath, err
+}
+
+// figure out the dar's non-floaty semver
+
+func (a *OciDarPuller) getVersion(ctx context.Context, repo oras.ReadOnlyTarget, desc v1.Descriptor) (*semver.Version, error) {
+	annotations, err := getAnnotations(ctx, repo, desc)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, err
 	}
+
 	v := cmp.Or(
 		annotations[v1.AnnotationVersion],
 		// fallback
 		annotations[ociconsts.DescriptorVersionAnnotation],
 	)
 	if v == "" {
-		return nil, nil, "", fmt.Errorf("missing version annotation in image manifest")
+		return nil, fmt.Errorf("missing version annotation in image manifest")
 	}
 	ver, err := semver.StrictNewVersion(v)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("version annotation %q in image manifest isn't a strict semver: %w", v, err)
+		return nil, fmt.Errorf("version annotation %q in image manifest isn't a strict semver: %w", v, err)
 	}
-
-	// TODO validate the pulled DAR is actually a DAR (?)
-	return &desc, ver, destPath, err
+	return ver, nil
 }
 
-func (a *OciDarPuller) getPath(rawUrl string) string {
+func (a *OciDarPuller) getPath(ref *registry.Reference, version *semver.Version) string {
 	// TODO maybe use a more human-readable path (but be sure to sanitize to not fail on Windows)
-	sha := sha256.Sum256([]byte(rawUrl))
+	sha := sha256.Sum256([]byte(fmt.Sprintf("%s/%s:%s", ref.Registry, ref.Repository, version.String())))
 	return filepath.Join(
 		a.config.CachePath,
 		"dars",
