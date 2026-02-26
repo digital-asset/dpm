@@ -31,6 +31,7 @@ type Dar struct {
 	URI    string `yaml:"uri"`
 	Digest string `yaml:"digest,omitempty"`
 
+	Path       string                          `yaml:"path"`
 	Dependency *damlpackage.ResolvedDependency `yaml:"-"`
 }
 
