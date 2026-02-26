@@ -23,9 +23,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			}
 
 			op := packagelock.Regular
-			if force {
-				op = packagelock.Force
-			} else if checkOnly {
+			if checkOnly {
 				op = packagelock.CheckOnly
 			}
 
@@ -34,7 +32,6 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			return err
 		},
 	}
-	cmd.Flags().BoolVar(&force, "force", false, "ignore errors (if any) while reading existing lockfile")
 	cmd.Flags().BoolVar(&checkOnly, "check", false, "check existing lockfile but don't update it")
 
 	return cmd
