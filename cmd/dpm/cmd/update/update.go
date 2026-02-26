@@ -1,8 +1,6 @@
 package update
 
 import (
-	"fmt"
-
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/packagelock"
@@ -10,7 +8,7 @@ import (
 )
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
-	var force, checkOnly bool
+	var checkOnly bool
 
 	cmd := &cobra.Command{
 		Use:    string(builtincommand.Update),
@@ -18,14 +16,8 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 		Hidden: true,
 		Args:   cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if force && checkOnly {
-				return fmt.Errorf("--force and --check can't be used together")
-			}
-
 			op := packagelock.Regular
-			if force {
-				op = packagelock.Force
-			} else if checkOnly {
+			if checkOnly {
 				op = packagelock.CheckOnly
 			}
 
@@ -34,7 +26,6 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			return err
 		},
 	}
-	cmd.Flags().BoolVar(&force, "force", false, "ignore errors (if any) while reading existing lockfile")
 	cmd.Flags().BoolVar(&checkOnly, "check", false, "check existing lockfile but don't update it")
 
 	return cmd
