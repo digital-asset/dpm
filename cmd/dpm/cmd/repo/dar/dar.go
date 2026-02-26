@@ -18,7 +18,7 @@ func Cmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "publish-dar <name> <version>",
 		Short:   "Publish a dar to an OCI registry",
-		Example: "  dpm repo publish-dar foo 1.2.3-alpha",
+		Example: "  dpm repo publish-dar foo 1.2.3-alpha -f path/to/foo.dar",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]

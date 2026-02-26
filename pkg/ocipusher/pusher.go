@@ -47,6 +47,10 @@ func (op *PushOperation) DarDestination(registry string) string {
 	return fmt.Sprintf("%s/%s:%s", registry, op.repoName, op.rawTag)
 }
 
+func (op *PushOperation) RawTag() string {
+	return op.rawTag
+}
+
 // Do pushes the content of dir to an oci registry
 //
 // mostly copied from
@@ -72,12 +76,42 @@ func (op *PushOperation) Do(ctx context.Context, client *assistantremote.Remote)
 	return &d, err
 }
 
+// Do pushes the content of dir to an oci registry
+//
+// mostly copied from
+// https://pkg.go.dev/oras.land/oras-go/v2#example-package-PushFilesToRemoteRepository
+func (op *PushOperation) DarDo(ctx context.Context, client *assistantremote.Remote) (*v1.Descriptor, error) {
+	repo, err := remote.NewRepository(fmt.Sprintf("%s/%s", client.Registry, op.repoName))
+	if err != nil {
+		return nil, err
+	}
+
+	repo.Client = client
+	repo.PlainHTTP = client.Insecure
+	d, err := oras.Copy(ctx, op.fs, op.Tag(), repo, op.rawTag, oras.DefaultCopyOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := op.fs.Close(); err != nil {
+		return nil, err
+	}
+
+	return &d, err
+}
+
 type Opts struct {
 	Artifact            oci.Artifact
 	RawTag, Dir         string
 	RequiredAnnotations oci.DescriptorAnnotations
 	ExtraAnnotations    map[string]string
 	Platform            simpleplatform.Platform
+}
+
+type DarOpts struct {
+	Artifact            oci.Artifact
+	RawTag, Dir         string
+	RequiredAnnotations oci.DescriptorAnnotations
 }
 
 func New(ctx context.Context, opts Opts) (*PushOperation, error) {
@@ -146,6 +180,70 @@ func New(ctx context.Context, opts Opts) (*PushOperation, error) {
 	return op, nil
 }
 
+func DarNew(ctx context.Context, opts DarOpts) (*PushOperation, error) {
+	repoName := opts.Artifact.RepoName()
+
+	fs, err := file.New(opts.Dir)
+	if err != nil {
+		return nil, err
+	}
+
+	configDesc, err := appendDarConfig(ctx, fs)
+	if err != nil {
+		return nil, err
+	}
+
+	dEntries, err := os.ReadDir(opts.Dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var fileDescriptors []v1.Descriptor
+	for _, de := range dEntries {
+		fileDescriptor, err := fs.Add(ctx, de.Name(), opts.Artifact.FileMediaType(), "")
+		if err != nil {
+			return nil, err
+		}
+
+		osFileInfo, err := de.Info()
+		if err != nil {
+			return nil, err
+		}
+		fileInfoAnnotations := fileinfo.New(osFileInfo).AsAnnotations()
+		appendAnnotations(fileDescriptor, fileInfoAnnotations)
+
+		fileDescriptors = append(fileDescriptors, fileDescriptor)
+	}
+
+	annotations := map[string]string{}
+
+	packOpts := oras.PackManifestOptions{
+		Layers:              fileDescriptors,
+		ManifestAnnotations: annotations,
+		ConfigDescriptor:    configDesc,
+	}
+
+	manifestDescriptor, err := oras.PackManifest(ctx, fs, oras.PackManifestVersion1_1, opts.Artifact.ArtifactType(), packOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	op := &PushOperation{
+		repoName:     repoName,
+		rawTag:       opts.RawTag,
+		fs:           fs,
+		manifestDesc: &manifestDescriptor,
+		configDesc:   configDesc,
+		platform:     nil,
+	}
+
+	if err := fs.Tag(ctx, manifestDescriptor, op.Tag()); err != nil {
+		return nil, err
+	}
+
+	return op, nil
+}
+
 func appendAnnotations(descriptor v1.Descriptor, annotations map[string]string) {
 	if descriptor.Annotations == nil {
 		descriptor.Annotations = map[string]string{}
@@ -169,6 +267,20 @@ func appendConfig(ctx context.Context, store *file.Store, platform simpleplatfor
 	default:
 		return nil, fmt.Errorf("unknown platform type %t", platform)
 	}
+
+	desc = content.NewDescriptorFromBytes(oras.MediaTypeUnknownConfig, blob)
+	if err := store.Push(ctx, desc, bytes.NewReader(blob)); err != nil {
+		return nil, err
+	}
+
+	return &desc, nil
+}
+
+func appendDarConfig(ctx context.Context, store *file.Store) (*v1.Descriptor, error) {
+	var desc v1.Descriptor
+	var blob []byte
+
+	blob = []byte(`{}`)
 
 	desc = content.NewDescriptorFromBytes(oras.MediaTypeUnknownConfig, blob)
 	if err := store.Push(ctx, desc, bytes.NewReader(blob)); err != nil {

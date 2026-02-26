@@ -17,7 +17,6 @@ import (
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/ocipusher"
-	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
@@ -69,17 +68,13 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 		return err
 	}
 
-	// skip pushing both index and platforms' images if index already exists
-	existingVersions, err := ocilister.ListDarVersions(ctx, p.config.Name, client)
+	versionExists, err := p.checkVersionExists(ctx, pushOp, client)
 	if err != nil {
 		return err
 	}
-	alreadyExists := lo.Contains(lo.Map(lo.Keys(existingVersions), func(v *semver.Version, _ int) string {
-		return v.String()
-	}), p.config.Version.String())
 
-	if alreadyExists {
-		p.printer.Println("skipped pushing because dar's index already exists in remote")
+	if versionExists {
+		p.printer.Println("skipped pushing because dar's version already exists in remote")
 	} else {
 		_, err := p.push(ctx, client, pushOp)
 		if err != nil {
@@ -119,16 +114,13 @@ func (p *DarPublisher) prepare(ctx context.Context, dir string) (*ocipusher.Push
 	var artifact ociconsts.Artifact
 	artifact = &ociconsts.DarArtifact{DarName: p.config.Name}
 
-	opts := ocipusher.Opts{
-		Artifact:            artifact,
-		RawTag:              p.config.Version.String(),
-		Dir:                 dir,
-		RequiredAnnotations: p.config.RequiredAnnotations(),
-		ExtraAnnotations:    annotations,
-		Platform:            &simpleplatform.Generic{},
+	opts := ocipusher.DarOpts{
+		Artifact: artifact,
+		RawTag:   p.config.Version.String(),
+		Dir:      dir,
 	}
 
-	pushOp, err := ocipusher.New(ctx, opts)
+	pushOp, err := ocipusher.DarNew(ctx, opts)
 	if err != nil {
 		if errors.Is(err, errdef.ErrSizeExceedsLimit) {
 			p.printer.PrintErrln(`Failed to construct OCI manifest due to size limit.
@@ -144,7 +136,7 @@ func (p *DarPublisher) push(ctx context.Context, client *assistantremote.Remote,
 	coloredDest := color.GreenString(pushOp.DarDestination(client.Registry))
 
 	p.printer.Printf("Pushing %q...\n", coloredDest)
-	descriptor, err := pushOp.Do(ctx, client)
+	descriptor, err := pushOp.DarDo(ctx, client)
 	if err != nil {
 		return nil, err
 	}
@@ -169,6 +161,23 @@ func checkHasLicense(dir string) error {
 		return fmt.Errorf("required %s file is missing at component root (%q)", licenseutils.ComponentLicenseFilename, dir)
 	}
 	return nil
+}
+
+func (p *DarPublisher) checkVersionExists(ctx context.Context, op *ocipusher.PushOperation, client *assistantremote.Remote) (bool, error) {
+	var tags []string
+
+	tags, found, err := ocilister.ListTags(ctx, client, ociconsts.DarRepoPrefix+p.config.Name)
+	if err != nil {
+		return false, err
+	}
+	if found {
+		for _, tag := range tags {
+			if tag == op.RawTag() {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 func (config *DarConfig) RequiredAnnotations() ociconsts.DescriptorAnnotations {

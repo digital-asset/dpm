@@ -48,7 +48,6 @@ func ListTags(ctx context.Context, client *assistantremote.Remote, repoName stri
 func ListComponentVersions(ctx context.Context, name string, client *assistantremote.Remote) (map[*semver.Version][]string, error) {
 	return listTags(ctx, ociconsts.ComponentRepoPrefix+name, client)
 }
-
 func ListDarVersions(ctx context.Context, name string, client *assistantremote.Remote) (map[*semver.Version][]string, error) {
 	return listTags(ctx, ociconsts.DarRepoPrefix+name, client)
 }
