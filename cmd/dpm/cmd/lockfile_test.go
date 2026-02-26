@@ -24,8 +24,8 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	t.Setenv(assistantconfig.DamlMultiPackageEnvVar, multiPackageDir)
 
 	// TODO: using a PushComponent() for lack of a PushDar() for now
-	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "some-dar"))
-	testutil.PushComponent(t, ctx, reg, "sheep", "4.5.6", testutil.TestdataPath(t, "some-dar"))
+	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "some-dar"), "latest")
+	testutil.PushComponent(t, ctx, reg, "sheep", "4.5.6", testutil.TestdataPath(t, "some-dar"), "latest")
 
 	cmd := createStdTestRootCmd(t, "update")
 	assert.NoError(t, cmd.Execute())
@@ -38,9 +38,11 @@ func (suite *MainSuite) TestLockfileUpdate() {
 
 	bLock, err := packagelock.ReadPackageLock(filepath.Join(multiPackageDir, "b", assistantconfig.DpmLockFileName))
 	require.NoError(t, err)
-	assert.Len(t, bLock.Dars, 1)
-	assert.Equal(t, fmt.Sprintf("oci://%s/components/sheep:4.5.6", os.Getenv(assistantconfig.OciRegistryEnvVar)), bLock.Dars[0].URI)
+	assert.Len(t, bLock.Dars, 2)
+	assert.Equal(t, fmt.Sprintf("oci://%s/components/meep:1.2.3", os.Getenv(assistantconfig.OciRegistryEnvVar)), bLock.Dars[0].URI)
 	assert.NotEmpty(t, bLock.Dars[0].Digest)
+	assert.Equal(t, fmt.Sprintf("oci://%s/components/sheep:4.5.6", os.Getenv(assistantconfig.OciRegistryEnvVar)), bLock.Dars[1].URI)
+	assert.NotEmpty(t, bLock.Dars[1].Digest)
 
 	// TODO test bumping dar versions
 }

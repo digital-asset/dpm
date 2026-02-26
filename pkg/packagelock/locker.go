@@ -100,26 +100,35 @@ func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (
 			return l.create(ctx, expectedLockfile, lockfilePath)
 		}
 		return nil, fmt.Errorf("error reading existing %s file: %w", assistantconfig.DpmLockFileName, err)
-	} else {
-		inSync, err := existingLockfile.isInSync(expectedLockfile)
-		if err != nil {
-			slog.Warn("error while checking existing dpm lockfile. Will assume it to be out of sync",
-				slog.String("lockfile", lockfilePath),
-				slog.Any("err", err),
-			)
-		}
+	}
 
-		// no diff
-		if err == nil && inSync {
-			return existingLockfile, nil
-		}
+	shouldUpdate, err := l.shouldUpdate(existingLockfile, expectedLockfile)
+	if err != nil {
+		return nil, err
+	}
 
-		if l.op == CheckOnly {
+	if l.op == CheckOnly {
+		if shouldUpdate {
 			return nil, ErrLockfileOutOfSync
 		}
-
-		return l.create(ctx, expectedLockfile, lockfilePath)
+		return existingLockfile, nil
 	}
+
+	return l.create(ctx, expectedLockfile, lockfilePath)
+}
+
+func (l *Locker) shouldUpdate(existingLockfile, expectedLockfile *PackageLock) (bool, error) {
+	inSync, err := existingLockfile.isInSync(expectedLockfile)
+	if err != nil {
+		if l.op != Force {
+			return false, err
+		}
+		slog.Warn("error while checking existing dpm lockfile. Will assume it to be out of sync due to --force",
+			slog.Any("err", err),
+		)
+	}
+
+	return inSync && err == nil, nil
 }
 
 func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath string) (*PackageLock, error) {
