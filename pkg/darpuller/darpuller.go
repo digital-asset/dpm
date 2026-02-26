@@ -7,7 +7,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
@@ -16,6 +18,7 @@ import (
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/Masterminds/semver/v3"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/samber/lo"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry"
@@ -32,6 +35,15 @@ func New(config *assistantconfig.Config) *OciDarPuller {
 }
 
 func (a *OciDarPuller) PullDar(ctx context.Context, dar *damlpackage.ResolvedDependency) (*v1.Descriptor, *semver.Version, string, error) {
+	desc, v, destPath, err := a.doPullDar(ctx, dar)
+	darPath, err := findDar(destPath)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	return desc, v, darPath, nil
+}
+
+func (a *OciDarPuller) doPullDar(ctx context.Context, dar *damlpackage.ResolvedDependency) (*v1.Descriptor, *semver.Version, string, error) {
 	repo, ref, err := dar.GetOciRepo()
 	if err != nil {
 		return nil, nil, "", err
@@ -79,7 +91,6 @@ func (a *OciDarPuller) PullDar(ctx context.Context, dar *damlpackage.ResolvedDep
 }
 
 // figure out the dar's non-floaty semver
-
 func (a *OciDarPuller) getVersion(ctx context.Context, repo oras.ReadOnlyTarget, desc v1.Descriptor) (*semver.Version, error) {
 	annotations, err := getAnnotations(ctx, repo, desc)
 	if err != nil {
@@ -126,4 +137,18 @@ func getAnnotations(ctx context.Context, repo oras.ReadOnlyTarget, desc v1.Descr
 		return nil, err
 	}
 	return manifest.Annotations, nil
+}
+
+func findDar(dir string) (string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return "", err
+	}
+	f, ok := lo.Find(entries, func(e os.DirEntry) bool {
+		return strings.HasSuffix(e.Name(), ".dar")
+	})
+	if !ok {
+		return "", fmt.Errorf("no .dar file found in pulled image")
+	}
+	return filepath.Join(dir, f.Name()), nil
 }

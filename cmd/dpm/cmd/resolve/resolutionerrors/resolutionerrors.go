@@ -10,6 +10,7 @@ const (
 	MalformedDamlYaml = "MALFORMED_DAML_YAML"
 	DamlYamlNotFound  = "DAML_YAML_NOT_FOUND"
 	UnknownError      = "UNKNOWN_ERROR"
+	OutdatedLockfile  = "OUTDATED_DPM_LOCK"
 )
 
 type ResolutionError struct {
@@ -73,6 +74,13 @@ func NewMalformedDamlYamlError(cause error) *ResolutionError {
 func NewDamlYamlNotFoundError(cause error) *ResolutionError {
 	return &ResolutionError{
 		Code:  DamlYamlNotFound,
+		Cause: cause,
+	}
+}
+
+func NewOutdatedLockfileError(cause error) *ResolutionError {
+	return &ResolutionError{
+		Code:  OutdatedLockfile,
 		Cause: cause,
 	}
 }
