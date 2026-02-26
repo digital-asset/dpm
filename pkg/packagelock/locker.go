@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/darpuller"
@@ -19,7 +20,9 @@ import (
 	"oras.land/oras-go/v2/registry"
 )
 
-var ErrLockfileOutOfSync = errors.New(assistantconfig.DpmLockFileName + " needs to be updated; please run 'dpm update'")
+var ErrLockfileOutOfSync = resolutionerrors.NewOutdatedLockfileError(
+	errors.New(assistantconfig.DpmLockFileName + " needs to be updated; please run 'dpm update'"),
+)
 
 type Locker struct {
 	config *assistantconfig.Config
@@ -120,7 +123,7 @@ func (l *Locker) checkLockfile(expectedLockfile *PackageLock, lockfilePath strin
 
 func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath string) (*PackageLock, error) {
 	for _, d := range expected.Dars {
-		descriptor, version, _, err := darpuller.New(l.config).PullDar(ctx, d.Dependency)
+		descriptor, version, destPath, err := darpuller.New(l.config).PullDar(ctx, d.Dependency)
 		if err != nil {
 			return nil, err
 		}
@@ -134,6 +137,7 @@ func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath
 		// TODO this doesn't work for @sha256 pinned refs
 		resolvedRef := ":" + version.String()
 		d.URI = fmt.Sprintf("oci://%s/%s%s", ref.Registry, ref.Repository, resolvedRef)
+		d.Path = destPath
 	}
 
 	data, err := yaml.Marshal(expected)

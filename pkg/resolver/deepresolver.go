@@ -5,7 +5,9 @@ package resolver
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
@@ -13,8 +15,10 @@ import (
 	"daml.com/x/assistant/pkg/assembler/assemblyplan"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/multipackage"
+	"daml.com/x/assistant/pkg/packagelock"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/schema"
+	"github.com/samber/lo"
 )
 
 type DeepResolver struct {
@@ -88,16 +92,44 @@ func (d *DeepResolver) resolve(ctx context.Context, packageAbsolutePaths ...stri
 			continue
 		}
 
-		if result, err := d.resolvePackage(ctx, resolvedPath); err != nil {
+		if result, err := d.resolvePackageAndDars(ctx, resolvedPath); err != nil {
 			pkgs[resolvedPath] = &resolution.Package{
 				Errors: []*resolutionerrors.ResolutionError{resolutionerrors.Standardize(err)},
 			}
 		} else {
-			pkgs[resolvedPath] = result.ShallowResolution
+			pkgs[resolvedPath] = result
 		}
 	}
 
 	return pkgs, nil
+}
+
+func (d *DeepResolver) resolvePackageAndDars(ctx context.Context, absPath string) (*resolution.Package, error) {
+	result, err := d.resolvePackage(ctx, absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	lock, err := packagelock.ReadPackageLock(filepath.Join(absPath, assistantconfig.DpmLockFileName))
+	if errors.Is(err, os.ErrNotExist) {
+		lock, err = packagelock.New(d.config, packagelock.Regular).EnsureLockfile(ctx, absPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err = packagelock.New(d.config, packagelock.CheckOnly).EnsureLockfile(ctx, absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	paths := lo.Map(lock.Dars, func(d *packagelock.Dar, _ int) string {
+		return d.Path
+	})
+	if len(paths) > 0 {
+		result.ShallowResolution.Imports[resolution.DarImportsFields] = paths
+	}
+
+	return result.ShallowResolution, nil
 }
 
 func (d *DeepResolver) resolvePackage(ctx context.Context, absPath string) (*assembler.AssemblyResult, error) {
