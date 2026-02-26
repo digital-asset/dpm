@@ -32,7 +32,7 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	testutil.PushComponent(t, ctx, reg, "sheep", "4.5.6", testutil.TestdataPath(t, "some-dar"), "latest")
 
 	cmd := createStdTestRootCmd(t, "update")
-	assert.NoError(t, cmd.Execute())
+	require.NoError(t, cmd.Execute())
 
 	aLock, err := packagelock.ReadPackageLock(filepath.Join(multiPackageDir, "a", assistantconfig.DpmLockFileName))
 	require.NoError(t, err)
@@ -53,7 +53,7 @@ func (suite *MainSuite) TestLockfileUpdate() {
 		testutil.PushComponent(t, ctx, reg, "sheep", "5.0.0", testutil.TestdataPath(t, "some-dar"), "latest")
 
 		cmd := createStdTestRootCmd(t, "update")
-		assert.NoError(t, cmd.Execute())
+		require.NoError(t, cmd.Execute())
 
 		aLock, err := packagelock.ReadPackageLock(filepath.Join(multiPackageDir, "a", assistantconfig.DpmLockFileName))
 		require.NoError(t, err)
@@ -79,11 +79,11 @@ func (suite *MainSuite) TestLockfileUpdate() {
 
 	t.Run("dars in resolution", func(t *testing.T) {
 		cmd, r, w := createTestRootCmd(t, "resolve")
-		assert.NoError(t, cmd.Execute())
-		assert.NoError(t, w.Close())
+		require.NoError(t, cmd.Execute())
+		require.NoError(t, w.Close())
 
 		output, err := io.ReadAll(r)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		deepResolution := resolution.Resolution{}
 		require.NoError(t, yaml.Unmarshal(output, &deepResolution))
