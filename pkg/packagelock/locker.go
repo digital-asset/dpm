@@ -123,11 +123,11 @@ func (l *Locker) checkLockfile(expectedLockfile *PackageLock, lockfilePath strin
 
 func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath string) (*PackageLock, error) {
 	for _, d := range expected.Dars {
-		descriptor, version, destPath, err := darpuller.New(l.config).PullDar(ctx, d.Dependency)
+		pulledDar, err := darpuller.New(l.config).PullDar(ctx, d.Dependency)
 		if err != nil {
 			return nil, err
 		}
-		d.Digest = descriptor.Digest.String()
+		d.Digest = pulledDar.Descriptor.Digest.String()
 
 		ref, err := registry.ParseReference(strings.TrimPrefix(d.URI, "oci://"))
 		if err != nil {
@@ -135,9 +135,9 @@ func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath
 		}
 
 		// TODO this doesn't work for @sha256 pinned refs
-		resolvedRef := ":" + version.String()
+		resolvedRef := ":" + pulledDar.Version.String()
 		d.URI = fmt.Sprintf("oci://%s/%s%s", ref.Registry, ref.Repository, resolvedRef)
-		d.Path = destPath
+		d.Path = pulledDar.DarFilePath
 	}
 
 	data, err := yaml.Marshal(expected)
