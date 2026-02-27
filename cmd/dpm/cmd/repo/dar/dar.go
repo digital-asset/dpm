@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/publishcmd"
 	"daml.com/x/assistant/pkg/publishdar"
 	"github.com/Masterminds/semver/v3"
@@ -19,6 +20,7 @@ func Cmd() *cobra.Command {
 		Use:     "publish-dar <name> <version>",
 		Short:   "Publish a dar to an OCI registry",
 		Example: "  dpm repo publish-dar foo 1.2.3-alpha -f path/to/foo.dar",
+		Hidden:  !assistantconfig.DarPublishEnabled(),
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
