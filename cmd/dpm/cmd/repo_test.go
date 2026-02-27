@@ -243,6 +243,35 @@ func (suite *RepoSuite) TestPromoteComponents() {
 	}
 }
 
+func (suite *RepoSuite) TestPublishDar() {
+	t := suite.T()
+
+	testutil.StartRegistry(t)
+
+	tmpDamlHome, err := os.MkdirTemp("", "")
+	require.NoError(t, err)
+	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
+
+	publishDar(t)
+	testutil.StartRegistry(t)
+	destinationRegistry := os.Getenv(assistantconfig.OciRegistryEnvVar)
+	tmpDamlHome, err = os.MkdirTemp("", "")
+	require.NoError(t, err)
+	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
+
+	cmd := createStdTestRootCmd(t)
+	args := []string{
+		"repo", "publish-dar", "meep", "1.2.3",
+		"-f", testutil.TestdataPath(t, "test-dar"),
+		"--registry", destinationRegistry,
+	}
+	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
+		args = append(args, "--insecure")
+	}
+	cmd.SetArgs(args)
+	require.NoError(t, cmd.Execute())
+}
+
 func listTags(t *testing.T, component, registry string) []string {
 	t.Setenv(assistantconfig.OciRegistryEnvVar, registry)
 
@@ -311,6 +340,20 @@ func publishComponents(t *testing.T, extraTags ...string) {
 		cmd.SetArgs(appendRegistryArgsFromEnv(args))
 		require.NoError(t, cmd.Execute())
 	})
+}
+
+func publishDar(t *testing.T) {
+	t.Run("publish dar", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t)
+
+		args := []string{"repo", "publish-dar", "meep", "1.2.3",
+			"-f", testutil.TestdataPath(t, "test-dar"), "--dry-run",
+		}
+
+		cmd.SetArgs(appendRegistryArgsFromEnv(args))
+		require.NoError(t, cmd.Execute())
+	})
+
 }
 
 func verifyLink(t *testing.T) {

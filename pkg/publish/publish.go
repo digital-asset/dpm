@@ -129,7 +129,6 @@ func (p *Publisher) Publish(ctx context.Context) (err error) {
 			}
 			descriptors = append(descriptors, *desc)
 		}
-
 		coloredDest := color.GreenString(fmt.Sprintf("%s/%s", p.config.Name, p.config.Version.String()))
 		p.printer.Println("📖 Pushing index " + coloredDest)
 		tag := p.config.Version.String()
@@ -255,9 +254,11 @@ func (p *Publisher) prepare(ctx context.Context, platform simpleplatform.Platfor
 		}
 		maps.Copy(annotations, gitAnnotations)
 	}
+	var artifact ociconsts.Artifact
+	artifact = &ociconsts.ComponentArtifact{ComponentName: p.config.Name}
 
 	opts := ocipusher.Opts{
-		Artifact:            &ociconsts.ComponentArtifact{ComponentName: p.config.Name},
+		Artifact:            artifact,
 		RawTag:              p.config.Version.String(),
 		Dir:                 dir,
 		RequiredAnnotations: p.config.RequiredAnnotations(),
