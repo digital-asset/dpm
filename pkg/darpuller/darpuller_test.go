@@ -43,11 +43,11 @@ func TestOciDarPuller(t *testing.T) {
 		},
 	}
 
-	descriptor, v, destPath, err := fake(t).PullDar(ctx, dar)
+	pulledDar, err := fake(t).PullDar(ctx, dar)
 	require.NoError(t, err)
-	assert.NotEmpty(t, destPath)
-	assert.NotEmpty(t, descriptor.Digest)
-	assert.Equal(t, version, v.String())
+	assert.NotEmpty(t, pulledDar.DarFilePath)
+	assert.NotEmpty(t, pulledDar.Descriptor.Digest)
+	assert.Equal(t, version, pulledDar.Version.String())
 }
 
 func fake(t *testing.T) *OciDarPuller {
