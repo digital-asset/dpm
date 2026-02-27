@@ -45,7 +45,7 @@ func TestOciDarPuller(t *testing.T) {
 
 	pulledDar, err := fake(t).PullDar(ctx, dar)
 	require.NoError(t, err)
-	assert.NotEmpty(t, pulledDar.PulledImagePath)
+	assert.NotEmpty(t, pulledDar.DarFilePath)
 	assert.NotEmpty(t, pulledDar.Descriptor.Digest)
 	assert.Equal(t, version, pulledDar.Version.String())
 }
