@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"github.com/goccy/go-yaml"
 )
@@ -43,15 +44,17 @@ func ReadFromContents(contents []byte) (*DamlPackage, error) {
 		}
 	}
 
-	_, defaultLocation, err := obj.ArtifactLocations.GetDefaultLocation()
-	if err != nil {
-		return nil, fmt.Errorf("invalid artifact locations: %w", err)
-	}
-
-	if len(obj.Dependencies) > 0 {
-		obj.ResolvedDependencies, err = obj.computeResolvedDependencies(defaultLocation)
+	if assistantconfig.DpmLockfileEnabled() {
+		_, defaultLocation, err := obj.ArtifactLocations.GetDefaultLocation()
 		if err != nil {
-			return nil, fmt.Errorf("failed to resolve provided dependencies: %w", err)
+			return nil, fmt.Errorf("invalid artifact locations: %w", err)
+		}
+
+		if len(obj.Dependencies) > 0 {
+			obj.ResolvedDependencies, err = obj.computeResolvedDependencies(defaultLocation)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve provided dependencies: %w", err)
+			}
 		}
 	}
 

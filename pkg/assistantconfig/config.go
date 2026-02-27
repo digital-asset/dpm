@@ -384,3 +384,7 @@ func doFindInAncestors(startDir, filename string) (string, bool, error) {
 func GetAssistantUserAgent() string {
 	return fmt.Sprintf("%s/%s", AssistantUserAgentPrefix, assistantversion.GetAssistantVersion())
 }
+
+func DpmLockfileEnabled() bool {
+	return os.Getenv(DpmLockfileEnabledEnvVar) == "true"
+}

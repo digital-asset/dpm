@@ -64,4 +64,6 @@ const (
 	// It also overrides the SDK version used outside package or multi-package context.
 	// (It doesn't affect the `install` command(s))
 	DpmSdkVersionEnvVar = "DPM_SDK_VERSION"
+
+	DpmLockfileEnabledEnvVar = "DPM_LOCKFILE_ENABLED"
 )
