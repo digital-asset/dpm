@@ -43,10 +43,6 @@ func (op *PushOperation) Destination(registry string) string {
 	return fmt.Sprintf("%s/%s:%s", registry, op.repoName, op.Tag())
 }
 
-func (op *PushOperation) RawTag() string {
-	return op.rawTag
-}
-
 // Do pushes the content of dir to an oci registry
 //
 // mostly copied from

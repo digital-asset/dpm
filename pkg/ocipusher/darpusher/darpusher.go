@@ -28,8 +28,7 @@ type DarPushOperation struct {
 	fs                       *file.Store
 	manifestDesc, configDesc *v1.Descriptor
 	repoName                 string
-	rawTag                   string // raw tag without platform. e.g. 1.2.3 not 1.2.3.linux_darwin
-
+	rawTag                   string
 }
 
 func (op *DarPushOperation) Tag() string {
@@ -37,7 +36,7 @@ func (op *DarPushOperation) Tag() string {
 }
 
 func (op *DarPushOperation) DarDestination(registry string) string {
-	return fmt.Sprintf("%s/%s:%s", registry, op.repoName, op.rawTag)
+	return fmt.Sprintf("%s/%s:%s", registry, op.repoName, op.Tag())
 }
 
 func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
@@ -46,10 +45,6 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 	fs, err := file.New(opts.Dir)
 	if err != nil {
 		return nil, err
-	}
-
-	configDesc := &v1.Descriptor{
-		MediaType: "application/vnd.unknown.config.v1+json",
 	}
 
 	dEntries, err := os.ReadDir(opts.Dir)
@@ -79,9 +74,7 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 	packOpts := oras.PackManifestOptions{
 		Layers:              fileDescriptors,
 		ManifestAnnotations: annotations,
-		ConfigDescriptor:    configDesc,
 	}
-
 	manifestDescriptor, err := oras.PackManifest(ctx, fs, oras.PackManifestVersion1_1, opts.Artifact.ArtifactType(), packOpts)
 	if err != nil {
 		return nil, err
@@ -92,7 +85,6 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		rawTag:       opts.RawTag,
 		fs:           fs,
 		manifestDesc: &manifestDescriptor,
-		configDesc:   configDesc,
 	}
 
 	if err := fs.Tag(ctx, manifestDescriptor, op.Tag()); err != nil {
@@ -111,10 +103,9 @@ func (op *DarPushOperation) DarDo(ctx context.Context, client *assistantremote.R
 	if err != nil {
 		return nil, err
 	}
-
 	repo.Client = client
 	repo.PlainHTTP = client.Insecure
-	d, err := oras.Copy(ctx, op.fs, op.Tag(), repo, op.rawTag, oras.DefaultCopyOptions)
+	d, err := oras.Copy(ctx, op.fs, op.Tag(), repo, op.Tag(), oras.DefaultCopyOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +113,7 @@ func (op *DarPushOperation) DarDo(ctx context.Context, client *assistantremote.R
 	if err := op.fs.Close(); err != nil {
 		return nil, err
 	}
-
+	println("returned")
 	return &d, err
 }
 
