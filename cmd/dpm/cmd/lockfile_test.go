@@ -20,6 +20,8 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	t := suite.T()
 	ctx := t.Context()
 
+	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
+
 	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 

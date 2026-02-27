@@ -13,7 +13,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    string(builtincommand.Update),
 		Short:  "update (or create) package lockfile(s)",
-		Hidden: true,
+		Hidden: !assistantconfig.DpmLockfileEnabled(),
 		Args:   cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			op := packagelock.Regular

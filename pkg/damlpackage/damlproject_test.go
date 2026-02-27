@@ -3,12 +3,14 @@ package damlpackage
 import (
 	"testing"
 
+	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDarDependencies(t *testing.T) {
+	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 	t.Setenv("TEST_DPM_REGISTRY_PORT", "5000")
 	p, err := Read(testutil.TestdataPath(t, "daml-dependencies", "daml.yaml"))
 	require.NoError(t, err)

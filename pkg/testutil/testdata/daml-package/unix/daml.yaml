@@ -7,3 +7,6 @@ override-components:
   # add
   javabro:
     local-path: ../../javabro-component
+
+dependencies:
+  - daml-script
