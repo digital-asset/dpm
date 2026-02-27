@@ -91,6 +91,14 @@ func (p *DamlPackage) computeResolvedDependencies(defaultLocation *ArtifactLocat
 				continue
 			}
 			resolved[d] = &ResolvedDependency{FullUrl: u}
+		} else if strings.HasPrefix(d, "http://") || strings.HasPrefix(d, "https://") {
+			// TODO
+			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: http dependencies not yet supported", d))
+			continue
+		} else if strings.HasPrefix(d, ".") {
+			// TODO
+			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: file paths not yet supported", d))
+			continue
 		} else if strings.HasPrefix(d, "@") {
 			parsed := regex.FindStringSubmatch(d)
 			if len(parsed) < 2 {
@@ -135,8 +143,18 @@ func (p *DamlPackage) computeResolvedDependencies(defaultLocation *ArtifactLocat
 				FullUrl:  u,
 			}
 		} else {
-			// non-remote dependency
-			resolved[d] = nil
+			// builtin libs (like "daml-script")
+
+			s := "builtin://" + d
+			u, err := url.Parse(s)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("couldn't parse full url %q for dependency %q: ", s, d))
+				continue
+			}
+			resolved[d] = &ResolvedDependency{
+				Location: nil,
+				FullUrl:  u,
+			}
 		}
 	}
 

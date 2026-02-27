@@ -1,21 +1,24 @@
 package packagelock
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func mk(uris ...string) *PackageLock {
+func mk(t *testing.T, uris ...string) *PackageLock {
 	pl := &PackageLock{}
 	for _, u := range uris {
-		pl.Dars = append(pl.Dars, &Dar{URI: u})
+		p, err := url.Parse(u)
+		require.NoError(t, err)
+		pl.Dars = append(pl.Dars, &Dar{URI: p})
 	}
 	return pl
 }
 
-func TestDiff(t *testing.T) {
+func TestIsInSync(t *testing.T) {
 	tests := []struct {
 		name     string
 		expected *PackageLock
@@ -24,33 +27,39 @@ func TestDiff(t *testing.T) {
 	}{
 		{
 			name:     "no diff",
-			expected: mk("oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
-			existing: mk("oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
+			expected: mk(t, "oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
+			existing: mk(t, "oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
 			want:     true,
 		},
 		{
 			name:     "only removed",
-			expected: mk("oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
-			existing: mk("oci://example1.com/a:latest"),
+			expected: mk(t, "oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
+			existing: mk(t, "oci://example1.com/a:latest"),
 			want:     false,
 		},
 		{
 			name:     "only added",
-			expected: mk("oci://example1.com/a:latest"),
-			existing: mk("oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
+			expected: mk(t, "oci://example1.com/a:latest"),
+			existing: mk(t, "oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
 			want:     false,
 		},
 		{
 			name:     "added and removed",
-			expected: mk("oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
-			existing: mk("oci://example2.com/b:1.2.3", "oci://example3.com/c:4.5.6"),
+			expected: mk(t, "oci://example1.com/a:latest", "oci://example2.com/b:1.2.3"),
+			existing: mk(t, "oci://example2.com/b:1.2.3", "oci://example3.com/c:4.5.6"),
 			want:     false,
 		},
 		{
 			name:     "only floaty diff",
-			expected: mk("oci://example2.com/b:latest"),
-			existing: mk("oci://example2.com/b:1.2.3"),
+			expected: mk(t, "oci://example2.com/b:latest", "builtin://daml-script"),
+			existing: mk(t, "oci://example2.com/b:1.2.3", "builtin://daml-script"),
 			want:     true,
+		},
+		{
+			name:     "builtin diff",
+			expected: mk(t, "builtin://daml-script"),
+			existing: mk(t, "builtin://foo"),
+			want:     false,
 		},
 	}
 
