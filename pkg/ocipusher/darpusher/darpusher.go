@@ -25,10 +25,10 @@ type DarOpts struct {
 }
 
 type DarPushOperation struct {
-	fs                       *file.Store
-	manifestDesc, configDesc *v1.Descriptor
-	repoName                 string
-	rawTag                   string
+	fs           *file.Store
+	manifestDesc *v1.Descriptor
+	repoName     string
+	rawTag       string
 }
 
 func (op *DarPushOperation) Tag() string {
@@ -113,7 +113,6 @@ func (op *DarPushOperation) DarDo(ctx context.Context, client *assistantremote.R
 	if err := op.fs.Close(); err != nil {
 		return nil, err
 	}
-	println("returned")
 	return &d, err
 }
 
