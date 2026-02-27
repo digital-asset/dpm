@@ -6,6 +6,7 @@ package repo
 import (
 	"daml.com/x/assistant/cmd/dpm/cmd/repo/assistant"
 	componentPublish "daml.com/x/assistant/cmd/dpm/cmd/repo/component"
+	"daml.com/x/assistant/cmd/dpm/cmd/repo/dar"
 	"daml.com/x/assistant/cmd/dpm/cmd/repo/promote"
 	"daml.com/x/assistant/cmd/dpm/cmd/repo/resolve"
 	"daml.com/x/assistant/cmd/dpm/cmd/repo/sdkmanifest"
@@ -30,6 +31,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	cmd.AddCommand(resolve.Cmd())
 	cmd.AddCommand(promote.Cmd())
 	cmd.AddCommand(tags.Cmd(config))
+	cmd.AddCommand(dar.Cmd())
 
 	return cmd
 }

@@ -10,11 +10,23 @@ import (
 )
 
 const PlatformFlagName = "platform"
+const FileFlagName = "file"
 
 type PublishCmd struct {
 	DryRun, IncludeGitInfo bool
 	Annotations            map[string]string
 	Platforms              map[string]string
+	ExtraTags              []string
+
+	Insecure     bool
+	Registry     string
+	RegistryAuth string
+}
+
+type PublishDarCmd struct {
+	DryRun, IncludeGitInfo bool
+	Annotations            map[string]string
+	File                   string
 	ExtraTags              []string
 
 	Insecure     bool
