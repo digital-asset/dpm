@@ -2,6 +2,7 @@ package packagelock
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,9 +29,9 @@ type PackageLock struct {
 }
 
 type Dar struct {
-	URI    string `yaml:"uri"`
-	Digest string `yaml:"digest,omitempty"`
-	Path   string `yaml:"path"`
+	URI    *url.URL `yaml:"uri"`
+	Digest string   `yaml:"digest,omitempty"`
+	Path   string   `yaml:"path"`
 
 	Dependency *damlpackage.ResolvedDependency `yaml:"-"`
 }
@@ -70,11 +71,16 @@ func ReadPackageLockContents(contents []byte) (*PackageLock, error) {
 func (l *PackageLock) toDiffableMap() (map[string]stringset.StringSet, error) {
 	m := map[string]stringset.StringSet{}
 	for _, d := range l.Dars {
-		ref, err := registry.ParseReference(strings.TrimPrefix(d.URI, "oci://"))
+		if d.URI.Scheme == "builtin" {
+			m["builtin://"] = make(stringset.StringSet).Add(d.URI.Host)
+			continue
+		}
+
+		ref, err := registry.ParseReference(strings.TrimPrefix(d.URI.String(), "oci://"))
 		if err != nil {
 			return nil, err
 		}
-		k := fmt.Sprintf("%s/%s", ref.Registry, ref.Repository)
+		k := fmt.Sprintf("oci://%s/%s", ref.Registry, ref.Repository)
 
 		if _, ok := m[k]; !ok {
 			m[k] = make(stringset.StringSet)
@@ -111,7 +117,7 @@ func (l *PackageLock) isInSync(expected *PackageLock) (bool, error) {
 		}
 
 		for x := range xs {
-			if ocilister.IsFloaty(x) {
+			if strings.HasPrefix(k, "oci://") && ocilister.IsFloaty(x) {
 				continue
 			}
 			if !ys.Contains(x) {
