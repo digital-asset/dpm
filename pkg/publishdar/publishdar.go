@@ -91,6 +91,9 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 			}
 		}
 	}
+	{
+		p.printer.Println("Skipping dar publishing because DAR_PUBLISH_ENABLED is not set to true, enable feature flag to publish dar")
+	}
 	return nil
 }
 
