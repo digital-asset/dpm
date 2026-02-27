@@ -13,8 +13,17 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/nix
       - run: go build -o target/ ./cmd/...
-      - name: Run Go tests
-        run: go test -race -v ./...
+      - name: Run Go tests and generate in json format
+        run: go test -json -v ./... | tee report.json; exit ${PIPESTATUS[0]}
+      - name: Publish Test Report
+        uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
+        with:
+          name: Go Tests
+          path: report.json
+          reporter: golang-json
+          fail-on-error: 'true'
+          fail-on-empty: 'true'
+          report-title: 'Go Tests'
       - name: Run manual installation
         run: docs/src/public/manual-install.sh
       - uses: ./.github/actions/nsis
@@ -31,8 +40,7 @@ jobs:
       - run: go build -o target/ ./cmd/...
         shell: bash
       - name: Run Go tests and generate in json format
-        run: go test -json -v ./... | tee report.json
-        continue-on-error: true
+        run: go test -json -v ./... | tee report.json; exit ${PIPESTATUS[0]}
         shell: bash
       - name: Publish Test Report
         uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
@@ -69,4 +77,3 @@ jobs:
           repo: da-images/public-unstable
           flags: "--snapshot"
           key: ${{ secrets.DA_IMAGES }}
-
