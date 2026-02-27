@@ -9,16 +9,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/darmanifest"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ocicache"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/Masterminds/semver/v3"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/samber/lo"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry"
@@ -158,15 +157,21 @@ func getAnnotations(ctx context.Context, repo oras.ReadOnlyTarget, desc v1.Descr
 }
 
 func findDar(dir string) (string, error) {
-	entries, err := os.ReadDir(dir)
+	p := filepath.Join(dir, assistantconfig.DarManifestName)
+	m, err := darmanifest.ReadDarManifest(p)
+	if err != nil {
+		return "", fmt.Errorf("couldn't read dar manifest %q: %w", p, err)
+	}
+
+	darPath := utils.ResolvePath(dir, m.Spec.Path)
+
+	info, err := os.Stat(darPath)
 	if err != nil {
 		return "", err
 	}
-	f, ok := lo.Find(entries, func(e os.DirEntry) bool {
-		return strings.HasSuffix(e.Name(), ".dar")
-	})
-	if !ok {
-		return "", fmt.Errorf("no .dar file found in pulled image")
+	if info.IsDir() {
+		return "", fmt.Errorf("dar path %q is not a file", darPath)
 	}
-	return filepath.Join(dir, f.Name()), nil
+
+	return darPath, nil
 }
