@@ -15,7 +15,7 @@ func TestDarDependencies(t *testing.T) {
 	p, err := Read(testutil.TestdataPath(t, "daml-dependencies", "daml.yaml"))
 	require.NoError(t, err)
 
-	assert.Len(t, p.Dependencies, 5)
+	assert.Len(t, p.Dependencies, 4)
 	assert.True(t, p.ArtifactLocations["@digital-asset"].Default)
 	assert.False(t, p.ArtifactLocations["@my-location"].Default)
 

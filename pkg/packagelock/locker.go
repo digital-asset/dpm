@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -123,20 +124,25 @@ func (l *Locker) checkLockfile(expectedLockfile *PackageLock, lockfilePath strin
 
 func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath string) (*PackageLock, error) {
 	for _, d := range expected.Dars {
+		if d.URI.Scheme == "builtin" {
+			d.Path = d.URI.Host
+			continue
+		}
+
 		pulledDar, err := darpuller.New(l.config).PullDar(ctx, d.Dependency)
 		if err != nil {
 			return nil, err
 		}
 		d.Digest = pulledDar.Descriptor.Digest.String()
 
-		ref, err := registry.ParseReference(strings.TrimPrefix(d.URI, "oci://"))
+		ref, err := registry.ParseReference(strings.TrimPrefix(d.URI.String(), "oci://"))
 		if err != nil {
 			return nil, err
 		}
 
 		// TODO this doesn't work for @sha256 pinned refs
 		resolvedRef := ":" + pulledDar.Version.String()
-		d.URI = fmt.Sprintf("oci://%s/%s%s", ref.Registry, ref.Repository, resolvedRef)
+		d.URI, _ = url.Parse(fmt.Sprintf("oci://%s/%s%s", ref.Registry, ref.Repository, resolvedRef))
 		d.Path = pulledDar.DarFilePath
 	}
 
@@ -159,7 +165,7 @@ func computeExpectedLockfile(packageDirAbsPath string) (*PackageLock, error) {
 	// TODO de-duplicate p.ResolvedDependencies first
 	expectedDars := lo.MapToSlice(p.ResolvedDependencies, func(_ string, d *damlpackage.ResolvedDependency) *Dar {
 		return &Dar{
-			URI:        d.FullUrl.String(),
+			URI:        d.FullUrl,
 			Dependency: d,
 
 			// TODO diff digests too
@@ -167,7 +173,7 @@ func computeExpectedLockfile(packageDirAbsPath string) (*PackageLock, error) {
 		}
 	})
 	slices.SortFunc(expectedDars, func(a, b *Dar) int {
-		return strings.Compare(a.URI, b.URI)
+		return strings.Compare(a.URI.String(), b.URI.String())
 	})
 
 	return &PackageLock{
