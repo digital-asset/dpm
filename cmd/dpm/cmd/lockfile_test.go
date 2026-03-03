@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
@@ -25,11 +26,20 @@ func get(t *testing.T, lock *packagelock.PackageLock, s string) *packagelock.Dar
 	return d
 }
 
+func findBySuffix(t *testing.T, imports []string, suffix string) string {
+	p, ok := lo.Find(imports, func(s string) bool {
+		return strings.HasSuffix(s, suffix)
+	})
+	require.Truef(t, ok, "expected to find import with suffix %q", suffix)
+	return p
+}
+
 func (suite *MainSuite) TestLockfileUpdate() {
 	t := suite.T()
 	ctx := t.Context()
 
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
+	t.Setenv("SOME_DAR_ABSOLUTE_PATH", testutil.TestdataPath(t, "simple-multi-package", "testdar2.dar"))
 
 	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
@@ -54,11 +64,11 @@ func (suite *MainSuite) TestLockfileUpdate() {
 
 	aLock, err := packagelock.ReadPackageLock(filepath.Join(multiPackageDir, "a", assistantconfig.DpmLockFileName))
 	require.NoError(t, err)
-	assert.Len(t, aLock.Dars, 2)
+	assert.Len(t, aLock.Dars, 4)
 	d := get(t, aLock, fmt.Sprintf("oci://%s/components/meep:1.2.3", os.Getenv(assistantconfig.OciRegistryEnvVar)))
 	assert.NotEmpty(t, d.Digest)
 
-	d = get(t, aLock, "builtin://daml-script")
+	d = get(t, aLock, "builtin:///daml-script")
 	assert.Empty(t, d.Digest)
 
 	bLock, err := packagelock.ReadPackageLock(filepath.Join(multiPackageDir, "b", assistantconfig.DpmLockFileName))
@@ -83,7 +93,7 @@ func (suite *MainSuite) TestLockfileUpdate() {
 		bLock, err = packagelock.ReadPackageLock(filepath.Join(multiPackageDir, "b", assistantconfig.DpmLockFileName))
 		require.NoError(t, err)
 
-		assert.Len(t, aLock.Dars, 2)
+		assert.Len(t, aLock.Dars, 4)
 		assert.Len(t, bLock.Dars, 2)
 
 		t.Run("pinned stay pinned", func(t *testing.T) {
@@ -112,7 +122,7 @@ func (suite *MainSuite) TestLockfileUpdate() {
 		require.NoError(t, yaml.Unmarshal(output, &deepResolution))
 
 		aRes := deepResolution.Packages[filepath.Join(multiPackageDir, "a")].Imports[resolution.DarImportsFields]
-		assert.Len(t, aRes, 2)
+		assert.Len(t, aRes, 4)
 		assert.Len(t,
 			deepResolution.Packages[filepath.Join(multiPackageDir, "b")].Imports[resolution.DarImportsFields],
 			2,
@@ -120,8 +130,15 @@ func (suite *MainSuite) TestLockfileUpdate() {
 
 		assert.Contains(t, aRes, "daml-script")
 
-		dar, err := os.ReadFile(aRes[1])
+		dar, err := os.ReadFile(findBySuffix(t, aRes, "meep.dar"))
 		require.NoError(t, err)
 		assert.Contains(t, string(dar), "haha not a real dar")
+
+		_, err = os.ReadFile(findBySuffix(t, aRes, "testdar1.dar"))
+		require.NoError(t, err)
+
+		_, err = os.ReadFile(findBySuffix(t, aRes, "testdar2.dar"))
+		require.NoError(t, err)
+
 	})
 }

@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"daml.com/x/assistant/pkg/damlpackage"
@@ -26,6 +27,8 @@ var ErrInvalidPackageLock = fmt.Errorf("invalid package lock")
 type PackageLock struct {
 	schema.ManifestMeta `yaml:",inline"`
 	Dars                []*Dar `yaml:"dars"`
+
+	AbsolutePath string `yaml:"-"`
 }
 
 type Dar struct {
@@ -45,10 +48,10 @@ func ReadPackageLock(filePath string) (*PackageLock, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ReadPackageLockContents(bytes)
+	return ReadPackageLockContents(bytes, abs)
 }
 
-func ReadPackageLockContents(contents []byte) (*PackageLock, error) {
+func ReadPackageLockContents(contents []byte, absoluteFilepath string) (*PackageLock, error) {
 	var c PackageLock
 	if err := yaml.Unmarshal(contents, &c); err != nil {
 		return nil, err
@@ -61,6 +64,7 @@ func ReadPackageLockContents(contents []byte) (*PackageLock, error) {
 	if err := s.ValidateSchema(c.ManifestMeta); err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrInvalidPackageLock, err.Error())
 	}
+	c.AbsolutePath = absoluteFilepath
 
 	return &c, nil
 }
@@ -71,12 +75,12 @@ func ReadPackageLockContents(contents []byte) (*PackageLock, error) {
 func (l *PackageLock) toDiffableMap() (map[string]stringset.StringSet, error) {
 	m := map[string]stringset.StringSet{}
 	for _, d := range l.Dars {
-		if d.URI.Scheme == "builtin" {
-			m["builtin://"] = make(stringset.StringSet).Add(d.URI.Host)
+		if slices.Contains([]string{"builtin", "file"}, d.URI.Scheme) {
+			m[d.URI.Scheme+"://"] = make(stringset.StringSet).Add(TrimScheme(d.URI))
 			continue
 		}
 
-		ref, err := registry.ParseReference(strings.TrimPrefix(d.URI.String(), "oci://"))
+		ref, err := registry.ParseReference(TrimScheme(d.URI))
 		if err != nil {
 			return nil, err
 		}
@@ -127,4 +131,8 @@ func (l *PackageLock) isInSync(expected *PackageLock) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func TrimScheme(u *url.URL) string {
+	return strings.TrimPrefix(u.String(), u.Scheme+"://")
 }

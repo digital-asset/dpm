@@ -18,17 +18,20 @@ type DamlPackage struct {
 	Dependencies         []string                          `yaml:"dependencies"`
 	ArtifactLocations    ArtifactLocations                 `yaml:"artifact-locations"`
 	ResolvedDependencies map[string]*ResolvedDependency    `yaml:"-"`
+
+	// absolute path to daml.yaml
+	AbsolutePath string `yaml:"-"`
 }
 
-func Read(filePath string) (*DamlPackage, error) {
-	bytes, err := os.ReadFile(filePath)
+func Read(absoluteFilePath string) (*DamlPackage, error) {
+	bytes, err := os.ReadFile(absoluteFilePath)
 	if err != nil {
 		return nil, err
 	}
-	return ReadFromContents(bytes)
+	return ReadFromContents(bytes, absoluteFilePath)
 }
 
-func ReadFromContents(contents []byte) (*DamlPackage, error) {
+func ReadFromContents(contents []byte, absoluteFilePath string) (*DamlPackage, error) {
 	expanded, err := expandEnv(contents)
 	if err != nil {
 		return nil, err
@@ -50,6 +53,7 @@ func ReadFromContents(contents []byte) (*DamlPackage, error) {
 			return nil, fmt.Errorf("invalid artifact locations: %w", err)
 		}
 
+		obj.AbsolutePath = absoluteFilePath
 		if len(obj.Dependencies) > 0 {
 			obj.ResolvedDependencies, err = obj.computeResolvedDependencies(defaultLocation)
 			if err != nil {

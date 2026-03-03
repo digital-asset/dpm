@@ -1,5 +1,7 @@
 dependencies:
   - daml-script
+  - ./testdar1.dar
+  - ${SOME_DAR_ABSOLUTE_PATH}
   - "@digital-asset/meep:1.2.3"
 
 

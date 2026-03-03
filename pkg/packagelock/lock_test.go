@@ -57,9 +57,21 @@ func TestIsInSync(t *testing.T) {
 		},
 		{
 			name:     "builtin diff",
-			expected: mk(t, "builtin://daml-script"),
-			existing: mk(t, "builtin://foo"),
+			expected: mk(t, "builtin:///daml-script"),
+			existing: mk(t, "builtin:///foo"),
 			want:     false,
+		},
+		{
+			name:     "filepath diff",
+			expected: mk(t, "file:///foo/daml-script"),
+			existing: mk(t, "file:///foo/bar"),
+			want:     false,
+		},
+		{
+			name:     "filepath no diff",
+			expected: mk(t, "file:///foo/daml-script"),
+			existing: mk(t, "file:///foo/daml-script"),
+			want:     true,
 		},
 	}
 

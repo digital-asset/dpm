@@ -1,6 +1,7 @@
 dependencies:
   - daml-script
-#  - ./meep.dar TODO
+  - ./meep.dar
+  - ${SOME_DAR_ABSOLUTE_PATH}
   - foo:devnet
   - oci://localhost:$TEST_DPM_REGISTRY_PORT/some/dars/foo:1.2.3
   - "@my-location/foo:4.5.6"

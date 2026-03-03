@@ -12,10 +12,11 @@ import (
 func TestDarDependencies(t *testing.T) {
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 	t.Setenv("TEST_DPM_REGISTRY_PORT", "5000")
+	t.Setenv("SOME_DAR_ABSOLUTE_PATH", testutil.TestdataPath(t, "simple-multi-package", "testdar2.dar"))
 	p, err := Read(testutil.TestdataPath(t, "daml-dependencies", "daml.yaml"))
 	require.NoError(t, err)
 
-	assert.Len(t, p.Dependencies, 4)
+	assert.Len(t, p.Dependencies, 6)
 	assert.True(t, p.ArtifactLocations["@digital-asset"].Default)
 	assert.False(t, p.ArtifactLocations["@my-location"].Default)
 

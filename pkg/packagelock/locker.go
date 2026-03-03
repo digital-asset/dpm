@@ -124,8 +124,17 @@ func (l *Locker) checkLockfile(expectedLockfile *PackageLock, lockfilePath strin
 
 func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath string) (*PackageLock, error) {
 	for _, d := range expected.Dars {
-		if d.URI.Scheme == "builtin" {
-			d.Path = d.URI.Host
+		if lo.Contains([]string{"builtin"}, d.URI.Scheme) {
+			d.Path = strings.TrimPrefix(d.URI.Path, "/")
+			continue
+		}
+
+		if lo.Contains([]string{"file"}, d.URI.Scheme) {
+			d.Path = d.URI.Path
+			// Windows paths contain a leading '/' before the drive letter
+			if strings.Index(d.Path, ":") == 2 {
+				d.Path = strings.TrimPrefix(d.Path, "/")
+			}
 			continue
 		}
 

@@ -4,10 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
+	"daml.com/x/assistant/pkg/utils"
 	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
@@ -95,10 +98,26 @@ func (p *DamlPackage) computeResolvedDependencies(defaultLocation *ArtifactLocat
 			// TODO
 			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: http dependencies not yet supported", d))
 			continue
-		} else if strings.HasPrefix(d, ".") {
-			// TODO
-			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: file paths not yet supported", d))
-			continue
+		} else if isFilePath(d) {
+			absPath := utils.ResolvePath(filepath.Dir(p.AbsolutePath), d)
+			// verify the file exists
+			if _, err := os.Stat(absPath); err != nil {
+				errs = append(errs, fmt.Errorf("error with dependency %q: %w", d, err))
+				continue
+			}
+
+			// construct url of the form
+			// file:///usr/bin/bash or file:///C:/Windows/whatever on Windows
+			s := "file:///" + strings.TrimPrefix(filepath.ToSlash(absPath), "/")
+			u, err := url.Parse(s)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("couldn't parse full url %q for dependency %q: ", s, d))
+				continue
+			}
+			resolved[d] = &ResolvedDependency{
+				Location: nil,
+				FullUrl:  u,
+			}
 		} else if strings.HasPrefix(d, "@") {
 			parsed := regex.FindStringSubmatch(d)
 			if len(parsed) < 2 {
@@ -144,8 +163,7 @@ func (p *DamlPackage) computeResolvedDependencies(defaultLocation *ArtifactLocat
 			}
 		} else {
 			// builtin libs (like "daml-script")
-
-			s := "builtin://" + d
+			s := "builtin:///" + d
 			u, err := url.Parse(s)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("couldn't parse full url %q for dependency %q: ", s, d))
@@ -163,4 +181,10 @@ func (p *DamlPackage) computeResolvedDependencies(defaultLocation *ArtifactLocat
 	}
 
 	return resolved, nil
+}
+
+func isFilePath(s string) bool {
+	return strings.HasPrefix(s, ".") ||
+		strings.HasPrefix(s, "/") ||
+		strings.Index(s, ":") == 1
 }
