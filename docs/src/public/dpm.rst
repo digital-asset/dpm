@@ -7,9 +7,9 @@ Digital Asset Package Manager (Dpm)
 ###################################
 
 
-``dpm`` is a command-line tool related to the
-SDK. It is a **drop-in replacement** for the now deprecated
-:subsiteref:`Daml Assistant<daml-assistant>`.
+``dpm`` is a command-line tool that allows users to run the SDK components.
+It is a **drop-in replacement** for the :subsiteref:`Daml Assistant<daml-assistant>`,
+which will be removed as of the 3.5 SDK release.
 
 Pre-requisites
 **************
@@ -27,7 +27,7 @@ For full functionality, you must have installed:
 Install
 *******
 
-When installing Dpm, you can set the ``DPM_HOME`` environment variable to change the location where the SDK and any future updates are installed. The default is:
+When installing ``dpm``, you can set the ``DPM_HOME`` environment variable to change the location where the SDK and any future updates are installed. The default is:
 
 - ``${HOME}/.dpm/`` on Mac and Linux
 - ``%APPDATA%/.dpm/`` on Windows
@@ -87,7 +87,7 @@ To see the active SDK version:
 
 .. code:: shell
 
-  3.4.12-snapshot.20251006.1451.85eca5a
+  3.4.11
 
 To list the installed SDK versions, including the currently active one (marked with ``*``):
 
@@ -97,8 +97,8 @@ To list the installed SDK versions, including the currently active one (marked w
 
 .. code:: shell
 
-    3.4.12-snapshot.20251003.1412.3fe167f
-  * 3.4.12-snapshot.20251006.1451.85eca5a
+    3.4.10
+  * 3.4.11
 
 To additionally list all the SDK versions that can be installed, as well as the installed versions:
 
@@ -131,18 +131,6 @@ To get the list in a machine readable format:
             "active": true
         }
     ]
-
-.. _dpm_unstable_releases:
-
-Unstable releases
-=================
-To install unstable SDKs you need to :ref:`configure dpm <dpm-configuration>` to look for them by setting the
-``registry`` configuration field or ``DPM_REGISTRY`` environment variable to ``europe-docker.pkg.dev/da-images/public-unstable``, then you can use the same ``dpm install`` command:
-
-.. code:: shell
-
-  dpm install <unstable SDK version>
-
 
 .. _dpm-operate:
 
@@ -213,8 +201,8 @@ If a ``daml.yaml`` file doesn't exist in your project, you can create one with:
 
    dpm init
 
-Global configuration (``dpm-config.yaml``)
-===========================================
+``dpm`` Global configuration (``dpm-config.yaml``)
+==================================================
 
 Global configuration is stored at ``${DPM_HOME}/dpm-config.yaml`` and is optional. It can be used for purposes such as:
 
@@ -315,25 +303,25 @@ Command migration table
 +-----------------------------------------+--------------------------------+----------------------------------------------------+
 | daml sandbox                            | dpm sandbox                    | Launch a Daml Sandbox                              |
 +-----------------------------------------+--------------------------------+----------------------------------------------------+
-| daml ledger allocate-parties            | Use Declarative API            | Allocate parties on a ledger                       |
+| `daml ledger allocate-parties`_         | Use Declarative API            | Allocate parties on a ledger                       |
 |                                         | – OR –                         |                                                    |
 |                                         | JSON / gRPC API                |                                                    |
 +-----------------------------------------+--------------------------------+----------------------------------------------------+
-| daml ledger list-parties                | JSON / gRPC API                | list parties on a ledger                           |
+| `daml ledger list-parties`_             | JSON / gRPC API                | list parties on a ledger                           |
 +-----------------------------------------+--------------------------------+----------------------------------------------------+
-| daml ledger upload-dar                  | Use Declarative API            | Upload (and vet) dars on a ledger                  |
+| `daml ledger upload-dar`_               | Use Declarative API            | Upload (and vet) dars on a ledger                  |
 |                                         | – OR –                         |                                                    |
 |                                         | JSON / gRPC API                |                                                    |
 +-----------------------------------------+--------------------------------+----------------------------------------------------+
-| daml ledger fetch-dar                   | gRPC API                       | Fetch a Dar from a ledger.                         |
+| `daml ledger fetch-dar`_                | gRPC API                       | Fetch a Dar from a ledger.                         |
 +-----------------------------------------+--------------------------------+----------------------------------------------------+
-| daml start                              | dpm sandbox                    | Start a local Daml Ledger                          |
+| `daml packages`_                        | JSON / gRPC API                | Package a Daml project                             |
++-----------------------------------------+--------------------------------+----------------------------------------------------+
+| `daml start`_                           | dpm sandbox                    | Start a local Daml Ledger                          |
 |                                         | dpm build                      |                                                    |
 |                                         | Use Declarative API            |                                                    |
 |                                         | – OR –                         |                                                    |
 |                                         | JSON / gRPC to upload/allocate |                                                    |
-+-----------------------------------------+--------------------------------+----------------------------------------------------+
-| daml packages                           | JSON / gRPC API                | Package a Daml project                             |
 +-----------------------------------------+--------------------------------+----------------------------------------------------+
 
 .. _dpm-removed-command-replacements:
@@ -430,7 +418,19 @@ The following ``daml`` commands have no direct ``dpm`` equivalent. Use the Decla
 
 Replace with ``dpm sandbox`` combined with ``dpm build``. Use the Declarative API or JSON/gRPC API to upload DARs and allocate parties as needed.
 
-See dpm Sandbox for details on running a local Canton installation.
+See ``dpm sandbox`` for details on running a local Canton installation.
+
+.. _dpm_unstable_releases:
+
+Unstable releases (advanced operation)
+======================================
+To install unstable SDKs you need to :ref:`configure dpm <dpm-configuration>` to look for them by setting the
+``registry`` configuration field or ``DPM_REGISTRY`` environment variable to ``europe-docker.pkg.dev/da-images/public-unstable``, then you can use the same ``dpm install`` command:
+
+.. code:: shell
+
+  dpm install <unstable SDK version>
+
 
 .. _dpm-help:
 
