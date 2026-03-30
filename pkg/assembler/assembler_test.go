@@ -46,6 +46,7 @@ func TestAssemble(t *testing.T) {
 		assert.Len(t, result.ShallowResolution.Imports, 2)
 		assert.Len(t, result.ShallowResolution.Imports["MEEP_EXTERNAL_DAR"], 3)
 		assert.Len(t, result.ShallowResolution.Imports["SHEEP_EXTERNAL_DAR"], 2)
+		assert.NotNil(t, result.ShallowResolution.ComponentsV2)
 	})
 }
 
