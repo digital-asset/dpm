@@ -28,9 +28,10 @@ type Packages map[string]*Package
 type DefaultSDK map[string]*Package
 
 type Package struct {
-	Errors     []*resolutionerrors.ResolutionError `yaml:"errors,omitempty"`
-	Components map[string]string                   `yaml:"components,omitempty"`
-	Imports    Imports                             `yaml:"imports,omitempty"`
+	Errors       []*resolutionerrors.ResolutionError `yaml:"errors,omitempty"`
+	Components   map[string]string                   `yaml:"components,omitempty"`
+	ComponentsV2 map[string]map[string]string        `yaml:"componentsV2,omitempty"`
+	Imports      Imports                             `yaml:"imports,omitempty"`
 }
 
 // Imports is export Var -> paths list mapping

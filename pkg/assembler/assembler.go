@@ -127,6 +127,12 @@ func (a *Assembler) AssembleManyWithOverlay(ctx context.Context, assemblyManifes
 			Components: lo.MapValues(components, func(component *ResolvedComponent, name string) string {
 				return component.AbsolutePath
 			}),
+			ComponentsV2: lo.MapValues(components, func(component *ResolvedComponent, name string) map[string]string {
+				return map[string]string{
+					"path":    component.AbsolutePath,
+					"version": component.Version,
+				}
+			}), // Split path and versions for readability
 		},
 	}
 
@@ -197,6 +203,7 @@ type ResolvedComponent struct {
 	*component.Component
 	ComponentName string
 	AbsolutePath  string
+	Version       string `yaml:"version,omitempty"` // For V2
 }
 
 func extractCommands(comps map[string]*ResolvedComponent) map[string][]*ValidatedCommand {
@@ -346,10 +353,13 @@ func (a *Assembler) collectComponent(ctx context.Context, basePath string, comp 
 		return nil, err
 	}
 
+	version := filepath.Base(absPath)
+
 	return &ResolvedComponent{
 		Component:     parsedComp,
 		ComponentName: comp.Name,
 		AbsolutePath:  absPath,
+		Version:       version,
 	}, nil
 }
 
