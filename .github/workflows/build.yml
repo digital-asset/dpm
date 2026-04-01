@@ -71,6 +71,7 @@ jobs:
       - name: Check if VERSION changed
         id: changes
         run: |
+          ls -la
           echo "version_changed=true" >> "$GITHUB_OUTPUT"
           version=1.0.12
           git tag -a ${version} -m "version ${version}"
