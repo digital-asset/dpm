@@ -61,7 +61,7 @@ jobs:
     needs: 
       - windows
       - linux
-    if: success() && (github.ref == 'refs/head/main' || startsWith(github.ref, 'refs/heads/release')) 
+    if: success() && (github.ref_name == 'refs/head/main' || startsWith(github.ref_name, 'refs/heads/release')) 
     steps: # Public release on main or release branch only
       - name: Check if VERSION changed
         id: changes
