@@ -554,22 +554,61 @@ func (suite *MainSuite) TestMultiPkgInstall() {
 	sdkVersion := "0.0.1-whatever"
 	installSdk(t, sdkVersion)
 
-	tmpDir := t.TempDir()
+	t.Run("multi pkg no override", func(t *testing.T) {
 
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-	require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("another-multi-package"))))
-	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
+		tmpDir := t.TempDir()
 
-	cmd, r, w := createTestRootCmd(t, "install", "package", "-m")
-	require.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("another-multi-package"))))
+		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
 
-	output, err := io.ReadAll(r)
-	require.NoError(t, err)
-	assert.Contains(t, string(output), "Successfully installed SDK"+sdkVersion)
-	assert.Contains(t, string(output), "No overrides to install")
+		cmd, r, w := createTestRootCmd(t, "install", "package", "-m")
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Contains(t, string(output), "Successfully installed SDK"+sdkVersion)
+		assert.Contains(t, string(output), "No overrides to install")
+	})
+
+	t.Run("multi pkg with override", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-overwrite"))))
+		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
+
+		cmd, r, w := createTestRootCmd(t, "install", "package", "-m")
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Contains(t, string(output), "Successfully installed SDK"+sdkVersion)
+		assert.Contains(t, string(output), "Installing overrides")
+	})
+
+	t.Run("multi pkg with skip", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package/unix"))))
+		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
+
+		cmd, r, w := createTestRootCmd(t, "install", "package", "-m", "--skip-sdk")
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+		output, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.NotContains(t, string(output), "Successfully installed SDK"+sdkVersion)
+	})
 
 }
 
