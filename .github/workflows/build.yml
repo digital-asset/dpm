@@ -68,6 +68,7 @@ jobs:
           fetch-depth: 0
       - name: Check if VERSION changed
         id: changes
+        shell: bash
         run: |
           echo "version_changed=true" >> "$GITHUB_OUTPUT"
           version=1.0.12
