@@ -18,5 +18,6 @@
    dpm_repo_resolve-tags
    dpm_repo_tags
    dpm_resolve
+   dpm_uninstall
+   dpm_update
    dpm_version
-   dpm_versions
