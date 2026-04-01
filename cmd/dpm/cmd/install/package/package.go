@@ -24,6 +24,7 @@ import (
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
 	var multiPkg bool
+	var skipSDK bool
 	cmd := &cobra.Command{
 		Use:    "package",
 		Short:  "install the SDK and all overrides (if any) for a package",
@@ -52,9 +53,10 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 					if err != nil {
 						return err
 					}
-
-					if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
-						return err
+					if !skipSDK {
+						if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+							return err
+						}
 					}
 				}
 				installOverrides(ctx, cmd, config, multiPackagePath, false)
@@ -69,11 +71,12 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 						if err != nil {
 							return err
 						}
-						if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
-							return err
+						if !skipSDK {
+							if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+								return err
+							}
 						}
 					}
-					config.DamlHomePath = p
 					installOverrides(ctx, cmd, config, filepath.Join(p, assistantconfig.DamlPackageFilename), true)
 				}
 
@@ -95,8 +98,10 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 					if err != nil {
 						return err
 					}
-					if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
-						return err
+					if !skipSDK {
+						if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+							return err
+						}
 					}
 				}
 				return installOverrides(ctx, cmd, config, damlPackagePath, false)
@@ -106,6 +111,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	}
 
 	cmd.Flags().BoolVarP(&multiPkg, "multi-package", "m", false, "run install packages with a multi-package.yaml setup")
+	cmd.Flags().BoolVar(&skipSDK, "skip-sdk", false, "run install packages with overwrites only")
 	return cmd
 }
 
