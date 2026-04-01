@@ -62,9 +62,10 @@ jobs:
       - windows
       - linux
     if: success() 
-    outputs:
-        version: ${{ steps.changes.outputs.version }}
     steps: # Public release on main or release branch only
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
       - name: Check if VERSION changed
         id: changes
         run: |
@@ -72,9 +73,6 @@ jobs:
           version=1.0.12
           git tag -a ${version} -m "version ${version}"
           echo "version=${version}" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          fetch-depth: 0
       - uses: ./.github/actions/release
         if: steps.changes.outputs.version_changed == 'true'
         with:
