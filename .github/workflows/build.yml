@@ -62,6 +62,8 @@ jobs:
       - windows
       - linux
     if: success() 
+    outputs:
+        version: ${{ steps.changes.outputs.version }}
     steps: # Public release on main or release branch only
       - name: Check if VERSION changed
         id: changes
