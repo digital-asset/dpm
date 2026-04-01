@@ -570,7 +570,7 @@ func (suite *MainSuite) TestMultiPkgInstall() {
 
 		output, err := io.ReadAll(r)
 		require.NoError(t, err)
-		assert.Contains(t, string(output), "Successfully installed SDK"+sdkVersion)
+		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
 		assert.Contains(t, string(output), "No overrides to install")
 	})
 
@@ -589,7 +589,7 @@ func (suite *MainSuite) TestMultiPkgInstall() {
 
 		output, err := io.ReadAll(r)
 		require.NoError(t, err)
-		assert.Contains(t, string(output), "Successfully installed SDK"+sdkVersion)
+		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
 		assert.Contains(t, string(output), "Installing overrides")
 	})
 
@@ -607,7 +607,7 @@ func (suite *MainSuite) TestMultiPkgInstall() {
 		assert.NoError(t, w.Close())
 		output, err := io.ReadAll(r)
 		require.NoError(t, err)
-		assert.NotContains(t, string(output), "Successfully installed SDK"+sdkVersion)
+		assert.NotContains(t, string(output), "Successfully installed SDK "+sdkVersion)
 	})
 
 }

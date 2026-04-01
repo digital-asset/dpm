@@ -147,6 +147,6 @@ func installSdk(ctx context.Context, cmd *cobra.Command, config *assistantconfig
 	if _, err := sdkinstall.InstallSdkVersion(ctx, config, sdkVersion); err != nil {
 		return err
 	}
-	cmd.Println("Successfully installed SDK" + sdkVersion.String())
+	cmd.Println("Successfully installed SDK " + sdkVersion.String())
 	return nil
 }
