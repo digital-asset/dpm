@@ -4,16 +4,18 @@
 package multipackage
 
 import (
-	"daml.com/x/assistant/pkg/utils"
-	"github.com/samber/lo"
 	"os"
 	"path/filepath"
+
+	"daml.com/x/assistant/pkg/utils"
+	"github.com/samber/lo"
 
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"github.com/goccy/go-yaml"
 )
 
 type MultiPackage struct {
+	SdkVersion         string                            `yaml:"sdk-version"`
 	AbsolutePath       string                            `yaml:"-"`
 	Packages           []string                          `yaml:"packages"`
 	OverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components"`

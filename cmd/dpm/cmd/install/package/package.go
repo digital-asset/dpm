@@ -5,12 +5,15 @@ package project
 
 import (
 	"context"
-	"daml.com/x/assistant/pkg/assembler"
-	"daml.com/x/assistant/pkg/assembler/assemblyplan"
-	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
-	"daml.com/x/assistant/pkg/utils"
 	"errors"
 	"fmt"
+	"path/filepath"
+
+	"daml.com/x/assistant/pkg/assembler"
+	"daml.com/x/assistant/pkg/assembler/assemblyplan"
+	"daml.com/x/assistant/pkg/multipackage"
+	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
+	"daml.com/x/assistant/pkg/utils"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
@@ -20,7 +23,8 @@ import (
 )
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
-	return &cobra.Command{
+	var multiPkg bool
+	cmd := &cobra.Command{
 		Use:    "package",
 		Short:  "install the SDK and all overrides (if any) for a package",
 		Hidden: true,
@@ -30,45 +34,93 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 
 			modifiedConfig := config
 			modifiedConfig.AutoInstall = true
-
-			damlPackagePath, isDamlPackage, err := assistantconfig.GetDamlPackageAbsolutePath()
-			if err != nil {
-				return err
-			}
-			if !isDamlPackage {
-				return fmt.Errorf("not in a package directory or subdirectory")
-			}
-
-			damlPackage, err := damlpackage.Read(damlPackagePath)
-			if err != nil {
-				return err
-			}
-
-			if damlPackage.SdkVersion != "" {
-				sdkVersion, err := semver.NewVersion(damlPackage.SdkVersion)
+			if multiPkg {
+				multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
+				if err != nil {
+					return err
+				}
+				if !hasMultiPackage {
+					return fmt.Errorf("multi-package.yaml not in a package directory")
+				}
+				multiDamlPackage, err := multipackage.Read(multiPackagePath)
 				if err != nil {
 					return err
 				}
 
-				if err := installSdk(ctx, cmd, modifiedConfig, sdkVersion); err != nil {
+				if multiDamlPackage.SdkVersion != "" {
+					sdkVersion, err := semver.NewVersion(multiDamlPackage.SdkVersion)
+					if err != nil {
+						return err
+					}
+
+					if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+						return err
+					}
+				}
+				installOverrides(ctx, cmd, config, multiPackagePath, false)
+				pkgs := multiDamlPackage.AbsolutePackages()
+				for _, p := range pkgs {
+					damlPackage, err := damlpackage.Read(filepath.Join(p, assistantconfig.DamlPackageFilename))
+					if err != nil {
+						return err
+					}
+					if damlPackage.SdkVersion != "" {
+						sdkVersion, err := semver.NewVersion(damlPackage.SdkVersion)
+						if err != nil {
+							return err
+						}
+						if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+							return err
+						}
+					}
+					config.DamlHomePath = p
+					installOverrides(ctx, cmd, config, filepath.Join(p, assistantconfig.DamlPackageFilename), true)
+				}
+
+			} else {
+				damlPackagePath, isDamlPackage, err := assistantconfig.GetDamlPackageAbsolutePath()
+
+				if err != nil {
 					return err
 				}
+				if !isDamlPackage {
+					return fmt.Errorf("not in a package directory or subdirectory")
+				}
+				damlPackage, err := damlpackage.Read(damlPackagePath)
+				if err != nil {
+					return err
+				}
+				if damlPackage.SdkVersion != "" {
+					sdkVersion, err := semver.NewVersion(damlPackage.SdkVersion)
+					if err != nil {
+						return err
+					}
+					if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+						return err
+					}
+				}
+				return installOverrides(ctx, cmd, config, damlPackagePath, false)
 			}
-
-			return installOverrides(ctx, cmd, modifiedConfig)
+			return nil
 		},
 	}
+
+	cmd.Flags().BoolVarP(&multiPkg, "multi-package", "m", false, "run install packages with a multi-package.yaml setup")
+	return cmd
 }
 
-func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config) error {
+func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, absPath string, sub bool) error {
 	puller, err := remotepuller.NewFromRemoteConfig(config)
 	if err != nil {
 		return err
 	}
 	a := assembler.New(config, puller)
-	assemblyPlan, err := assemblyplan.New(ctx, config, a)
+	assemblyPlan, err := assemblyplan.NewShallow(ctx, config, a, absPath)
 	if err != nil {
 		return err
+	}
+	if sub {
+		assemblyPlan.MultiPackage = nil
 	}
 	if !assemblyPlan.HasOverrides() {
 		cmd.Println("No overrides to install")
@@ -76,7 +128,8 @@ func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistant
 	}
 	cmd.Println("Installing overrides...")
 	err = utils.WithInstallLock(ctx, config.InstallLocalFilePath, func() error {
-		_, err := assemblyPlan.Assemble(ctx)
+		test, err := assemblyPlan.Assemble(ctx)
+		cmd.Println("whats this: ", test) // has all the overrides but also multi
 		return err
 	})
 	if err != nil {
@@ -85,6 +138,25 @@ func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistant
 	cmd.Println("Successfully installed overrides")
 	return nil
 }
+
+// func parseDamlPackage(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, damlPackagePath string) error {
+
+// 	damlPackage, err := damlpackage.Read(filepath.Join(damlPackagePath, assistantconfig.DamlPackageFilename))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	cmd.Println("pls")
+// 	if damlPackage.SdkVersion != "" {
+// 		sdkVersion, err := semver.NewVersion(damlPackage.SdkVersion)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return installOverrides(ctx, cmd, config)
+// }
 
 func installSdk(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, sdkVersion *semver.Version) error {
 	_, err := assistantconfig.GetInstalledSdkVersion(config, sdkVersion)
