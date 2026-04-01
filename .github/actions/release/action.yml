@@ -17,6 +17,10 @@ inputs:
     type: string
     description: auth key
     required: true
+  git_tag:
+    type: string
+    description: git tag for releaser
+    required: true
 runs:
   using: composite
   steps:
@@ -29,6 +33,7 @@ runs:
         key: ${{ inputs.key }}
     - run: |
         export GIT_COMMIT_COUNT=$(git rev-list --count HEAD)
+        export GORELEASER_CURRENT_TAG=${git_tag}
         goreleaser ${{ inputs.flags }}
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
     - name: dpm publish dry-run

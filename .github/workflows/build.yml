@@ -61,16 +61,28 @@ jobs:
     needs: 
       - windows
       - linux
-    if: success() && startsWith(github.ref, 'refs/tags/')
-    steps:
+    if: success() && (github.ref == 'refs/head/main' || startsWith(github.ref, 'refs/heads/release')) 
+    steps: # Public release on main or release branch only
+      - name: Check if VERSION changed
+        id: changes
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q 'VERSION'; then
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+            version=$(cat VERSION | tr -d ' ')
+            git tag -a ${version} -m "version ${version}"
+            echo "version=${version}" >> $GITHUB_OUTPUT
+          else
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
       - uses: ./.github/actions/release
+        if: steps.changes.outputs.version_changed == 'true'
         with:
           repo: da-images/public
           flags: "--clean --skip=announce,publish,validate"
-          key: ${{ secrets.DA_IMAGES }}
+          git_tag: ${{steps.changes.outputs.version}}
 
   release-public-unstable:
     runs-on: digital-asset-dpm
