@@ -57,53 +57,29 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 						if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
 							return err
 						}
+					} else {
+						cmd.Println("Skipping installation of sdk with version ", sdkVersion)
 					}
 				}
+
 				installOverrides(ctx, cmd, config, multiPackagePath, false)
 				pkgs := multiDamlPackage.AbsolutePackages()
+
 				for _, p := range pkgs {
-					damlPackage, err := damlpackage.Read(filepath.Join(p, assistantconfig.DamlPackageFilename))
-					if err != nil {
-						return err
-					}
-					if damlPackage.SdkVersion != "" {
-						sdkVersion, err := semver.NewVersion(damlPackage.SdkVersion)
-						if err != nil {
-							return err
-						}
-						if !skipSDK {
-							if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
-								return err
-							}
-						}
-					}
-					installOverrides(ctx, cmd, config, filepath.Join(p, assistantconfig.DamlPackageFilename), true)
+					damlPackagePath := filepath.Join(p, assistantconfig.DamlPackageFilename)
+					processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath, skipSDK)
+					installOverrides(ctx, cmd, config, damlPackagePath, true)
 				}
 
 			} else {
 				damlPackagePath, isDamlPackage, err := assistantconfig.GetDamlPackageAbsolutePath()
-
 				if err != nil {
 					return err
 				}
 				if !isDamlPackage {
 					return fmt.Errorf("not in a package directory or subdirectory")
 				}
-				damlPackage, err := damlpackage.Read(damlPackagePath)
-				if err != nil {
-					return err
-				}
-				if damlPackage.SdkVersion != "" {
-					sdkVersion, err := semver.NewVersion(damlPackage.SdkVersion)
-					if err != nil {
-						return err
-					}
-					if !skipSDK {
-						if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
-							return err
-						}
-					}
-				}
+				processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath, skipSDK)
 				return installOverrides(ctx, cmd, config, damlPackagePath, false)
 			}
 			return nil
@@ -113,6 +89,27 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	cmd.Flags().BoolVarP(&multiPkg, "multi-package", "m", false, "run install packages with a multi-package.yaml setup")
 	cmd.Flags().BoolVar(&skipSDK, "skip-sdk", false, "run install packages with overwrites only")
 	return cmd
+}
+func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, damlPath string, skip bool) error {
+
+	damlPackage, err := damlpackage.Read(damlPath)
+	if err != nil {
+		return err
+	}
+	if damlPackage.SdkVersion != "" {
+		sdkVersion, err := semver.NewVersion(damlPackage.SdkVersion)
+		if err != nil {
+			return err
+		}
+		if !skip {
+			if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+				return err
+			}
+		} else {
+			cmd.Println("Skipping installation of SDK with version:", sdkVersion)
+		}
+	}
+	return nil
 }
 
 func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, absPath string, sub bool) error {
