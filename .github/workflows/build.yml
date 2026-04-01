@@ -5,7 +5,9 @@ on:
 defaults:
   run:
     shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
-
+env:
+  GITHUB_TOKEN: ${{ secrets.AUTO_REBASE_PAT }}
+  
 jobs:
   linux:
     runs-on: digital-asset-dpm
