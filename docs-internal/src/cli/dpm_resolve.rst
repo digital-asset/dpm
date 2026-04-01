@@ -23,7 +23,8 @@ Options
 
 ::
 
-  -h, --help   help for resolve
+  -h, --help            help for resolve
+  -o, --output string   output format: json, yaml (default "yaml")
 
 SEE ALSO
 ~~~~~~~~

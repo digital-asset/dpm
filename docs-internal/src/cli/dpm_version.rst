@@ -14,6 +14,9 @@ Synopsis
 
 show sdk versions
 
+	note that the active version in the output may or may not be installed.
+
+
 ::
 
   dpm version [flags]

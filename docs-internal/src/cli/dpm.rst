@@ -30,5 +30,7 @@ SEE ALSO
 * :ref:`dpm login <dpm_login>` 	 - 
 * :ref:`dpm repo <dpm_repo>` 	 - 
 * :ref:`dpm resolve <dpm_resolve>` 	 - 
+* :ref:`dpm uninstall <dpm_uninstall>` 	 - uninstall a dpm-sdk version
+* :ref:`dpm update <dpm_update>` 	 - update (or create) package lockfile(s)
 * :ref:`dpm version <dpm_version>` 	 - show sdk versions
 
