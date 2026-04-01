@@ -548,6 +548,70 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 	})
 }
 
+func (suite *MainSuite) TestMultiPkgInstall() {
+	t := suite.T()
+
+	sdkVersion := "0.0.1-whatever"
+	installSdk(t, sdkVersion)
+
+	t.Run("multi pkg no override", func(t *testing.T) {
+
+		tmpDir := t.TempDir()
+
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("another-multi-package"))))
+		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
+
+		cmd, r, w := createTestRootCmd(t, "install", "package")
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
+		assert.Contains(t, string(output), "No overrides to install")
+	})
+
+	t.Run("multi pkg with override", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-overwrite"))))
+		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
+
+		cmd, r, w := createTestRootCmd(t, "install", "package")
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
+		assert.Contains(t, string(output), "Installing overrides")
+	})
+
+	t.Run("multi pkg with skip", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package/unix"))))
+		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
+
+		cmd, r, w := createTestRootCmd(t, "install", "package", "--skip-sdk")
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+		output, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.NotContains(t, string(output), "Successfully installed SDK "+sdkVersion)
+	})
+
+}
+
 func (suite *MainSuite) TestListSDKVersion() {
 	t := suite.T()
 	ctx := testutil.Context(t)

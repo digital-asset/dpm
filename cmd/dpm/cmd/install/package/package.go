@@ -5,12 +5,15 @@ package project
 
 import (
 	"context"
-	"daml.com/x/assistant/pkg/assembler"
-	"daml.com/x/assistant/pkg/assembler/assemblyplan"
-	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
-	"daml.com/x/assistant/pkg/utils"
 	"errors"
 	"fmt"
+	"path/filepath"
+
+	"daml.com/x/assistant/pkg/assembler"
+	"daml.com/x/assistant/pkg/assembler/assemblyplan"
+	"daml.com/x/assistant/pkg/multipackage"
+	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
+	"daml.com/x/assistant/pkg/utils"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
@@ -20,7 +23,8 @@ import (
 )
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
-	return &cobra.Command{
+	var skipSDK bool
+	cmd := &cobra.Command{
 		Use:    "package",
 		Short:  "install the SDK and all overrides (if any) for a package",
 		Hidden: true,
@@ -30,45 +34,91 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 
 			modifiedConfig := config
 			modifiedConfig.AutoInstall = true
-
-			damlPackagePath, isDamlPackage, err := assistantconfig.GetDamlPackageAbsolutePath()
+			multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
 			if err != nil {
 				return err
 			}
-			if !isDamlPackage {
-				return fmt.Errorf("not in a package directory or subdirectory")
-			}
-
-			damlPackage, err := damlpackage.Read(damlPackagePath)
-			if err != nil {
-				return err
-			}
-
-			if damlPackage.SdkVersion != "" {
-				sdkVersion, err := semver.NewVersion(damlPackage.SdkVersion)
+			if hasMultiPackage {
+				multiDamlPackage, err := multipackage.Read(multiPackagePath)
 				if err != nil {
 					return err
 				}
 
-				if err := installSdk(ctx, cmd, modifiedConfig, sdkVersion); err != nil {
+				if multiDamlPackage.SdkVersion != "" {
+					sdkVersion, err := semver.NewVersion(multiDamlPackage.SdkVersion)
+					if err != nil {
+						return err
+					}
+					if !skipSDK {
+						if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+							return err
+						}
+					} else {
+						cmd.Println("Skipping installation of sdk with version ", sdkVersion)
+					}
+				}
+
+				installOverrides(ctx, cmd, config, multiPackagePath, false)
+				pkgs := multiDamlPackage.AbsolutePackages()
+
+				for _, p := range pkgs {
+					damlPackagePath := filepath.Join(p, assistantconfig.DamlPackageFilename)
+					processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath, skipSDK)
+					installOverrides(ctx, cmd, config, damlPackagePath, true)
+				}
+
+			} else {
+				damlPackagePath, isDamlPackage, err := assistantconfig.GetDamlPackageAbsolutePath()
+				if err != nil {
 					return err
 				}
+				if !isDamlPackage {
+					return fmt.Errorf("not in a package directory or subdirectory")
+				}
+				processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath, skipSDK)
+				return installOverrides(ctx, cmd, config, damlPackagePath, false)
 			}
-
-			return installOverrides(ctx, cmd, modifiedConfig)
+			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&skipSDK, "skip-sdk", false, "run install packages with overwrites only")
+	return cmd
+}
+func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, damlPath string, skip bool) error {
+
+	damlPackage, err := damlpackage.Read(damlPath)
+	if err != nil {
+		return err
+	}
+	if damlPackage.SdkVersion != "" {
+		sdkVersion, err := semver.NewVersion(damlPackage.SdkVersion)
+		if err != nil {
+			return err
+		}
+		if !skip {
+			if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+				return err
+			}
+		} else {
+			cmd.Println("Skipping installation of SDK with version:", sdkVersion)
+		}
+	}
+	return nil
 }
 
-func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config) error {
+func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, absPath string, sub bool) error {
 	puller, err := remotepuller.NewFromRemoteConfig(config)
 	if err != nil {
 		return err
 	}
 	a := assembler.New(config, puller)
-	assemblyPlan, err := assemblyplan.New(ctx, config, a)
+	assemblyPlan, err := assemblyplan.NewShallow(ctx, config, a, absPath)
 	if err != nil {
 		return err
+	}
+	if sub {
+		assemblyPlan.MultiPackage = nil
 	}
 	if !assemblyPlan.HasOverrides() {
 		cmd.Println("No overrides to install")
@@ -97,6 +147,6 @@ func installSdk(ctx context.Context, cmd *cobra.Command, config *assistantconfig
 	if _, err := sdkinstall.InstallSdkVersion(ctx, config, sdkVersion); err != nil {
 		return err
 	}
-	cmd.Println("Successfully installed SDK" + sdkVersion.String())
+	cmd.Println("Successfully installed SDK " + sdkVersion.String())
 	return nil
 }
