@@ -7,7 +7,7 @@ defaults:
     shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
 env:
   GITHUB_TOKEN: ${{ secrets.AUTO_REBASE_PAT }}
-  
+
 jobs:
   linux:
     runs-on: digital-asset-dpm
@@ -70,7 +70,6 @@ jobs:
           fetch-depth: 0
       - name: Check if VERSION changed
         id: changes
-        shell: bash
         run: |
           echo "version_changed=true" >> "$GITHUB_OUTPUT"
           version=1.0.12
