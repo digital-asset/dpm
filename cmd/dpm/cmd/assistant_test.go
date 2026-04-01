@@ -564,7 +564,7 @@ func (suite *MainSuite) TestMultiPkgInstall() {
 		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("another-multi-package"))))
 		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
 
-		cmd, r, w := createTestRootCmd(t, "install", "package", "-m")
+		cmd, r, w := createTestRootCmd(t, "install", "package")
 		require.NoError(t, cmd.Execute())
 		assert.NoError(t, w.Close())
 
@@ -583,7 +583,7 @@ func (suite *MainSuite) TestMultiPkgInstall() {
 		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-overwrite"))))
 		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
 
-		cmd, r, w := createTestRootCmd(t, "install", "package", "-m")
+		cmd, r, w := createTestRootCmd(t, "install", "package")
 		require.NoError(t, cmd.Execute())
 		assert.NoError(t, w.Close())
 
@@ -602,7 +602,7 @@ func (suite *MainSuite) TestMultiPkgInstall() {
 		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package/unix"))))
 		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
 
-		cmd, r, w := createTestRootCmd(t, "install", "package", "-m", "--skip-sdk")
+		cmd, r, w := createTestRootCmd(t, "install", "package", "--skip-sdk")
 		require.NoError(t, cmd.Execute())
 		assert.NoError(t, w.Close())
 		output, err := io.ReadAll(r)

@@ -23,7 +23,6 @@ import (
 )
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
-	var multiPkg bool
 	var skipSDK bool
 	cmd := &cobra.Command{
 		Use:    "package",
@@ -35,14 +34,11 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 
 			modifiedConfig := config
 			modifiedConfig.AutoInstall = true
-			if multiPkg {
-				multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
-				if err != nil {
-					return err
-				}
-				if !hasMultiPackage {
-					return fmt.Errorf("multi-package.yaml not in a package directory")
-				}
+			multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
+			if err != nil {
+				return err
+			}
+			if hasMultiPackage {
 				multiDamlPackage, err := multipackage.Read(multiPackagePath)
 				if err != nil {
 					return err
@@ -86,7 +82,6 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&multiPkg, "multi-package", "m", false, "run install packages with a multi-package.yaml setup")
 	cmd.Flags().BoolVar(&skipSDK, "skip-sdk", false, "run install packages with overwrites only")
 	return cmd
 }
