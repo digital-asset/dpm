@@ -139,25 +139,6 @@ func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistant
 	return nil
 }
 
-// func parseDamlPackage(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, damlPackagePath string) error {
-
-// 	damlPackage, err := damlpackage.Read(filepath.Join(damlPackagePath, assistantconfig.DamlPackageFilename))
-// 	if err != nil {
-// 		return err
-// 	}
-// 	cmd.Println("pls")
-// 	if damlPackage.SdkVersion != "" {
-// 		sdkVersion, err := semver.NewVersion(damlPackage.SdkVersion)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return installOverrides(ctx, cmd, config)
-// }
-
 func installSdk(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, sdkVersion *semver.Version) error {
 	_, err := assistantconfig.GetInstalledSdkVersion(config, sdkVersion)
 	if err == nil {
