@@ -47,7 +47,7 @@ run-internal-docs: generate-cli-ref generate-sphinx
 	open docs-internal/generated/html/index.html
 
 .PHONY: run-docs
-run-docs:
+run-docs: run-internal-docs
 	rm -rf docs/generated
 	sphinx-build -vvv -b html docs/src/ docs/generated/html
 	open docs/generated/html/index.html
