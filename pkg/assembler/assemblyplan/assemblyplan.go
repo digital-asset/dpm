@@ -21,7 +21,7 @@ import (
 
 // AssemblyPlan decides what the final commands that'll be added to the assistant root command are,
 // or rather where they'll be sourced from. It takes into account the existence of
-// daml.yaml, multi-package.yaml, dpm.local.yaml, or lack thereof in making that decision.
+// daml.yaml, multi-package.yaml, or lack thereof in making that decision.
 type AssemblyPlan struct {
 	Base         sdkmanifest.SdkManifest
 	DamlPackage  *sdkmanifest.SdkManifest
@@ -42,14 +42,6 @@ func New(ctx context.Context, config *assistantconfig.Config, a *assembler.Assem
 			assembler: a,
 			Base:      *b,
 		}, nil
-	}
-
-	dpmLocalPath, ok, err := assistantconfig.GetDamlLocalAbsolutePath()
-	if err != nil {
-		return nil, err
-	}
-	if ok {
-		return dpmLocal(config, a, dpmLocalPath)
 	}
 
 	damlPackagePath, _, err := assistantconfig.GetDamlPackageAbsolutePath()
