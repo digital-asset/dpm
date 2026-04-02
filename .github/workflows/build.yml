@@ -73,6 +73,8 @@ jobs:
         shell: bash
         run: |
           ls -la
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           echo "version_changed=true" >> "$GITHUB_OUTPUT"
           version=1.0.12
           git tag -a ${version} -m "version ${version}"
