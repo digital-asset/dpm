@@ -54,7 +54,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 							return err
 						}
 					} else {
-						cmd.Println("Skipping installation of sdk with version ", sdkVersion)
+						cmd.Println("Skipping installation of multi-package.yaml sdk version ", sdkVersion)
 					}
 				}
 
@@ -62,6 +62,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				pkgs := multiDamlPackage.AbsolutePackages()
 
 				for _, p := range pkgs {
+					cmd.Printf("Processing package %q...\n", p)
 					damlPackagePath := filepath.Join(p, assistantconfig.DamlPackageFilename)
 					processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath, skipSDK)
 					installOverrides(ctx, cmd, config, damlPackagePath, true)
@@ -86,7 +87,6 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	return cmd
 }
 func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, damlPath string, skip bool) error {
-
 	damlPackage, err := damlpackage.Read(damlPath)
 	if err != nil {
 		return err
