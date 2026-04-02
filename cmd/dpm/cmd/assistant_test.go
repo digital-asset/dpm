@@ -11,16 +11,16 @@ import (
 	"strings"
 	"testing"
 
-	"daml.com/x/assistant/cmd/dpm/cmd/versions"
-	"daml.com/x/assistant/pkg/builtincommand"
-
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
+	"daml.com/x/assistant/cmd/dpm/cmd/versions"
 	"daml.com/x/assistant/pkg/assistant"
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/builtincommand"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/testutil"
+	"daml.com/x/assistant/pkg/utils"
 	"github.com/goccy/go-yaml"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -664,6 +664,32 @@ func (suite *MainSuite) TestListSDKVersion() {
 		require.NoError(t, err)
 		assertActiveSdkVersion(t, "1.2.3-not-installed")
 	})
+
+	t.Run("active sdk version of multi-package", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		err = os.WriteFile(filepath.Join(tmpDir, "multi-package.yaml"), []byte(`sdk-version: 1.2.3-not-installed`), 0666)
+		require.NoError(t, err)
+
+		t.Chdir(tmpDir)
+		assertActiveSdkVersion(t, "1.2.3-not-installed")
+	})
+
+	t.Run("active sdk version of package takes precedence over multi-package sdk version", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		subPackageDir := filepath.Join(tmpDir, "sub-package")
+		require.NoError(t, utils.EnsureDirs(subPackageDir))
+
+		err = os.WriteFile(filepath.Join(tmpDir, "multi-package.yaml"), []byte(`sdk-version: 1.2.3-not-installed`), 0666)
+		require.NoError(t, err)
+
+		err = os.WriteFile(filepath.Join(subPackageDir, "daml.yaml"), []byte(`sdk-version: 4.5.6-not-installed`), 0666)
+		require.NoError(t, err)
+
+		t.Chdir(subPackageDir)
+		assertActiveSdkVersion(t, "4.5.6-not-installed")
+	})
+
 }
 
 func assertActiveSdkVersion(t *testing.T, version string) {
