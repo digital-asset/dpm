@@ -76,6 +76,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 
 			if activeOnly {
 				if activeVersion == nil {
+					cmd.SilenceUsage = true
 					return ErrNoActiveSdk
 				} else {
 					cmd.Println(activeVersion.String())
