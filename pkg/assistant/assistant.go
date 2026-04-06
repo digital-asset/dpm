@@ -5,6 +5,14 @@ package assistant
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"maps"
+	"os"
+	"os/exec"
+	"path/filepath"
+
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assembler/assemblyplan"
 	"daml.com/x/assistant/pkg/assistantconfig"
@@ -15,16 +23,9 @@ import (
 	"daml.com/x/assistant/pkg/sdkinstall"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/utils"
-	"errors"
-	"fmt"
 	"github.com/goccy/go-yaml"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
-	"log/slog"
-	"maps"
-	"os"
-	"os/exec"
-	"path/filepath"
 )
 
 type DamlAssistant struct {
@@ -39,8 +40,11 @@ type resolutionType struct {
 }
 
 var (
+	DeepResolution = resolutionType{"deep"}
+
+	// this means the assistant will not try to crawl all the packages in a multi-package project,
+	// and will instead just do the bare minimum required crawling (e.g. when used with --help)
 	ShallowResolution = resolutionType{"shallow"}
-	DeepResolution    = resolutionType{"deep"}
 )
 
 func (da *DamlAssistant) SetOutputStreams(cmd *cobra.Command) {
