@@ -348,7 +348,7 @@ func (suite *MainSuite) TestAssistantVersionCommand() {
 
 	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Contains(t, string(output), "version: unknown")
+	assert.Contains(t, string(output), "version: unknown\nbuild: unknown\nbuildDate: unknown")
 }
 
 func (suite *MainSuite) TestSdkUnInstallCommand() {
@@ -534,7 +534,7 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 		cwd, err := os.Getwd()
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("another-multi-package"))))
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-another"))))
 
 		t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
 
@@ -599,7 +599,7 @@ func (suite *MainSuite) TestMultiPkgInstall() {
 		cwd, err := os.Getwd()
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("another-multi-package"))))
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-another"))))
 		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
 
 		cmd, r, w := createTestRootCmd(t, "install", "package")
