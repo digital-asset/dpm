@@ -38,7 +38,7 @@ func TestSuite(t *testing.T) {
 	suite.Run(t, &MainSuite{})
 }
 
-func (suite *MainSuite) TestResolveCommand() {
+func (suite *MainSuite) TestResolveMultiPackageRoot() {
 	t := suite.T()
 
 	installSdk(t, someSdkVersion())
@@ -46,7 +46,7 @@ func (suite *MainSuite) TestResolveCommand() {
 	testResolution(t)
 }
 
-func (suite *MainSuite) TestResolutionWithChangedCwd() {
+func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 	t := suite.T()
 
 	installSdk(t, someSdkVersion())
@@ -60,49 +60,55 @@ func (suite *MainSuite) TestResolutionWithChangedCwd() {
 	testResolution(t)
 }
 
-func testResolution(t *testing.T) {
-	deepResolution := runResolveCommand(t)
-	assert.Len(t, deepResolution.Packages, 1)
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, 2)
-	assert.Equal(t, resolution.Kind, deepResolution.Kind)
-	assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
+func (suite *MainSuite) TestResolveErrorsInResolutionFile() {
+	t := suite.T()
 
-	t.Run("correct package paths", func(t *testing.T) {
-		for pkgPath, _ := range deepResolution.Packages {
-			assert.True(t, filepath.IsAbs(pkgPath))
-			_, err := os.ReadFile(filepath.Join(pkgPath, "daml.yaml"))
-			require.NoError(t, err)
-		}
-	})
+	testCases := []struct {
+		damlPackagePath   string
+		expectedErrorCode string
+	}{
+		{
+			damlPackagePath:   testutil.TestdataPath(t, "invalid-daml-package"),
+			expectedErrorCode: resolutionerrors.MalformedDamlYaml,
+		},
+		{
+			damlPackagePath:   testutil.TestdataPath(t, "literally-a-cat-picture"),
+			expectedErrorCode: resolutionerrors.MalformedDamlYaml,
+		},
+		{
+			damlPackagePath:   testutil.TestdataPath(t, "this is very likely not a correct path"),
+			expectedErrorCode: resolutionerrors.DamlYamlNotFound,
+		},
+		{
+			damlPackagePath:   testutil.TestdataPath(t, "another-daml-package"),
+			expectedErrorCode: resolutionerrors.SdkNotInstalled,
+		},
+	}
 
-	t.Run("default sdk", func(t *testing.T) {
-		assert.Len(t, deepResolution.DefaultSDK, 1)
-		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion()].Components, 1)
-		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion()].Imports, 2)
-		assert.True(t, true)
-	})
+	for _, testCase := range testCases {
+		t.Run(testCase.expectedErrorCode, func(t *testing.T) {
+			t.Setenv(assistantconfig.DamlProjectEnvVar, testCase.damlPackagePath)
 
+			cmd, r, w := createTestRootCmd(t, "resolve")
+			assert.NoError(t, cmd.Execute())
+			assert.NoError(t, w.Close())
+
+			output, err := io.ReadAll(r)
+			assert.NoError(t, err)
+
+			deepResolution := resolution.Resolution{}
+			require.NoError(t, yaml.Unmarshal(output, &deepResolution))
+
+			require.Len(t, deepResolution.Packages, 1)
+			pkg := deepResolution.Packages[testCase.damlPackagePath]
+			require.NotNil(t, pkg)
+			require.NotNil(t, pkg.Errors)
+			assert.Equal(t, pkg.Errors[0].Code, testCase.expectedErrorCode)
+		})
+	}
 }
 
-func someSdkVersion() string {
-	return "0.0.1-whatever"
-}
-
-func runResolveCommand(t *testing.T) *resolution.Resolution {
-	cmd, r, w := createTestRootCmd(t, "resolve")
-	assert.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
-
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
-
-	deepResolution := resolution.Resolution{}
-	require.NoError(t, yaml.Unmarshal(output, &deepResolution))
-	return &deepResolution
-}
-
-func (suite *MainSuite) TestResolutionWithDpmSdkVersionEnvVar() {
+func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 	t := suite.T()
 	ctx := testutil.Context(t)
 
@@ -150,52 +156,46 @@ func (suite *MainSuite) TestResolutionWithDpmSdkVersionEnvVar() {
 	})
 }
 
-func (suite *MainSuite) TestErrorsInResolutionFile() {
-	t := suite.T()
+func testResolution(t *testing.T) {
+	deepResolution := runResolveCommand(t)
+	assert.Len(t, deepResolution.Packages, 1)
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, 2)
+	assert.Equal(t, resolution.Kind, deepResolution.Kind)
+	assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
 
-	testCases := []struct {
-		damlPackagePath   string
-		expectedErrorCode string
-	}{
-		{
-			damlPackagePath:   testutil.TestdataPath(t, "invalid-daml-package"),
-			expectedErrorCode: resolutionerrors.MalformedDamlYaml,
-		},
-		{
-			damlPackagePath:   testutil.TestdataPath(t, "literally-a-cat-picture"),
-			expectedErrorCode: resolutionerrors.MalformedDamlYaml,
-		},
-		{
-			damlPackagePath:   testutil.TestdataPath(t, "this is very likely not a correct path"),
-			expectedErrorCode: resolutionerrors.DamlYamlNotFound,
-		},
-		{
-			damlPackagePath:   testutil.TestdataPath(t, "another-daml-package"),
-			expectedErrorCode: resolutionerrors.SdkNotInstalled,
-		},
-	}
+	t.Run("correct package paths", func(t *testing.T) {
+		for pkgPath, _ := range deepResolution.Packages {
+			assert.True(t, filepath.IsAbs(pkgPath))
+			_, err := os.ReadFile(filepath.Join(pkgPath, "daml.yaml"))
+			require.NoError(t, err)
+		}
+	})
 
-	for _, testCase := range testCases {
-		t.Run(testCase.expectedErrorCode, func(t *testing.T) {
-			t.Setenv(assistantconfig.DamlProjectEnvVar, testCase.damlPackagePath)
+	t.Run("default sdk", func(t *testing.T) {
+		assert.Len(t, deepResolution.DefaultSDK, 1)
+		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion()].Components, 1)
+		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion()].Imports, 2)
+		assert.True(t, true)
+	})
 
-			cmd, r, w := createTestRootCmd(t, "resolve")
-			assert.NoError(t, cmd.Execute())
-			assert.NoError(t, w.Close())
+}
 
-			output, err := io.ReadAll(r)
-			assert.NoError(t, err)
+func someSdkVersion() string {
+	return "0.0.1-whatever"
+}
 
-			deepResolution := resolution.Resolution{}
-			require.NoError(t, yaml.Unmarshal(output, &deepResolution))
+func runResolveCommand(t *testing.T) *resolution.Resolution {
+	cmd, r, w := createTestRootCmd(t, "resolve")
+	assert.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
 
-			require.Len(t, deepResolution.Packages, 1)
-			pkg := deepResolution.Packages[testCase.damlPackagePath]
-			require.NotNil(t, pkg)
-			require.NotNil(t, pkg.Errors)
-			assert.Equal(t, pkg.Errors[0].Code, testCase.expectedErrorCode)
-		})
-	}
+	output, err := io.ReadAll(r)
+	assert.NoError(t, err)
+
+	deepResolution := resolution.Resolution{}
+	require.NoError(t, yaml.Unmarshal(output, &deepResolution))
+	return &deepResolution
 }
 
 func (suite *MainSuite) TestSdkCommandsFlagParsing() {
