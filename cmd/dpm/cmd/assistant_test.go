@@ -548,6 +548,40 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 	})
 }
 
+func (suite *MainSuite) TestMultiPackageComponentOverrides() {
+	t := suite.T()
+
+	installSdk(t, "0.0.1-whatever")
+
+	t.Run("when in multi-package dir", func(t *testing.T) {
+		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS))
+
+		cmd, r, w := createTestRootCmd(t, "--help")
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Contains(t, string(output), "meep")
+		assert.Contains(t, string(output), "multipak")
+		assert.NotContains(t, string(output), "javux")
+	})
+
+	t.Run("when in sub package dir", func(t *testing.T) {
+		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS, "daml-package"))
+
+		cmd, r, w := createTestRootCmd(t, "--help")
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Contains(t, string(output), "meep")
+		assert.Contains(t, string(output), "multipak")
+		assert.Contains(t, string(output), "javux")
+	})
+}
+
 func (suite *MainSuite) TestMultiPkgInstall() {
 	t := suite.T()
 

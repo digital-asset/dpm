@@ -150,7 +150,7 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 		plan.Base = *base
 	}
 
-	if err := configureMultiPackage(plan, damlPackagePath); err != nil {
+	if err := configureMultiPackage(plan); err != nil {
 		return nil, err
 	}
 	return plan, nil
@@ -181,7 +181,7 @@ func getOrAutoInstallPackageSdk(ctx context.Context, config *assistantconfig.Con
 }
 
 // configureMultiPackage mutates the AssemblyPlan to account for multi-package.yaml (if any)
-func configureMultiPackage(plan *AssemblyPlan, damlPackageAbsPath string) error {
+func configureMultiPackage(plan *AssemblyPlan) error {
 	multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
 	if err != nil {
 		return err
@@ -194,19 +194,14 @@ func configureMultiPackage(plan *AssemblyPlan, damlPackageAbsPath string) error 
 	if err != nil {
 		return err
 	}
-	includesDamlPackage, err := multiPackage.IncludesDamlPackage(damlPackageAbsPath)
-	if err != nil {
-		return err
-	}
-	if includesDamlPackage && multiPackage.OverrideComponents != nil && len(multiPackage.OverrideComponents) > 0 {
-		plan.MultiPackage = &sdkmanifest.SdkManifest{
-			AbsolutePath: multiPackagePath,
-			Spec: &sdkmanifest.Spec{
-				Version:    nil,
-				Edition:    nil,
-				Components: multiPackage.OverrideComponents,
-			},
-		}
+
+	plan.MultiPackage = &sdkmanifest.SdkManifest{
+		AbsolutePath: multiPackagePath,
+		Spec: &sdkmanifest.Spec{
+			Version:    nil,
+			Edition:    nil,
+			Components: multiPackage.OverrideComponents,
+		},
 	}
 	return nil
 }

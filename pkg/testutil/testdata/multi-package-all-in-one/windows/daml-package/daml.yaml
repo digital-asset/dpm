@@ -1,0 +1,12 @@
+sdk-version: 0.0.1-whatever
+override-components:
+  # override
+  meep:
+    local-path: ../../../meepy-component/unix
+
+  # add
+  javabro:
+    local-path: ../../../javabro-component
+
+dependencies:
+  - daml-script
