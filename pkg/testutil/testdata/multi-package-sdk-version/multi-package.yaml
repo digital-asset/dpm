@@ -5,9 +5,9 @@ packages:
 - ./main
 - ./test
 
-override-components:
-  damlc:
-    version: 3.4.9
-  daml-script:
-    version: 3.4.9
+#override-components:
+#  damlc:
+#    version: 3.4.9
+#  daml-script:
+#    version: 3.4.9
 
