@@ -11,16 +11,16 @@ import (
 	"strings"
 	"testing"
 
-	"daml.com/x/assistant/cmd/dpm/cmd/versions"
-	"daml.com/x/assistant/pkg/builtincommand"
-
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
+	"daml.com/x/assistant/cmd/dpm/cmd/versions"
 	"daml.com/x/assistant/pkg/assistant"
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/builtincommand"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/testutil"
+	"daml.com/x/assistant/pkg/utils"
 	"github.com/goccy/go-yaml"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -646,7 +646,7 @@ func (suite *MainSuite) TestMultiPkgInstall() {
 
 }
 
-func (suite *MainSuite) TestListSDKVersion() {
+func (suite *MainSuite) TestSdkVersionCommand() {
 	t := suite.T()
 	ctx := testutil.Context(t)
 	_, reg := testutil.StartRegistry(t)
@@ -672,15 +672,16 @@ func (suite *MainSuite) TestListSDKVersion() {
 	require.NoError(t, err)
 	require.Equal(t, strings.Join(sorted, "\n")+"\n", string(output))
 
-	t.Run("active sdk version err when no sdk installed", func(t *testing.T) {
-		assertActiveSdkVersion(t, "")
+	t.Run("active sdk version err outside project when no sdk installed", func(t *testing.T) {
+		assertNoActiveSdkVersion(t)
 	})
 
-	t.Run("active sdk version err when package sdk-version null", func(t *testing.T) {
-		assertActiveSdkVersion(t, "")
+	t.Run("active sdk version err in single package with null sdk-version", func(t *testing.T) {
+		t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "null-sdk-version"))
+		assertNoActiveSdkVersion(t)
 	})
 
-	t.Run("active sdk version", func(t *testing.T) {
+	t.Run("active sdk version outside project", func(t *testing.T) {
 		installSdk(t, "0.0.1-whatever")
 		assertActiveSdkVersion(t, "0.0.1-whatever")
 	})
@@ -690,7 +691,7 @@ func (suite *MainSuite) TestListSDKVersion() {
 		assertActiveSdkVersion(t, "1.2.3-nonexistent")
 	})
 
-	t.Run("active sdk version from daml yaml not installed", func(t *testing.T) {
+	t.Run("active sdk version from daml.yaml not installed", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		t.Setenv(assistantconfig.DamlPackageEnvVar, tmpDir)
@@ -698,17 +699,63 @@ func (suite *MainSuite) TestListSDKVersion() {
 		require.NoError(t, err)
 		assertActiveSdkVersion(t, "1.2.3-not-installed")
 	})
+
+	t.Run("active sdk version of multi-package", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		err = os.WriteFile(filepath.Join(tmpDir, "multi-package.yaml"), []byte(`sdk-version: 1.2.3-multi-package`), 0666)
+		require.NoError(t, err)
+
+		t.Chdir(tmpDir)
+		assertActiveSdkVersion(t, "1.2.3-multi-package")
+
+		t.Run("active sdk version of package takes precedence over multi-package sdk version", func(t *testing.T) {
+			subPackageDir := filepath.Join(tmpDir, "sub-package")
+			require.NoError(t, utils.EnsureDirs(subPackageDir))
+			require.NoError(t, os.WriteFile(
+				filepath.Join(subPackageDir, "daml.yaml"), []byte(`sdk-version: 4.5.6-not-installed`),
+				0666))
+
+			t.Chdir(subPackageDir)
+			assertActiveSdkVersion(t, "4.5.6-not-installed")
+		})
+
+		t.Run("active sdk version of package with null version inherits multi-package version", func(t *testing.T) {
+			subPackageDir := filepath.Join(tmpDir, "sub-package")
+			require.NoError(t, os.RemoveAll(filepath.Join(tmpDir, "sub-package")))
+
+			require.NoError(t, utils.EnsureDirs(subPackageDir))
+			require.NoError(t, os.WriteFile(
+				filepath.Join(subPackageDir, "daml.yaml"), []byte(`sdk-version: null`),
+				0666))
+
+			t.Chdir(subPackageDir)
+			assertActiveSdkVersion(t, "1.2.3-multi-package")
+		})
+	})
+
+	t.Run("active sdk version of multi-package with null sdk defaults to global", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		err = os.WriteFile(filepath.Join(tmpDir, "multi-package.yaml"), []byte(`sdk-version: null`), 0666)
+		require.NoError(t, err)
+
+		t.Chdir(tmpDir)
+		assertNoActiveSdkVersion(t)
+		installSdk(t, "0.0.1-whatever")
+		assertActiveSdkVersion(t, "0.0.1-whatever")
+	})
+}
+
+func assertNoActiveSdkVersion(t *testing.T) {
+	cmd := createStdTestRootCmd(t, string(builtincommand.Version), "--active")
+	require.ErrorIs(t, cmd.Execute(), versions.ErrNoActiveSdk)
 }
 
 func assertActiveSdkVersion(t *testing.T, version string) {
 	cmd, r, w := createTestRootCmd(t, string(builtincommand.Version), "--active")
 	err := cmd.Execute()
 	assert.NoError(t, w.Close())
-
-	if version == "" {
-		require.ErrorIs(t, err, versions.ErrNoActiveSdk)
-		return
-	}
 	require.NoError(t, err)
 
 	output, err := io.ReadAll(r)

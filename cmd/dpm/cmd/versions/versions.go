@@ -11,6 +11,7 @@ import (
 
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/multipackage"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
@@ -114,7 +115,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	getActiveVersion
 
 returns nil
-- when sdk-version is null or "" in daml.yaml
+- when we're in package context, and sdk-version is null or "" in both daml.yaml and multi-package.yaml
 - or when DPM_SDK_VERSION=""
 - or when outside daml package context and there aren't any sdks installed
 */
@@ -128,7 +129,21 @@ func getActiveVersion(config *assistantconfig.Config) (*semver.Version, error) {
 		return semver.NewVersion(versionOverride)
 	}
 
-	// daml.yaml
+	multiPackageVersion := ""
+
+	multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
+	if err != nil {
+		return nil, err
+	}
+	if hasMultiPackage {
+		multiPackage, err := multipackage.Read(multiPackagePath)
+		if err != nil {
+			return nil, err
+		}
+		multiPackageVersion = multiPackage.SdkVersion
+	}
+
+	// in a package context
 	damlPackagePath, _, err := assistantconfig.GetDamlPackageAbsolutePath()
 	if err != nil {
 		return nil, err
@@ -142,12 +157,25 @@ func getActiveVersion(config *assistantconfig.Config) (*semver.Version, error) {
 			return nil, resolutionerrors.NewMalformedDamlYamlError(err)
 		}
 
-		if damlPackage.SdkVersion == "" {
-			return nil, nil
+		if damlPackage.SdkVersion != "" {
+			return semver.NewVersion(damlPackage.SdkVersion)
+		} else if multiPackageVersion != "" {
+			return semver.NewVersion(multiPackageVersion)
 		}
-		return semver.NewVersion(damlPackage.SdkVersion)
+
+		// don't inherit the global sdk-version, instead use no sdk
+		return nil, nil
 	}
 
+	// in a multi-package context
+	if hasMultiPackage {
+		if multiPackageVersion != "" {
+			return semver.NewVersion(multiPackageVersion)
+		}
+		// else: fallthrough to using the global sdk
+	}
+
+	// not in a package or multi-package context
 	s, err := assistantconfig.GetInstalledSdkFromEnvOrDefault(config)
 	if errors.Is(err, assistantconfig.ErrNoSdkInstalled) || errors.Is(err, assistantconfig.ErrTargetSdkNotInstalled) {
 		return nil, nil
