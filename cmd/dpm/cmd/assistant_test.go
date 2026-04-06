@@ -673,12 +673,12 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 	require.Equal(t, strings.Join(sorted, "\n")+"\n", string(output))
 
 	t.Run("active sdk version err outside project when no sdk installed", func(t *testing.T) {
-		assertNoActiveSdkVersion(t)
+		assertActiveSdkVersion(t, versions.NoActiveSdk)
 	})
 
 	t.Run("active sdk version err in single package with null sdk-version", func(t *testing.T) {
 		t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "null-sdk-version"))
-		assertNoActiveSdkVersion(t)
+		assertActiveSdkVersion(t, versions.NoActiveSdk)
 	})
 
 	t.Run("active sdk version outside project", func(t *testing.T) {
@@ -741,15 +741,10 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 		require.NoError(t, err)
 
 		t.Chdir(tmpDir)
-		assertNoActiveSdkVersion(t)
+		assertActiveSdkVersion(t, versions.NoActiveSdk)
 		installSdk(t, "0.0.1-whatever")
 		assertActiveSdkVersion(t, "0.0.1-whatever")
 	})
-}
-
-func assertNoActiveSdkVersion(t *testing.T) {
-	cmd := createStdTestRootCmd(t, string(builtincommand.Version), "--active")
-	require.ErrorIs(t, cmd.Execute(), versions.ErrNoActiveSdk)
 }
 
 func assertActiveSdkVersion(t *testing.T, version string) {

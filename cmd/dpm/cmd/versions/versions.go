@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ErrNoActiveSdk = fmt.Errorf("no SDK version is active")
+const NoActiveSdk = "NO_ACTIVE_SDK"
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
 	var all, activeOnly bool
@@ -75,10 +75,10 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			}
 
 			if activeOnly {
-				if activeVersion == nil {
-					return ErrNoActiveSdk
-				} else {
+				if activeVersion != nil {
 					cmd.Println(activeVersion.String())
+				} else {
+					cmd.Println(NoActiveSdk)
 				}
 				return nil
 			}
