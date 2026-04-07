@@ -1024,14 +1024,8 @@ func createTestRootCmd(t *testing.T, args ...string) (rootCmd *cobra.Command, r 
 	r, w, err := os.Pipe()
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		err := r.Close()
-		if err != nil {
-			return
-		}
-		err = w.Close()
-		if err != nil {
-			return
-		}
+		_ = r.Close()
+		_ = w.Close()
 	})
 
 	da := assistant.DamlAssistant{
