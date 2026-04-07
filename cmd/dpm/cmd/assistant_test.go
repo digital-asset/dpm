@@ -78,11 +78,31 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version", "main"))
 
 		// test at level of single package
-		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-sdk-version/main"))))
 		assertActiveSdkVersion(t, someSdkVersion)
 		testResolution(t, 3)
 	})
 }
+
+//func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
+//	t := suite.T()
+//
+//	installSdk(t, someSdkVersion)
+//
+//	t.Run("when in multi-package dir", func(t *testing.T) {
+//		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides"))
+//
+//		testResolution(t, 3)
+//		assertActiveSdkVersion(t, someSdkVersion)
+//	})
+//
+//	t.Run("when in sub package dir", func(t *testing.T) {
+//		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides", "main"))
+//
+//		// test at level of single package
+//		assertActiveSdkVersion(t, someSdkVersion)
+//		testResolution(t, 3)
+//	})
+//}
 
 func (suite *MainSuite) TestResolveErrorsInResolutionFile() {
 	t := suite.T()
@@ -671,7 +691,7 @@ func (suite *MainSuite) TestMultiPackageSdkAndComponentOverrides() {
 	})
 }
 
-func (suite *MainSuite) TestMultiPkgInstall() {
+func (suite *MainSuite) TestMultiPackageInstall() {
 	t := suite.T()
 
 	sdkVersion := someSdkVersion
