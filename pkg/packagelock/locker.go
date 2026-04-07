@@ -16,6 +16,7 @@ import (
 	"daml.com/x/assistant/pkg/darpuller"
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/schema"
+	"daml.com/x/assistant/pkg/semver"
 	"github.com/goccy/go-yaml"
 	"github.com/samber/lo"
 	"oras.land/oras-go/v2/registry"
@@ -96,6 +97,21 @@ func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (
 
 	if l.op == CheckOnly {
 		return nil, l.checkLockfile(expectedLockfile, lockfilePath)
+	}
+
+	// TODO this is a placeholder
+	u, err := url.Parse("oci://example.com/sdk-manifests:0.0.0-TODO")
+	if err != nil {
+		return nil, err
+	}
+	v, err := semver.New("0.0.0-TODO")
+	if err != nil {
+		return nil, err
+	}
+	expectedLockfile.SdkVersion = SdkVersion{
+		Version: v,
+		Digest:  "todo",
+		URI:     u,
 	}
 
 	return l.create(ctx, expectedLockfile, lockfilePath)

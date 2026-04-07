@@ -10,6 +10,7 @@ import (
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/schema"
+	"daml.com/x/assistant/pkg/semver"
 	"daml.com/x/assistant/pkg/utils/stringset"
 	"github.com/goccy/go-yaml"
 	"oras.land/oras-go/v2/registry"
@@ -25,7 +26,16 @@ var ErrInvalidPackageLock = fmt.Errorf("invalid package lock")
 
 type PackageLock struct {
 	schema.ManifestMeta `yaml:",inline"`
-	Dars                []*Dar `yaml:"dars"`
+	SdkVersion          SdkVersion `yaml:"sdk-version"`
+	Dars                []*Dar     `yaml:"dars"`
+}
+
+type SdkVersion struct {
+	// Resolved version (semver)
+	Version *semver.StrictSemVer `yaml:"version"`
+	// e.g. OCI://europe-docker.pkg.dev/da-images/public/sdk-manifests/open-source:3.4.11
+	URI    *url.URL `yaml:"uri"`
+	Digest string   `yaml:"digest"`
 }
 
 type Dar struct {
@@ -60,6 +70,10 @@ func ReadPackageLockContents(contents []byte) (*PackageLock, error) {
 	}
 	if err := s.ValidateSchema(c.ManifestMeta); err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrInvalidPackageLock, err.Error())
+	}
+
+	if c.SdkVersion.Version == nil {
+		return nil, fmt.Errorf("%w: sdk-version.version is missing", ErrInvalidPackageLock)
 	}
 
 	return &c, nil
