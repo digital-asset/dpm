@@ -22,7 +22,7 @@ import (
 
 // AssemblyPlan decides what the final commands that'll be added to the assistant root command are,
 // or rather where they'll be sourced from. It takes into account the existence of
-// daml.yaml, multi-package.yaml, dpm.local.yaml, or lack thereof in making that decision.
+// daml.yaml, multi-package.yaml, or lack thereof in making that decision.
 type AssemblyPlan struct {
 	Base         sdkmanifest.SdkManifest
 	DamlPackage  *sdkmanifest.SdkManifest
@@ -45,43 +45,12 @@ func New(ctx context.Context, config *assistantconfig.Config, a *assembler.Assem
 		}, nil
 	}
 
-	dpmLocalPath, ok, err := assistantconfig.GetDamlLocalAbsolutePath()
-	if err != nil {
-		return nil, err
-	}
-	if ok {
-		return dpmLocal(config, a, dpmLocalPath)
-	}
-
 	damlPackagePath, _, err := assistantconfig.GetDamlPackageAbsolutePath()
 	if err != nil {
 		return nil, err
 	}
 
 	return NewShallow(ctx, config, a, damlPackagePath)
-}
-
-func dpmLocal(config *assistantconfig.Config, a *assembler.Assembler, dpmLocalPath string) (*AssemblyPlan, error) {
-	plan := &AssemblyPlan{
-		config:    config,
-		assembler: a,
-	}
-
-	dpmLocal, err := damlpackage.Read(dpmLocalPath)
-	if err != nil {
-		return nil, err
-	}
-	if dpmLocal.OverrideComponents != nil {
-		plan.Base = sdkmanifest.SdkManifest{
-			AbsolutePath: dpmLocalPath,
-			Spec: &sdkmanifest.Spec{
-				Version:    nil,
-				Edition:    nil,
-				Components: dpmLocal.OverrideComponents,
-			},
-		}
-	}
-	return plan, nil
 }
 
 func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assembler.Assembler, damlPackagePath string) (*AssemblyPlan, error) {
@@ -107,13 +76,14 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 			return nil, resolutionerrors.NewMalformedDamlYamlError(err)
 		}
 
+
 		if sdkVersion == nil {
 			plan.Base = sdkmanifest.SdkManifest{
 				AbsolutePath: "",
 				Spec: &sdkmanifest.Spec{
 					Version:    nil,
 					Edition:    nil,
-					Components: map[string]*sdkmanifest.Component{},
+					Components: map[string]*sdkmanifest.Component{}, //. should be overriden by multi if not there
 				},
 			}
 		} else {
@@ -144,6 +114,7 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 		if err != nil {
 			return nil, err
 		}
+
 		base, err := sdkmanifest.ReadSdkManifest(installedSdk.ManifestPath)
 		if err != nil {
 			return nil, err
@@ -190,7 +161,6 @@ func configureMultiPackage(plan *AssemblyPlan) error {
 	if !hasMultiPackage {
 		return nil
 	}
-
 	multiPackage, err := multipackage.Read(multiPackagePath)
 	if err != nil {
 		return err

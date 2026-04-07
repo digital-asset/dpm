@@ -8,7 +8,6 @@ const (
 	DamlPackageFilename      = "daml.yaml"
 	DpmLockFileName          = "dpm.lock"
 	DarManifestName          = "dar.yaml"
-	DamlLocalFilename        = "dpm.local.yaml"
 	DefaultOciRegistry       = "europe-docker.pkg.dev/da-images/public" // stable prod public registry as the default
 
 	AssistantUserAgentPrefix = "dpm"

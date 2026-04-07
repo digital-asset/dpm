@@ -38,13 +38,6 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	multiPackageDir := testutil.TestdataPath(t, "multi-package-simple")
 	t.Setenv(assistantconfig.DamlMultiPackageEnvVar, multiPackageDir)
 
-	cleanup := func() {
-		_ = os.Remove(filepath.Join(multiPackageDir, "a", assistantconfig.DamlLocalFilename))
-		_ = os.Remove(filepath.Join(multiPackageDir, "b", assistantconfig.DamlLocalFilename))
-	}
-	cleanup()
-	t.Cleanup(cleanup)
-
 	// TODO: using a PushComponent() for lack of a PushDar() for now
 	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "some-dar"), "latest")
 	testutil.PushComponent(t, ctx, reg, "sheep", "4.5.6", testutil.TestdataPath(t, "some-dar"), "latest")

@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/uninstall"
 	"daml.com/x/assistant/cmd/dpm/cmd/update"
@@ -92,7 +91,7 @@ func RootCmd(ctx context.Context, da *assistant.DamlAssistant) (*cobra.Command, 
 	if shouldAddSdkCommands(da.OsArgs) {
 		sdkCommands, err := da.ComputeSdkCommandsFromAssemblyPlan(ctx, config, resolutionType)
 		if errors.Is(err, assistantconfig.ErrNoSdkInstalled) {
-			slog.Warn("No SDK has been installed. To use the bare assistant without an SDK, use a 'dpm.local.yaml' or see the docs for more info")
+			cmd.PrintErr("You currently do not have an SDK been installed.\nYou may opt in to specific components by installing a specific SDK version or by using `multi-package.yaml` or `daml.yaml`, or see the docs for more info.\n")
 		} else if err != nil {
 			return nil, err
 		} else {

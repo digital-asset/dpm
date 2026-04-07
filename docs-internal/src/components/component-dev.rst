@@ -8,13 +8,13 @@ The assistant makes it easy to develop and test integrating (multiple)
 This will create two yaml files in the current directory: -
 component.yaml: lets you define the commands that your
 component-under-development exposes as part of ``dpm`` when this
-component is imported - dpm.local.yaml: this tells ``dpm`` to
+component is imported - daml.yaml: this tells ``dpm`` to
 “import” the components defined in this file. This importing happens by
 simply running ``dpm``.
 
 .. code:: yaml
 
-   # dpm.local.yaml
+   # daml.yaml
 
    override-components:
      my-local-component:
@@ -49,14 +49,13 @@ You can now edit ``component.yaml`` to add commands as desired (see
 importing multiple components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can modify ``dpm.local.yaml`` to have the assistant import
+You can modify ``daml.yaml`` to have the assistant import
 additional components. These additional components can reside locally,
 or can be remote ones that reside in some OCI registry:
 
 .. code:: yaml
 
-   # dpm.local.yaml
-
+   # daml.yaml
    override-components:
      my-local-component:
        local-path: .
@@ -77,14 +76,10 @@ the assistant will automatically import the two local components, and
 the remote one too! The commands defined in them will be incorporated
 into ``dpm``, and displayed as part of the help message.
 
-**Note/warning**: the assistant will ignore ``daml.yaml`` and any
-installed dpm-sdks when it sees a ``dpm.local.yaml`` in the working
-directory!
-
 Overriding and extending an SDK’s components locally
 ----------------------------------------------------
 
-While ``dpm.local.yaml`` allows side-stepping SDKs completely to allow
+While ``daml.yaml`` allows side-stepping SDKs completely to allow
 component development in absence of any installed SDKs, the assistant
 also supports extending and overriding an installed SDK’s components in
 the context of daml single and multi-package projects.
