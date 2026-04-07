@@ -949,42 +949,35 @@ func (suite *MainSuite) TestNoHomeRequired() {
 	require.NoError(t, cmd.Execute())
 }
 
-func (suite *MainSuite) TestComponentInit() {
+func (suite *MainSuite) TestComponent() {
 	t := suite.T()
 
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+	t.Run("happy path", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		require.NoError(t, os.Chdir(tmpDir))
 
-	tmpDir := t.TempDir()
-	require.NoError(t, os.Chdir(tmpDir))
+		cmd, _, w := createTestRootCmd(t, "component", "init")
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
 
-	cmd, _, w := createTestRootCmd(t, "component", "init")
-	require.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
+		assert.FileExists(t, "daml.yaml")
+		assert.FileExists(t, "component.yaml")
+	})
+	t.Run("unhappy path", func(t *testing.T) {
+		tmpDir := t.TempDir()
 
-	assert.FileExists(t, "daml.yaml")
-	assert.FileExists(t, "component.yaml")
+		os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(``), 0666)
+		os.WriteFile(filepath.Join(tmpDir, "component.yaml"), []byte(``), 0666)
 
-}
+		require.NoError(t, os.Chdir(tmpDir))
 
-func (suite *MainSuite) TestComponentInitFail() {
-	t := suite.T()
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = os.Chdir(cwd) })
+		cmd, _, _ := createTestRootCmd(t, "component", "init")
 
-	tmpDir := t.TempDir()
-
-	os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(``), 0666)
-	os.WriteFile(filepath.Join(tmpDir, "component.yaml"), []byte(``), 0666)
-
-	require.NoError(t, os.Chdir(tmpDir))
-
-	cmd, _, _ := createTestRootCmd(t, "component", "init")
-
-	require.Error(t, cmd.Execute())
-
+		require.Error(t, cmd.Execute())
+	})
 }
 
 func assertSdkVersion(t *testing.T, sdkVersion string) {
