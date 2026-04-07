@@ -27,7 +27,6 @@ The assistant will pull your component into
 your component
 
 Other ways in which you can pull and run specific remote components are:
- * using ``override-components`` in ``dpm.local.yaml``
  * using ``override-components`` in ``daml.yaml``
  * using ``override-components`` in ``multi-package.yaml``
 

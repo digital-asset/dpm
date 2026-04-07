@@ -23,7 +23,7 @@ Options
 
 ::
 
-      --force   overwrite existing component.yaml and dpm.local.yaml
+      --force   overwrite existing component.yaml
   -h, --help    help for init
 
 SEE ALSO

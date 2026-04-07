@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/component/init/manifests"
-	"daml.com/x/assistant/pkg/assistantconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -22,15 +21,13 @@ func Cmd() *cobra.Command {
 			if err := writeFile("component.yaml", manifests.ComponentYaml, force); err != nil {
 				return err
 			}
-			if err := writeFile(assistantconfig.DamlLocalFilename, manifests.Daml3LocalYaml, force); err != nil {
-				return err
-			}
-			fmt.Printf("created component.yaml and %s in current directory\n", assistantconfig.DamlLocalFilename)
+
+			fmt.Printf("created component.yaml in current directory\n")
 			return nil
 		},
 	}
 
-	cmd.Flags().BoolVar(&force, "force", false, "overwrite existing component.yaml and dpm.local.yaml")
+	cmd.Flags().BoolVar(&force, "force", false, "overwrite existing component.yaml")
 
 	return cmd
 }

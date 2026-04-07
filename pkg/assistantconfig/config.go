@@ -341,14 +341,6 @@ func getDamlPackageAbsolutePath() (string, bool, error) {
 	return findInAncestors(cwd, DamlPackageFilename)
 }
 
-// func GetDamlLocalAbsolutePath() (string, bool, error) {
-// 	cwd, err := os.Getwd()
-// 	if err != nil {
-// 		return "", false, err
-// 	}
-// 	return findInAncestors(cwd, DamlLocalFilename)
-// }
-
 func findInAncestors(startDir, filename string) (absolutePath string, ok bool, err error) {
 	p, ok, err := doFindInAncestors(startDir, filename)
 	if err != nil {
