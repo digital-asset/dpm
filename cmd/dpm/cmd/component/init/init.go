@@ -21,13 +21,15 @@ func Cmd() *cobra.Command {
 			if err := writeFile("component.yaml", manifests.ComponentYaml, force); err != nil {
 				return err
 			}
-
-			fmt.Printf("created component.yaml in current directory\n")
+			if err := writeFile("daml.yaml", manifests.DamlYaml, force); err != nil {
+				return err
+			}
+			fmt.Printf("created component.yaml and daml.yaml in current directory\n")
 			return nil
 		},
 	}
 
-	cmd.Flags().BoolVar(&force, "force", false, "overwrite existing component.yaml")
+	cmd.Flags().BoolVar(&force, "force", false, "overwrite existing component.yaml and daml.yaml files")
 
 	return cmd
 }

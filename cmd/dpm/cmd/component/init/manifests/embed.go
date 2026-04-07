@@ -7,3 +7,6 @@ import _ "embed"
 
 //go:embed component.yaml
 var ComponentYaml []byte
+
+//go:embed daml.yaml
+var DamlYaml []byte
