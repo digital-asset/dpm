@@ -8,7 +8,7 @@ The assistant makes it easy to develop and test integrating (multiple)
 This will create two yaml files in the current directory: -
 component.yaml: lets you define the commands that your
 component-under-development exposes as part of ``dpm`` when this
-component is imported - multi-package.yaml: this tells ``dpm`` to
+component is imported - daml.yaml: this tells ``dpm`` to
 “import” the components defined in this file. This importing happens by
 simply running ``dpm``.
 
@@ -49,7 +49,7 @@ You can now edit ``component.yaml`` to add commands as desired (see
 importing multiple components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can modify ``multi-package.yaml`` to have the assistant import
+You can modify ``daml.yaml`` to have the assistant import
 additional components. These additional components can reside locally,
 or can be remote ones that reside in some OCI registry:
 
