@@ -6,8 +6,9 @@ packages:
 - ./test
 
 override-components:
-  damlc:
-    version: 3.4.9
-  daml-script:
-    version: 3.4.9
+  #not sure why multipak does not pick up correctly
+#  multipak:
+#    local-path: ../multi-package/component
+  javabro:
+    local-path: ../javabro-component
 

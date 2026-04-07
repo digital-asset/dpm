@@ -67,14 +67,14 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 
 	installSdk(t, someSdkVersion)
 
-	t.Run("when in multi-package dir", func(t *testing.T) {
+	t.Run("1a: when in multi-package dir", func(t *testing.T) {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version"))
 
 		testResolution(t, 3)
 		assertActiveSdkVersion(t, someSdkVersion)
 	})
 
-	t.Run("when in sub package dir", func(t *testing.T) {
+	t.Run("1b: when in sub package dir", func(t *testing.T) {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version", "main"))
 
 		// test at level of single package
@@ -83,26 +83,67 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 	})
 }
 
-//func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
-//	t := suite.T()
-//
-//	installSdk(t, someSdkVersion)
-//
-//	t.Run("when in multi-package dir", func(t *testing.T) {
-//		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides"))
-//
-//		testResolution(t, 3)
-//		assertActiveSdkVersion(t, someSdkVersion)
-//	})
-//
-//	t.Run("when in sub package dir", func(t *testing.T) {
-//		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides", "main"))
-//
-//		// test at level of single package
-//		assertActiveSdkVersion(t, someSdkVersion)
-//		testResolution(t, 3)
-//	})
-//}
+func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
+	t := suite.T()
+
+	installSdk(t, someSdkVersion)
+
+	t.Run("3a: when in multi-package dir", func(t *testing.T) {
+		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides"))
+
+		t.Run("help command", func(t *testing.T) {
+			cmd, r, w := createTestRootCmd(t, "--help")
+			require.NoError(t, cmd.Execute())
+			assert.NoError(t, w.Close())
+
+			output, err := io.ReadAll(r)
+			require.NoError(t, err)
+			assert.Contains(t, string(output), "meep")
+			assert.Contains(t, string(output), "javux")
+			assert.NotContains(t, string(output), "multipak")
+		})
+
+		t.Run("resolve command", func(t *testing.T) {
+			deepResolution := runResolveCommand(t)
+			assert.Len(t, deepResolution.Packages, 3)
+			assert.ElementsMatch(t,
+				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
+				[]string{"meep", "javabro"})
+		})
+
+		t.Run("assert active sdk version", func(t *testing.T) {
+			assertActiveSdkVersion(t, someSdkVersion)
+		})
+	})
+
+	t.Run("3b: when in sub package dir", func(t *testing.T) {
+		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides", "main"))
+
+		t.Run("help command", func(t *testing.T) {
+			cmd, r, w := createTestRootCmd(t, "--help")
+			require.NoError(t, cmd.Execute())
+			assert.NoError(t, w.Close())
+
+			output, err := io.ReadAll(r)
+			require.NoError(t, err)
+			assert.Contains(t, string(output), "meep")
+			assert.Contains(t, string(output), "javux")
+			assert.NotContains(t, string(output), "multipak")
+		})
+
+		t.Run("resolve command", func(t *testing.T) {
+			deepResolution := runResolveCommand(t)
+			assert.Len(t, deepResolution.Packages, 3)
+			assert.ElementsMatch(t,
+				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
+				[]string{"meep", "javabro"})
+		})
+
+		t.Run("assert active sdk version", func(t *testing.T) {
+			assertActiveSdkVersion(t, someSdkVersion)
+		})
+	})
+}
 
 func (suite *MainSuite) TestResolveErrorsInResolutionFile() {
 	t := suite.T()
@@ -520,7 +561,7 @@ func (suite *MainSuite) TestHelpCommandUsesShallowResolution() {
 
 }
 
-func (suite *MainSuite) TestDamlProjectEnvVar() {
+func (suite *MainSuite) TestLegacyDamlProjectEnvVar() {
 	t := suite.T()
 	ctx := testutil.Context(t)
 
@@ -531,7 +572,7 @@ func (suite *MainSuite) TestDamlProjectEnvVar() {
 	require.ErrorIs(t, err, assistantconfig.ErrTargetSdkNotInstalled)
 }
 
-func (suite *MainSuite) TestDamlPackageEnvVar() {
+func (suite *MainSuite) TestLegacyDamlPackageEnvVar() {
 	t := suite.T()
 	ctx := testutil.Context(t)
 
