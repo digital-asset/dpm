@@ -43,7 +43,7 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 
 	installSdk(t, someSdkVersion())
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
-	testResolution(t)
+	testResolution(t, 1)
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSubdir() {
@@ -57,7 +57,7 @@ func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 
 	// this will make daml.yaml in the CWD
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-package-with-subdir", "package")))
-	testResolution(t)
+	testResolution(t, 1)
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
@@ -68,14 +68,7 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 	t.Run("when in multi-package dir", func(t *testing.T) {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version"))
 
-		deepResolution := runResolveCommand(t)
-
-		// 3 packages because we have 3 in this multi package example
-		assert.Len(t, deepResolution.Packages, 3)
-		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
-		assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, 2)
-		assert.Equal(t, resolution.Kind, deepResolution.Kind)
-		assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
+		testResolution(t, 3)
 		assertActiveSdkVersion(t, someSdkVersion())
 	})
 
@@ -85,8 +78,7 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 		// test at level of single package
 		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-sdk-version/main"))))
 		assertActiveSdkVersion(t, someSdkVersion())
-		deepResolution2 := runResolveCommand(t)
-		assert.Len(t, deepResolution2.Packages, 3)
+		testResolution(t, 3)
 	})
 }
 
@@ -212,10 +204,13 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 	})
 }
 
-func testResolution(t *testing.T) {
+func testResolution(t *testing.T, expectedPackages int) {
 	deepResolution := runResolveCommand(t)
-	assert.Len(t, deepResolution.Packages, 1)
+	assert.Len(t, deepResolution.Packages, expectedPackages)
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
+	assert.ElementsMatch(t,
+		lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
+		[]string{"meep"})
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, 2)
 	assert.Equal(t, resolution.Kind, deepResolution.Kind)
 	assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
