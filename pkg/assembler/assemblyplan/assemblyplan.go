@@ -71,9 +71,7 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 
 		// DPM_SDK_VERSION override
 		sdkVersion := assistantconfig.GetSdkVersionOverrideWithFallback(damlPackage.SdkVersion)
-		// support nullable sdk-version - getting in here so nil version and components in there
-		// i.e. null or "" in daml.yaml
-		// or when DPM_SDK_VERSION=""
+
 		if sdkVersion == "" {
 			plan.Base = sdkmanifest.SdkManifest{
 				AbsolutePath: "",
