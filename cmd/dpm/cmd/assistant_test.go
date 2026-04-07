@@ -65,6 +65,36 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 
 	installSdk(t, someSdkVersion())
 
+	t.Run("when in multi-package dir", func(t *testing.T) {
+		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version"))
+
+		deepResolution := runResolveCommand(t)
+
+		// 3 packages because we have 3 in this multi package example
+		assert.Len(t, deepResolution.Packages, 3)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, 2)
+		assert.Equal(t, resolution.Kind, deepResolution.Kind)
+		assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
+		assertActiveSdkVersion(t, someSdkVersion())
+	})
+
+	t.Run("when in sub package dir", func(t *testing.T) {
+		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version", "main"))
+
+		// test at level of single package
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-sdk-version/main"))))
+		assertActiveSdkVersion(t, someSdkVersion())
+		deepResolution2 := runResolveCommand(t)
+		assert.Len(t, deepResolution2.Packages, 3)
+	})
+}
+
+func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
+	t := suite.T()
+
+	installSdk(t, someSdkVersion())
+
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
@@ -72,8 +102,6 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-sdk-version"))))
 
 	deepResolution := runResolveCommand(t)
-
-	// 3 packages because we have 3 in this multi package example
 	assert.Len(t, deepResolution.Packages, 3)
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, 2)
