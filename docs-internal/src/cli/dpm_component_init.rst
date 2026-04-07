@@ -23,7 +23,7 @@ Options
 
 ::
 
-      --force   overwrite existing component.yaml
+      --force   overwrite existing component.yaml and daml.yaml files
   -h, --help    help for init
 
 SEE ALSO
