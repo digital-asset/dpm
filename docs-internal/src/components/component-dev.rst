@@ -14,7 +14,7 @@ simply running ``dpm``.
 
 .. code:: yaml
 
-   # multi-package.yaml
+   # daml.yaml
 
    override-components:
      my-local-component:
