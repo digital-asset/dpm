@@ -55,7 +55,7 @@ or can be remote ones that reside in some OCI registry:
 
 .. code:: yaml
 
-   # multi-package.yaml
+   # daml.yaml
    override-components:
      my-local-component:
        local-path: .
@@ -76,14 +76,10 @@ the assistant will automatically import the two local components, and
 the remote one too! The commands defined in them will be incorporated
 into ``dpm``, and displayed as part of the help message.
 
-**Note/warning**: the assistant will ignore ``daml.yaml`` and any
-installed dpm-sdks when it sees a ``multi-package.yaml`` in the working
-directory!
-
 Overriding and extending an SDK’s components locally
 ----------------------------------------------------
 
-While ``multi-package.yaml`` allows side-stepping SDKs completely to allow
+While ``daml.yaml`` allows side-stepping SDKs completely to allow
 component development in absence of any installed SDKs, the assistant
 also supports extending and overriding an installed SDK’s components in
 the context of daml single and multi-package projects.
