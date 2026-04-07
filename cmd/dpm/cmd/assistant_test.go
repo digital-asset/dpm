@@ -216,7 +216,7 @@ func testResolution(t *testing.T, expectedPackages int) {
 	assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
 
 	t.Run("correct package paths", func(t *testing.T) {
-		for pkgPath, _ := range deepResolution.Packages {
+		for pkgPath := range deepResolution.Packages {
 			assert.True(t, filepath.IsAbs(pkgPath))
 			_, err := os.ReadFile(filepath.Join(pkgPath, "daml.yaml"))
 			require.NoError(t, err)
@@ -488,7 +488,10 @@ func (suite *MainSuite) TestAutoInstallDefaultDisabled() {
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = os.Chdir(cwd) })
-	os.Chdir(testutil.TestdataPath(t, "daml-package", testutil.OS))
+	err = os.Chdir(testutil.TestdataPath(t, "daml-package", testutil.OS))
+	if err != nil {
+		return
+	}
 
 	da := &assistant.DamlAssistant{OsArgs: []string{os.Args[0]}}
 	_, err = RootCmd(ctx, da)
@@ -640,7 +643,7 @@ func (suite *MainSuite) TestMultiPackageComponentOverrides() {
 func (suite *MainSuite) TestMultiPackageSdkAndComponentOverrides() {
 	t := suite.T()
 
-	installSdk(t, "0.0.1-whatever")
+	installSdk(t, someSdkVersion())
 
 	deepResolution := runResolveCommand(t)
 	assert.ElementsMatch(t,
@@ -899,7 +902,7 @@ func (suite *MainSuite) TestNullableSdkVersionInDamlYaml() {
 		assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
 
 		t.Run("correct package paths", func(t *testing.T) {
-			for pkgPath, _ := range deepResolution.Packages {
+			for pkgPath := range deepResolution.Packages {
 				assert.True(t, filepath.IsAbs(pkgPath))
 				_, err := os.ReadFile(filepath.Join(pkgPath, "daml.yaml"))
 				require.NoError(t, err)
@@ -947,7 +950,7 @@ func (suite *MainSuite) TestResolutionOfSymlinkPackages() {
 			assert.NotContains(t, deepResolution.Packages, symlink)
 			assert.Contains(t, deepResolution.Packages, resolvedSymlink)
 
-			for pkgPath, _ := range deepResolution.Packages {
+			for pkgPath := range deepResolution.Packages {
 				assert.True(t, filepath.IsAbs(pkgPath))
 				_, err := os.ReadFile(filepath.Join(pkgPath, "daml.yaml"))
 				require.NoError(t, err)
@@ -990,7 +993,10 @@ func (suite *MainSuite) TestNoHomeRequired() {
 	home := os.Getenv("HOME")
 	require.NoError(t, os.Unsetenv("HOME"))
 	t.Cleanup(func() {
-		os.Setenv("HOME", home)
+		err := os.Setenv("HOME", home)
+		if err != nil {
+			return
+		}
 	})
 
 	tmpDamlHome := t.TempDir()
@@ -1046,8 +1052,14 @@ func createTestRootCmd(t *testing.T, args ...string) (rootCmd *cobra.Command, r 
 	r, w, err := os.Pipe()
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		r.Close()
-		w.Close()
+		err := r.Close()
+		if err != nil {
+			return
+		}
+		err = w.Close()
+		if err != nil {
+			return
+		}
 	})
 
 	da := assistant.DamlAssistant{
