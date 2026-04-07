@@ -586,6 +586,65 @@ func (suite *MainSuite) TestMultiPackageComponentOverrides() {
 	})
 }
 
+func (suite *MainSuite) TestMultiPackageSdkAndComponentOverrides() {
+	t := suite.T()
+
+	installSdk(t, "0.0.1-whatever")
+
+	deepResolution := runResolveCommand(t)
+	assert.ElementsMatch(t,
+		lo.Keys(lo.Values(deepResolution.DefaultSDK)[0].ComponentsV2),
+		[]string{"meep"})
+
+	t.Run("when in multi-package dir", func(t *testing.T) {
+		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one-with-null-package-sdk", testutil.OS))
+
+		t.Run("help command", func(t *testing.T) {
+			cmd, r, w := createTestRootCmd(t, "--help")
+			require.NoError(t, cmd.Execute())
+			assert.NoError(t, w.Close())
+
+			output, err := io.ReadAll(r)
+			require.NoError(t, err)
+			assert.Contains(t, string(output), "meep")
+			assert.Contains(t, string(output), "multipak")
+			assert.NotContains(t, string(output), "javux")
+		})
+
+		t.Run("resolve command", func(t *testing.T) {
+			deepResolution := runResolveCommand(t)
+			assert.Len(t, deepResolution.Packages, 1)
+			assert.ElementsMatch(t,
+				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
+				[]string{"multipak", "meep", "javabro"})
+		})
+	})
+
+	t.Run("when in sub package dir", func(t *testing.T) {
+		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one-with-null-package-sdk", testutil.OS, "daml-package"))
+
+		t.Run("help command", func(t *testing.T) {
+			cmd, r, w := createTestRootCmd(t, "--help")
+			require.NoError(t, cmd.Execute())
+			assert.NoError(t, w.Close())
+
+			output, err := io.ReadAll(r)
+			require.NoError(t, err)
+			assert.Contains(t, string(output), "meep")
+			assert.Contains(t, string(output), "multipak")
+			assert.Contains(t, string(output), "javux")
+		})
+
+		t.Run("resolve command", func(t *testing.T) {
+			deepResolution := runResolveCommand(t)
+			assert.Len(t, deepResolution.Packages, 1)
+			assert.ElementsMatch(t,
+				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
+				[]string{"multipak", "meep", "javabro"})
+		})
+	})
+}
+
 func (suite *MainSuite) TestMultiPkgInstall() {
 	t := suite.T()
 

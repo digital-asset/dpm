@@ -1,0 +1,7 @@
+sdk-version: 0.0.1-whatever
+packages:
+  - ./daml-package
+
+override-components:
+  multipak:
+    local-path: ../component
