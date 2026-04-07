@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
+	"daml.com/x/assistant/cmd/dpm/cmd/versions"
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
@@ -91,6 +92,12 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 
 	var installedSdk *assistantconfig.InstalledSdkVersion
 	var err error
+
+	sdkVersion, err := versions.GetActiveVersion(config, damlPackagePath)
+	if err != nil {
+		return nil, err
+	}
+
 	if damlPackagePath != "" {
 		damlPackage, err := damlpackage.Read(damlPackagePath)
 		if err != nil {
@@ -100,13 +107,7 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 			return nil, resolutionerrors.NewMalformedDamlYamlError(err)
 		}
 
-		// DPM_SDK_VERSION override
-		sdkVersion := assistantconfig.GetSdkVersionOverrideWithFallback(damlPackage.SdkVersion)
-
-		// support nullable sdk-version
-		// i.e. null or "" in daml.yaml
-		// or when DPM_SDK_VERSION=""
-		if sdkVersion == "" {
+		if sdkVersion == nil {
 			plan.Base = sdkmanifest.SdkManifest{
 				AbsolutePath: "",
 				Spec: &sdkmanifest.Spec{
@@ -116,7 +117,7 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 				},
 			}
 		} else {
-			installedSdk, err = getOrAutoInstallPackageSdk(ctx, config, sdkVersion, damlPackagePath)
+			installedSdk, err = getOrAutoInstallPackageSdk(ctx, config, sdkVersion.String(), damlPackagePath)
 			if err != nil {
 				return nil, err
 			}
@@ -139,7 +140,7 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 			}
 		}
 	} else {
-		installedSdk, err = assistantconfig.GetInstalledSdkFromEnvOrDefault(config)
+		installedSdk, err = assistantconfig.GetInstalledSdkVersion(config, sdkVersion)
 		if err != nil {
 			return nil, err
 		}

@@ -113,7 +113,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 }
 
 /*
-	getActiveVersion
+	GetActiveVersion
 
 returns nil
 - when we're in package context, and sdk-version is null or "" in both daml.yaml and multi-package.yaml
@@ -121,6 +121,28 @@ returns nil
 - or when outside daml package context and there aren't any sdks installed
 */
 func getActiveVersion(config *assistantconfig.Config) (*semver.Version, error) {
+	damlPackagePath, _, err := assistantconfig.GetDamlPackageAbsolutePath()
+	if err != nil {
+		return nil, err
+	}
+
+	v, err := GetActiveVersion(config, damlPackagePath)
+	if errors.Is(err, assistantconfig.ErrNoSdkInstalled) || errors.Is(err, assistantconfig.ErrTargetSdkNotInstalled) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+/*
+	GetActiveVersion
+
+returns nil
+- when we're in package context, and sdk-version is null or "" in both daml.yaml and multi-package.yaml
+- or when DPM_SDK_VERSION=""
+*/
+func GetActiveVersion(config *assistantconfig.Config, damlPackagePath string) (*semver.Version, error) {
 	// DPM_SDK_VERSION override
 	versionOverride, ok := os.LookupEnv(assistantconfig.DpmSdkVersionEnvVar)
 	if ok {
@@ -145,10 +167,6 @@ func getActiveVersion(config *assistantconfig.Config) (*semver.Version, error) {
 	}
 
 	// in a package context
-	damlPackagePath, _, err := assistantconfig.GetDamlPackageAbsolutePath()
-	if err != nil {
-		return nil, err
-	}
 	if damlPackagePath != "" {
 		damlPackage, err := damlpackage.Read(damlPackagePath)
 		if err != nil {
@@ -178,9 +196,7 @@ func getActiveVersion(config *assistantconfig.Config) (*semver.Version, error) {
 
 	// not in a package or multi-package context
 	s, err := assistantconfig.GetInstalledSdkFromEnvOrDefault(config)
-	if errors.Is(err, assistantconfig.ErrNoSdkInstalled) || errors.Is(err, assistantconfig.ErrTargetSdkNotInstalled) {
-		return nil, nil
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	return s.Version, nil

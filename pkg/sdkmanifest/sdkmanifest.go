@@ -32,6 +32,10 @@ type SdkManifest struct {
 type SemVer semver.Version
 
 func AssemblySemVer(v *semver.Version) *SemVer {
+	if v == nil {
+		return nil
+	}
+	
 	a := SemVer(*v)
 	return &a
 }
