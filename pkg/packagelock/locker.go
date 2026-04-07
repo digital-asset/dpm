@@ -98,6 +98,17 @@ func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (
 		return nil, l.checkLockfile(expectedLockfile, lockfilePath)
 	}
 
+	// TODO this is a placeholder
+	u, err := url.Parse("oci://example.com/sdk-manifests:0.0.0-TODO")
+	if err != nil {
+		return nil, err
+	}
+	expectedLockfile.SdkVersion = SdkVersion{
+		Version: "0.0.0-TODO",
+		Digest:  "todo",
+		URI:     u,
+	}
+
 	return l.create(ctx, expectedLockfile, lockfilePath)
 }
 

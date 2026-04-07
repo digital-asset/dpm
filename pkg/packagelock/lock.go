@@ -25,7 +25,16 @@ var ErrInvalidPackageLock = fmt.Errorf("invalid package lock")
 
 type PackageLock struct {
 	schema.ManifestMeta `yaml:",inline"`
-	Dars                []*Dar `yaml:"dars"`
+	SdkVersion          SdkVersion `yaml:"sdk-version"`
+	Dars                []*Dar     `yaml:"dars"`
+}
+
+type SdkVersion struct {
+	// Resolved version (semver)
+	Version string `yaml:"version"`
+	// e.g. OCI://europe-docker.pkg.dev/da-images/public/sdk-manifests/open-source:3.4.11
+	URI    *url.URL `yaml:"uri"`
+	Digest string   `yaml:"digest"`
 }
 
 type Dar struct {
