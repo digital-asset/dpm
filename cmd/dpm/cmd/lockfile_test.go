@@ -35,7 +35,7 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
 	_, reg := testutil.StartRegistry(t)
-	multiPackageDir := testutil.TestdataPath(t, "simple-multi-package")
+	multiPackageDir := testutil.TestdataPath(t, "multi-package-simple")
 	t.Setenv(assistantconfig.DamlMultiPackageEnvVar, multiPackageDir)
 
 	// TODO: using a PushComponent() for lack of a PushDar() for now
