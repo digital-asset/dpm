@@ -64,6 +64,16 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	d = get(t, bLock, fmt.Sprintf("oci://%s/components/sheep:4.5.6", os.Getenv(assistantconfig.OciRegistryEnvVar)))
 	assert.NotEmpty(t, d.Digest)
 
+	t.Run("has sdk-version", func(t *testing.T) {
+		for _, pkg := range []string{"a", "b"} {
+			lock, err := packagelock.ReadPackageLock(filepath.Join(multiPackageDir, pkg, assistantconfig.DpmLockFileName))
+			require.NoError(t, err)
+			assert.NotEmpty(t, lock.SdkVersion.Version)
+			assert.NotEmpty(t, lock.SdkVersion.URI)
+			assert.NotEmpty(t, lock.SdkVersion.Digest)
+		}
+	})
+
 	t.Run("bump versions", func(t *testing.T) {
 		testutil.PushComponent(t, ctx, reg, "meep", "2.0.0", testutil.TestdataPath(t, "some-dar"), "latest")
 		testutil.PushComponent(t, ctx, reg, "sheep", "5.0.0", testutil.TestdataPath(t, "some-dar"), "latest")

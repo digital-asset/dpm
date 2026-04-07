@@ -29,13 +29,14 @@ type SdkManifest struct {
 	Spec                *Spec `yaml:"spec"`
 }
 
+// TODO use daml.com/x/assistant/pkg/semver.StrictSemVer
 type SemVer semver.Version
 
 func AssemblySemVer(v *semver.Version) *SemVer {
 	if v == nil {
 		return nil
 	}
-	
+
 	a := SemVer(*v)
 	return &a
 }
