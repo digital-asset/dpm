@@ -44,43 +44,12 @@ func New(ctx context.Context, config *assistantconfig.Config, a *assembler.Assem
 		}, nil
 	}
 
-	multiDamlPath, multi, err := assistantconfig.GetMultiPackageAbsolutePath()
-	if err != nil {
-		return nil, err
-	}
-	if multi {
-		return dpmMulti(config, a, multiDamlPath)
-	}
-
 	damlPackagePath, _, err := assistantconfig.GetDamlPackageAbsolutePath()
 	if err != nil {
 		return nil, err
 	}
 
 	return NewShallow(ctx, config, a, damlPackagePath)
-}
-
-func dpmMulti(config *assistantconfig.Config, a *assembler.Assembler, multiDamlPath string) (*AssemblyPlan, error) {
-	plan := &AssemblyPlan{
-		config:    config,
-		assembler: a,
-	}
-
-	multiDamlPackage, err := multipackage.Read(multiDamlPath)
-	if err != nil {
-		return nil, err
-	}
-	if multiDamlPackage.OverrideComponents != nil {
-		plan.Base = sdkmanifest.SdkManifest{
-			AbsolutePath: multiDamlPath,
-			Spec: &sdkmanifest.Spec{
-				Version:    nil,
-				Edition:    nil,
-				Components: multiDamlPackage.OverrideComponents,
-			},
-		}
-	}
-	return plan, nil
 }
 
 func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assembler.Assembler, damlPackagePath string) (*AssemblyPlan, error) {
