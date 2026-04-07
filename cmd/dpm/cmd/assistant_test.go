@@ -952,8 +952,11 @@ func (suite *MainSuite) TestNoHomeRequired() {
 func (suite *MainSuite) TestComponentInit() {
 	t := suite.T()
 
-	tmpDir := t.TempDir()
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
 
+	tmpDir := t.TempDir()
 	require.NoError(t, os.Chdir(tmpDir))
 
 	cmd, _, w := createTestRootCmd(t, "component", "init")
@@ -967,12 +970,16 @@ func (suite *MainSuite) TestComponentInit() {
 
 func (suite *MainSuite) TestComponentInitFail() {
 	t := suite.T()
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
 
 	tmpDir := t.TempDir()
 
+	os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(``), 0666)
+	os.WriteFile(filepath.Join(tmpDir, "component.yaml"), []byte(``), 0666)
+
 	require.NoError(t, os.Chdir(tmpDir))
-	os.WriteFile("daml.yaml", []byte(``), 0666)
-	os.WriteFile("component.yaml", []byte(``), 0666)
 
 	cmd, _, _ := createTestRootCmd(t, "component", "init")
 
