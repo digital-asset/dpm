@@ -34,6 +34,8 @@ type MainSuite struct {
 	testutil.CommonSetupSuite
 }
 
+const someSdkVersion = "0.0.1-whatever"
+
 func TestSuite(t *testing.T) {
 	suite.Run(t, &MainSuite{})
 }
@@ -41,7 +43,7 @@ func TestSuite(t *testing.T) {
 func (suite *MainSuite) TestResolveMultiPackageRoot() {
 	t := suite.T()
 
-	installSdk(t, someSdkVersion())
+	installSdk(t, someSdkVersion)
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
 	testResolution(t, 1)
 }
@@ -49,7 +51,7 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 	t := suite.T()
 
-	installSdk(t, someSdkVersion())
+	installSdk(t, someSdkVersion)
 
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
@@ -63,13 +65,13 @@ func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 	t := suite.T()
 
-	installSdk(t, someSdkVersion())
+	installSdk(t, someSdkVersion)
 
 	t.Run("when in multi-package dir", func(t *testing.T) {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version"))
 
 		testResolution(t, 3)
-		assertActiveSdkVersion(t, someSdkVersion())
+		assertActiveSdkVersion(t, someSdkVersion)
 	})
 
 	t.Run("when in sub package dir", func(t *testing.T) {
@@ -77,7 +79,7 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 
 		// test at level of single package
 		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-sdk-version/main"))))
-		assertActiveSdkVersion(t, someSdkVersion())
+		assertActiveSdkVersion(t, someSdkVersion)
 		testResolution(t, 3)
 	})
 }
@@ -134,7 +136,7 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 	t := suite.T()
 	ctx := testutil.Context(t)
 
-	installSdk(t, someSdkVersion())
+	installSdk(t, someSdkVersion)
 
 	// prepare and install another sdk
 	_, reg := testutil.StartRegistry(t)
@@ -156,7 +158,7 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 	})
 
 	t.Run("good override", func(t *testing.T) {
-		sdkVersion := someSdkVersion()
+		sdkVersion := someSdkVersion
 		t.Setenv(assistantconfig.DpmSdkVersionEnvVar, sdkVersion)
 
 		deepRes := runResolveCommand(t)
@@ -199,15 +201,11 @@ func testResolution(t *testing.T, expectedPackages int) {
 
 	t.Run("default sdk", func(t *testing.T) {
 		assert.Len(t, deepResolution.DefaultSDK, 1)
-		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion()].Components, 1)
-		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion()].Imports, 2)
+		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion].Components, 1)
+		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion].Imports, 2)
 		assert.True(t, true)
 	})
 
-}
-
-func someSdkVersion() string {
-	return "0.0.1-whatever"
 }
 
 func runResolveCommand(t *testing.T) *resolution.Resolution {
@@ -258,7 +256,7 @@ func (suite *MainSuite) TestInjectedEnvVars() {
 	})
 
 	t.Run("sdk version", func(t *testing.T) {
-		assert.Regexp(t, regexp.MustCompile(assistantconfig.DpmSdkVersionEnvVar+"=\"?"+someSdkVersion()+"\"?"), output)
+		assert.Regexp(t, regexp.MustCompile(assistantconfig.DpmSdkVersionEnvVar+"=\"?"+someSdkVersion+"\"?"), output)
 	})
 }
 
@@ -379,7 +377,7 @@ func (suite *MainSuite) TestAssistantVersionCommand() {
 func (suite *MainSuite) TestSdkUnInstallCommand() {
 	t := suite.T()
 
-	sdkVersion := someSdkVersion()
+	sdkVersion := someSdkVersion
 	installSdk(t, sdkVersion)
 
 	cmd := createStdTestRootCmd(t, "--help")
@@ -413,7 +411,7 @@ func (suite *MainSuite) TestSdkInstallCommand() {
 		Name, InstallArg string
 	}{
 		{
-			"via semver", someSdkVersion(),
+			"via semver", someSdkVersion,
 		},
 		{
 			"via latest tag", "latest",
@@ -431,7 +429,7 @@ func installSdk(t *testing.T, installArg string) {
 	ctx := testutil.Context(t)
 	_, reg := testutil.StartRegistry(t)
 
-	sdkVersion := someSdkVersion()
+	sdkVersion := someSdkVersion
 
 	// push assembly, assistant, and component
 	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, sdkVersion, testutil.TestdataPath(t, "remote-components.yaml"))
@@ -474,7 +472,7 @@ func (suite *MainSuite) TestAutoInstallDefaultDisabled() {
 
 func (suite *MainSuite) TestHelpCommandUsesShallowResolution() {
 	t := suite.T()
-	installSdk(t, someSdkVersion())
+	installSdk(t, someSdkVersion)
 
 	testcases := []struct {
 		Name string
@@ -535,7 +533,7 @@ func (suite *MainSuite) TestDeepResolutionForSdkCommands() {
 }
 
 func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
-	installSdk(t, someSdkVersion())
+	installSdk(t, someSdkVersion)
 
 	t.Run("single package", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -583,7 +581,7 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 func (suite *MainSuite) TestMultiPackageComponentOverrides() {
 	t := suite.T()
 
-	installSdk(t, someSdkVersion())
+	installSdk(t, someSdkVersion)
 
 	t.Run("when in multi-package dir", func(t *testing.T) {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS))
@@ -617,7 +615,7 @@ func (suite *MainSuite) TestMultiPackageComponentOverrides() {
 func (suite *MainSuite) TestMultiPackageSdkAndComponentOverrides() {
 	t := suite.T()
 
-	installSdk(t, someSdkVersion())
+	installSdk(t, someSdkVersion)
 
 	deepResolution := runResolveCommand(t)
 	assert.ElementsMatch(t,
@@ -676,7 +674,7 @@ func (suite *MainSuite) TestMultiPackageSdkAndComponentOverrides() {
 func (suite *MainSuite) TestMultiPkgInstall() {
 	t := suite.T()
 
-	sdkVersion := someSdkVersion()
+	sdkVersion := someSdkVersion
 	installSdk(t, sdkVersion)
 
 	t.Run("multi pkg no override", func(t *testing.T) {
@@ -742,7 +740,7 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 	ctx := testutil.Context(t)
 	_, reg := testutil.StartRegistry(t)
 
-	sdkVersions := []string{someSdkVersion(), "2.0.0-alpha", "1.0.0", "1.0.1", "3.0.0", "1.1.0"}
+	sdkVersions := []string{someSdkVersion, "2.0.0-alpha", "1.0.0", "1.0.1", "3.0.0", "1.1.0"}
 	sorted := []string{
 		"  0.0.1-whatever    ",
 		"  1.0.0             ",
@@ -773,8 +771,8 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 	})
 
 	t.Run("active sdk version outside project", func(t *testing.T) {
-		installSdk(t, someSdkVersion())
-		assertActiveSdkVersion(t, someSdkVersion())
+		installSdk(t, someSdkVersion)
+		assertActiveSdkVersion(t, someSdkVersion)
 	})
 
 	t.Run("active sdk version from env var not installed", func(t *testing.T) {
@@ -833,8 +831,8 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 
 		t.Chdir(tmpDir)
 		assertNoActiveSdkVersion(t)
-		installSdk(t, someSdkVersion())
-		assertActiveSdkVersion(t, someSdkVersion())
+		installSdk(t, someSdkVersion)
+		assertActiveSdkVersion(t, someSdkVersion)
 	})
 }
 
