@@ -38,18 +38,18 @@ func TestSuite(t *testing.T) {
 	suite.Run(t, &MainSuite{})
 }
 
-func (suite *MainSuite) TestResolveCommand() {
+func (suite *MainSuite) TestResolveMultiPackageRoot() {
 	t := suite.T()
 
-	installSdk(t, "0.0.1-whatever")
+	installSdk(t, someSdkVersion())
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
 	testResolution(t)
 }
 
-func (suite *MainSuite) TestResolutionWithChangedCwd() {
+func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 	t := suite.T()
 
-	installSdk(t, "0.0.1-whatever")
+	installSdk(t, someSdkVersion())
 
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
@@ -60,93 +60,7 @@ func (suite *MainSuite) TestResolutionWithChangedCwd() {
 	testResolution(t)
 }
 
-func testResolution(t *testing.T) {
-	deepResolution := runResolveCommand(t)
-	assert.Len(t, deepResolution.Packages, 1)
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, 2)
-	assert.Equal(t, resolution.Kind, deepResolution.Kind)
-	assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
-
-	t.Run("correct package paths", func(t *testing.T) {
-		for pkgPath, _ := range deepResolution.Packages {
-			assert.True(t, filepath.IsAbs(pkgPath))
-			_, err := os.ReadFile(filepath.Join(pkgPath, "daml.yaml"))
-			require.NoError(t, err)
-		}
-	})
-
-	t.Run("default sdk", func(t *testing.T) {
-		assert.Len(t, deepResolution.DefaultSDK, 1)
-		assert.Len(t, deepResolution.DefaultSDK["0.0.1-whatever"].Components, 1)
-		assert.Len(t, deepResolution.DefaultSDK["0.0.1-whatever"].Imports, 2)
-		assert.True(t, true)
-	})
-
-}
-
-func runResolveCommand(t *testing.T) *resolution.Resolution {
-	cmd, r, w := createTestRootCmd(t, "resolve")
-	assert.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
-
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
-
-	deepResolution := resolution.Resolution{}
-	require.NoError(t, yaml.Unmarshal(output, &deepResolution))
-	return &deepResolution
-}
-
-func (suite *MainSuite) TestResolutionWithDpmSdkVersionEnvVar() {
-	t := suite.T()
-	ctx := testutil.Context(t)
-
-	installSdk(t, "0.0.1-whatever")
-
-	// prepare and install another sdk
-	_, reg := testutil.StartRegistry(t)
-	anotherSdkVersion := "1.2.3"
-	anotherSdkAssembly := createAssembly(t, anotherSdkVersion, "4.5.6")
-	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, anotherSdkVersion, anotherSdkAssembly)
-	cmd := createStdTestRootCmd(t, "install", anotherSdkVersion)
-	require.NoError(t, cmd.Execute())
-
-	cmd = createStdTestRootCmd(t, "resolve")
-	require.NoError(t, cmd.Execute())
-
-	t.Run("no override", func(t *testing.T) {
-		sdkVersion := "1.2.3"
-		deepRes := runResolveCommand(t)
-		assert.Len(t, deepRes.DefaultSDK, 1)
-		assert.Contains(t, deepRes.DefaultSDK, sdkVersion)
-		assert.Empty(t, deepRes.DefaultSDK[sdkVersion].Errors)
-	})
-
-	t.Run("good override", func(t *testing.T) {
-		sdkVersion := "0.0.1-whatever"
-		t.Setenv(assistantconfig.DpmSdkVersionEnvVar, sdkVersion)
-
-		deepRes := runResolveCommand(t)
-		assert.Len(t, deepRes.DefaultSDK, 1)
-		assert.Contains(t, deepRes.DefaultSDK, sdkVersion)
-		assert.Len(t, deepRes.DefaultSDK[sdkVersion].Components, 1)
-		assert.Empty(t, deepRes.DefaultSDK[sdkVersion].Errors)
-	})
-
-	t.Run("bad override", func(t *testing.T) {
-		sdkVersion := "1.2.3-non-existent"
-		t.Setenv(assistantconfig.DpmSdkVersionEnvVar, sdkVersion)
-
-		deepRes := runResolveCommand(t)
-		assert.Len(t, deepRes.DefaultSDK, 1)
-		assert.Contains(t, deepRes.DefaultSDK, sdkVersion)
-		assert.Empty(t, deepRes.DefaultSDK[sdkVersion].Components)
-		assert.NotEmpty(t, deepRes.DefaultSDK[sdkVersion].Errors)
-	})
-}
-
-func (suite *MainSuite) TestErrorsInResolutionFile() {
+func (suite *MainSuite) TestResolveErrorsInResolutionFile() {
 	t := suite.T()
 
 	testCases := []struct {
@@ -194,6 +108,96 @@ func (suite *MainSuite) TestErrorsInResolutionFile() {
 	}
 }
 
+func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
+	t := suite.T()
+	ctx := testutil.Context(t)
+
+	installSdk(t, someSdkVersion())
+
+	// prepare and install another sdk
+	_, reg := testutil.StartRegistry(t)
+	anotherSdkVersion := "1.2.3"
+	anotherSdkAssembly := createAssembly(t, anotherSdkVersion, "4.5.6")
+	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, anotherSdkVersion, anotherSdkAssembly)
+	cmd := createStdTestRootCmd(t, "install", anotherSdkVersion)
+	require.NoError(t, cmd.Execute())
+
+	cmd = createStdTestRootCmd(t, "resolve")
+	require.NoError(t, cmd.Execute())
+
+	t.Run("no override", func(t *testing.T) {
+		sdkVersion := "1.2.3"
+		deepRes := runResolveCommand(t)
+		assert.Len(t, deepRes.DefaultSDK, 1)
+		assert.Contains(t, deepRes.DefaultSDK, sdkVersion)
+		assert.Empty(t, deepRes.DefaultSDK[sdkVersion].Errors)
+	})
+
+	t.Run("good override", func(t *testing.T) {
+		sdkVersion := someSdkVersion()
+		t.Setenv(assistantconfig.DpmSdkVersionEnvVar, sdkVersion)
+
+		deepRes := runResolveCommand(t)
+		assert.Len(t, deepRes.DefaultSDK, 1)
+		assert.Contains(t, deepRes.DefaultSDK, sdkVersion)
+		assert.Len(t, deepRes.DefaultSDK[sdkVersion].Components, 1)
+		assert.Empty(t, deepRes.DefaultSDK[sdkVersion].Errors)
+	})
+
+	t.Run("bad override", func(t *testing.T) {
+		sdkVersion := "1.2.3-non-existent"
+		t.Setenv(assistantconfig.DpmSdkVersionEnvVar, sdkVersion)
+
+		deepRes := runResolveCommand(t)
+		assert.Len(t, deepRes.DefaultSDK, 1)
+		assert.Contains(t, deepRes.DefaultSDK, sdkVersion)
+		assert.Empty(t, deepRes.DefaultSDK[sdkVersion].Components)
+		assert.NotEmpty(t, deepRes.DefaultSDK[sdkVersion].Errors)
+	})
+}
+
+func testResolution(t *testing.T) {
+	deepResolution := runResolveCommand(t)
+	assert.Len(t, deepResolution.Packages, 1)
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, 2)
+	assert.Equal(t, resolution.Kind, deepResolution.Kind)
+	assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
+
+	t.Run("correct package paths", func(t *testing.T) {
+		for pkgPath, _ := range deepResolution.Packages {
+			assert.True(t, filepath.IsAbs(pkgPath))
+			_, err := os.ReadFile(filepath.Join(pkgPath, "daml.yaml"))
+			require.NoError(t, err)
+		}
+	})
+
+	t.Run("default sdk", func(t *testing.T) {
+		assert.Len(t, deepResolution.DefaultSDK, 1)
+		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion()].Components, 1)
+		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion()].Imports, 2)
+		assert.True(t, true)
+	})
+
+}
+
+func someSdkVersion() string {
+	return "0.0.1-whatever"
+}
+
+func runResolveCommand(t *testing.T) *resolution.Resolution {
+	cmd, r, w := createTestRootCmd(t, "resolve")
+	assert.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+
+	output, err := io.ReadAll(r)
+	assert.NoError(t, err)
+
+	deepResolution := resolution.Resolution{}
+	require.NoError(t, yaml.Unmarshal(output, &deepResolution))
+	return &deepResolution
+}
+
 func (suite *MainSuite) TestSdkCommandsFlagParsing() {
 	t := suite.T()
 	t.Setenv("DPM_ASSEMBLY", testutil.TestdataPath(t, "local-with-java", testutil.OS, "sdk-manifest.yaml"))
@@ -229,7 +233,7 @@ func (suite *MainSuite) TestInjectedEnvVars() {
 	})
 
 	t.Run("sdk version", func(t *testing.T) {
-		assert.Regexp(t, regexp.MustCompile(assistantconfig.DpmSdkVersionEnvVar+"=\"?0.0.1-whatever\"?"), output)
+		assert.Regexp(t, regexp.MustCompile(assistantconfig.DpmSdkVersionEnvVar+"=\"?"+someSdkVersion()+"\"?"), output)
 	})
 }
 
@@ -344,13 +348,13 @@ func (suite *MainSuite) TestAssistantVersionCommand() {
 
 	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Contains(t, string(output), "version: unknown")
+	assert.Contains(t, string(output), "version: unknown\nbuild: unknown\nbuildDate: unknown")
 }
 
 func (suite *MainSuite) TestSdkUnInstallCommand() {
 	t := suite.T()
 
-	sdkVersion := "0.0.1-whatever"
+	sdkVersion := someSdkVersion()
 	installSdk(t, sdkVersion)
 
 	cmd := createStdTestRootCmd(t, "--help")
@@ -384,7 +388,7 @@ func (suite *MainSuite) TestSdkInstallCommand() {
 		Name, InstallArg string
 	}{
 		{
-			"via semver", "0.0.1-whatever",
+			"via semver", someSdkVersion(),
 		},
 		{
 			"via latest tag", "latest",
@@ -402,7 +406,7 @@ func installSdk(t *testing.T, installArg string) {
 	ctx := testutil.Context(t)
 	_, reg := testutil.StartRegistry(t)
 
-	sdkVersion := "0.0.1-whatever"
+	sdkVersion := someSdkVersion()
 
 	// push assembly, assistant, and component
 	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, sdkVersion, testutil.TestdataPath(t, "remote-components.yaml"))
@@ -442,7 +446,7 @@ func (suite *MainSuite) TestAutoInstallDefaultDisabled() {
 
 func (suite *MainSuite) TestHelpCommandUsesShallowResolution() {
 	t := suite.T()
-	installSdk(t, "0.0.1-whatever")
+	installSdk(t, someSdkVersion())
 
 	testcases := []struct {
 		Name string
@@ -503,7 +507,7 @@ func (suite *MainSuite) TestDeepResolutionForSdkCommands() {
 }
 
 func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
-	installSdk(t, "0.0.1-whatever")
+	installSdk(t, someSdkVersion())
 
 	t.Run("single package", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -530,7 +534,7 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 		cwd, err := os.Getwd()
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("another-multi-package"))))
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-another"))))
 
 		t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
 
@@ -551,7 +555,7 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 func (suite *MainSuite) TestMultiPackageComponentOverrides() {
 	t := suite.T()
 
-	installSdk(t, "0.0.1-whatever")
+	installSdk(t, someSdkVersion())
 
 	t.Run("when in multi-package dir", func(t *testing.T) {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS))
@@ -585,7 +589,7 @@ func (suite *MainSuite) TestMultiPackageComponentOverrides() {
 func (suite *MainSuite) TestMultiPkgInstall() {
 	t := suite.T()
 
-	sdkVersion := "0.0.1-whatever"
+	sdkVersion := someSdkVersion()
 	installSdk(t, sdkVersion)
 
 	t.Run("multi pkg no override", func(t *testing.T) {
@@ -595,7 +599,7 @@ func (suite *MainSuite) TestMultiPkgInstall() {
 		cwd, err := os.Getwd()
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("another-multi-package"))))
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-another"))))
 		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
 
 		cmd, r, w := createTestRootCmd(t, "install", "package")
@@ -651,7 +655,7 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 	ctx := testutil.Context(t)
 	_, reg := testutil.StartRegistry(t)
 
-	sdkVersions := []string{"0.0.1-whatever", "2.0.0-alpha", "1.0.0", "1.0.1", "3.0.0", "1.1.0"}
+	sdkVersions := []string{someSdkVersion(), "2.0.0-alpha", "1.0.0", "1.0.1", "3.0.0", "1.1.0"}
 	sorted := []string{
 		"  0.0.1-whatever    ",
 		"  1.0.0             ",
@@ -682,8 +686,8 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 	})
 
 	t.Run("active sdk version outside project", func(t *testing.T) {
-		installSdk(t, "0.0.1-whatever")
-		assertActiveSdkVersion(t, "0.0.1-whatever")
+		installSdk(t, someSdkVersion())
+		assertActiveSdkVersion(t, someSdkVersion())
 	})
 
 	t.Run("active sdk version from env var not installed", func(t *testing.T) {
@@ -742,8 +746,8 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 
 		t.Chdir(tmpDir)
 		assertNoActiveSdkVersion(t)
-		installSdk(t, "0.0.1-whatever")
-		assertActiveSdkVersion(t, "0.0.1-whatever")
+		installSdk(t, someSdkVersion())
+		assertActiveSdkVersion(t, someSdkVersion())
 	})
 }
 

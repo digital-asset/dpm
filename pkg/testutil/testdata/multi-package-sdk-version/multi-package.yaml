@@ -1,0 +1,13 @@
+sdk-version: 0.0.1-whatever
+
+packages:
+- ./interfaces
+- ./main
+- ./test
+
+#override-components:
+#  damlc:
+#    version: 3.4.9
+#  daml-script:
+#    version: 3.4.9
+
