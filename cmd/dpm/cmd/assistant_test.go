@@ -886,6 +886,37 @@ func (suite *MainSuite) TestNoHomeRequired() {
 	require.NoError(t, cmd.Execute())
 }
 
+func (suite *MainSuite) TestComponentInit() {
+	t := suite.T()
+
+	tmpDir := t.TempDir()
+
+	require.NoError(t, os.Chdir(tmpDir))
+
+	cmd, _, w := createTestRootCmd(t, "component", "init")
+	require.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+
+	assert.FileExists(t, "daml.yaml")
+	assert.FileExists(t, "component.yaml")
+
+}
+
+func (suite *MainSuite) TestComponentInitFail() {
+	t := suite.T()
+
+	tmpDir := t.TempDir()
+
+	require.NoError(t, os.Chdir(tmpDir))
+	os.WriteFile("daml.yaml", []byte(``), 0666)
+	os.WriteFile("component.yaml", []byte(``), 0666)
+
+	cmd, _, _ := createTestRootCmd(t, "component", "init")
+
+	require.Error(t, cmd.Execute())
+
+}
+
 func assertSdkVersion(t *testing.T, sdkVersion string) {
 	cmd, r, w := createTestRootCmd(t, "versions")
 	assert.NoError(t, cmd.Execute())
