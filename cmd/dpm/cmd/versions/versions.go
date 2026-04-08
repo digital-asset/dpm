@@ -80,7 +80,6 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 					cmd.SilenceUsage = true
 					return ErrNoActiveSdk
 				} else {
-					cmd.Println(activeVersion.String())
 					if assistantconfig.DpmLockfileEnabled() {
 						// check for existance of lockfile, if none then create one
 						// TODO: Only creates for daml.yamls, ensure one is created for multi-package.yaml once that's implemented
@@ -97,6 +96,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 							}
 						}
 					}
+					cmd.Println(activeVersion.String())
 				}
 				return nil
 			}
