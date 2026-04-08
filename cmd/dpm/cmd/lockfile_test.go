@@ -133,6 +133,7 @@ func (suite *MainSuite) TestLockfileUpdate() {
 
 func (suite *MainSuite) TestLockfileCreateActiveVersion() {
 	t := suite.T()
+	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 
 	tmpDir := t.TempDir()
 
