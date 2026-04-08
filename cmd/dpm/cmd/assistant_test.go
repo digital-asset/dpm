@@ -35,6 +35,7 @@ type MainSuite struct {
 }
 
 const someSdkVersion = "0.0.1-whatever"
+const someOtherSdkVersion = "0.0.1-not-whatever"
 
 func TestSuite(t *testing.T) {
 	suite.Run(t, &MainSuite{})
@@ -43,7 +44,7 @@ func TestSuite(t *testing.T) {
 func (suite *MainSuite) TestResolveMultiPackageRoot() {
 	t := suite.T()
 
-	installSdk(t, someSdkVersion)
+	installSdk(t, []string{someSdkVersion})
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
 	testResolution(t, 1)
 }
@@ -51,7 +52,7 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 	t := suite.T()
 
-	installSdk(t, someSdkVersion)
+	installSdk(t, []string{someSdkVersion})
 
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
@@ -65,7 +66,7 @@ func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 	t := suite.T()
 
-	installSdk(t, someSdkVersion)
+	installSdk(t, []string{someSdkVersion})
 
 	t.Run("1a: when in multi-package dir", func(t *testing.T) {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version"))
@@ -86,7 +87,7 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
 	t := suite.T()
 
-	installSdk(t, someSdkVersion)
+	installSdk(t, []string{someSdkVersion})
 
 	t.Run("3a: when in multi-package dir", func(t *testing.T) {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides"))
@@ -197,7 +198,7 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 	t := suite.T()
 	ctx := testutil.Context(t)
 
-	installSdk(t, someSdkVersion)
+	installSdk(t, []string{someSdkVersion})
 
 	// prepare and install another sdk
 	_, reg := testutil.StartRegistry(t)
@@ -439,7 +440,7 @@ func (suite *MainSuite) TestSdkUnInstallCommand() {
 	t := suite.T()
 
 	sdkVersion := someSdkVersion
-	installSdk(t, sdkVersion)
+	installSdk(t, []string{sdkVersion})
 
 	cmd := createStdTestRootCmd(t, "--help")
 	require.NoError(t, cmd.Execute())
@@ -469,47 +470,96 @@ func (suite *MainSuite) TestSdkInstallCommand() {
 	t := suite.T()
 
 	cases := []struct {
-		Name, InstallArg string
+		Name, Version, InstallArg string
 	}{
 		{
-			"via semver", someSdkVersion,
+			"via semver", someSdkVersion, someSdkVersion,
 		},
 		{
-			"via latest tag", "latest",
+			"via some other semver", someOtherSdkVersion, someOtherSdkVersion,
+		},
+		{
+			"via latest tag", someOtherSdkVersion, "latest",
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.Name, func(t *testing.T) {
-			installSdk(t, c.InstallArg)
+			installFloatySdk(t, c.Version, c.InstallArg)
 		})
 	}
 }
 
-func installSdk(t *testing.T, installArg string) {
+func installFloatySdk(t *testing.T, version string, floatyTag string) {
 	ctx := testutil.Context(t)
 	_, reg := testutil.StartRegistry(t)
 
-	sdkVersion := someSdkVersion
+	// Push assembly for each version
+	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, version, testutil.TestdataPath(t, "remote-components.yaml"))
 
 	// push assembly, assistant, and component
-	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, sdkVersion, testutil.TestdataPath(t, "remote-components.yaml"))
 	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
 	testutil.PushComponent(t, ctx, reg, sdkmanifest.AssistantName, "4.5.6", testutil.TestdataPath(t, "assistant-binary", testutil.OS))
 
 	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
-	cmd, r, w := createTestRootCmd(t, "install", installArg)
+	// Install each version
+	cmd, r, w := createTestRootCmd(t, "install", version)
+
 	require.NoError(t, cmd.Execute())
 	assert.NoError(t, w.Close())
 
 	output, err := io.ReadAll(r)
 	require.NoError(t, err)
-	assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
+
+	assert.Contains(t, string(output), "Successfully installed SDK "+version)
+
+	// verify installation for this version
+	assertSdkVersion(t, version)
 
 	// verify
-	assertSdkVersion(t, sdkVersion)
+	testMeepyComponent(t)
+	t.Run("link assistant", verifyLink)
+}
+
+func installSdk(t *testing.T, versions []string) {
+	ctx := testutil.Context(t)
+	_, reg := testutil.StartRegistry(t)
+
+	// Push assembly for each version
+	for _, v := range versions {
+		testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, v, testutil.TestdataPath(t, "remote-components.yaml"))
+	}
+
+	// push assembly, assistant, and component
+	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	testutil.PushComponent(t, ctx, reg, sdkmanifest.AssistantName, "4.5.6", testutil.TestdataPath(t, "assistant-binary", testutil.OS))
+
+	tmpDamlHome := t.TempDir()
+	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
+
+	// Install each version
+	for _, version := range versions {
+		version := version // capture
+
+		t.Run("install_"+version, func(t *testing.T) {
+			cmd, r, w := createTestRootCmd(t, "install", version)
+
+			require.NoError(t, cmd.Execute())
+			assert.NoError(t, w.Close())
+
+			output, err := io.ReadAll(r)
+			require.NoError(t, err)
+
+			assert.Contains(t, string(output), "Successfully installed SDK "+version)
+
+			// verify installation for this version
+			assertSdkVersion(t, version)
+		})
+	}
+
+	// verify
 	testMeepyComponent(t)
 	t.Run("link assistant", verifyLink)
 }
@@ -533,7 +583,7 @@ func (suite *MainSuite) TestAutoInstallDefaultDisabled() {
 
 func (suite *MainSuite) TestHelpCommandUsesShallowResolution() {
 	t := suite.T()
-	installSdk(t, someSdkVersion)
+	installSdk(t, []string{someSdkVersion})
 
 	testcases := []struct {
 		Name string
@@ -594,7 +644,7 @@ func (suite *MainSuite) TestDeepResolutionForSdkCommands() {
 }
 
 func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
-	installSdk(t, someSdkVersion)
+	installSdk(t, []string{someSdkVersion})
 
 	t.Run("single package", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -642,41 +692,70 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 func (suite *MainSuite) TestMultiPackageComponentOverrides() {
 	t := suite.T()
 
-	installSdk(t, someSdkVersion)
-
-	t.Run("when in multi-package dir", func(t *testing.T) {
+	t.Run("13a: when in multi-package dir", func(t *testing.T) {
+		installSdk(t, []string{someSdkVersion, someOtherSdkVersion})
 		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS))
 
-		cmd, r, w := createTestRootCmd(t, "--help")
-		require.NoError(t, cmd.Execute())
-		assert.NoError(t, w.Close())
+		t.Run("help command", func(t *testing.T) {
+			cmd, r, w := createTestRootCmd(t, "--help")
+			require.NoError(t, cmd.Execute())
+			assert.NoError(t, w.Close())
 
-		output, err := io.ReadAll(r)
-		require.NoError(t, err)
-		assert.Contains(t, string(output), "meep")
-		assert.Contains(t, string(output), "multipak")
-		assert.NotContains(t, string(output), "javux")
+			output, err := io.ReadAll(r)
+			require.NoError(t, err)
+			assert.Contains(t, string(output), "meep")
+			assert.Contains(t, string(output), "multipak")
+			assert.NotContains(t, string(output), "javux")
+		})
+
+		t.Run("resolve command", func(t *testing.T) {
+			deepResolution := runResolveCommand(t)
+			assert.Len(t, deepResolution.Packages, 1)
+			assert.ElementsMatch(t,
+				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
+				[]string{"multipak", "meep", "javabro"})
+		})
+
+		t.Run("assert active sdk version", func(t *testing.T) {
+			assertActiveSdkVersion(t, someSdkVersion)
+		})
+
 	})
 
-	t.Run("when in sub package dir", func(t *testing.T) {
+	t.Run("13b: when in sub package dir", func(t *testing.T) {
+		installSdk(t, []string{someSdkVersion, someOtherSdkVersion})
 		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS, "daml-package"))
 
-		cmd, r, w := createTestRootCmd(t, "--help")
-		require.NoError(t, cmd.Execute())
-		assert.NoError(t, w.Close())
+		t.Run("help command", func(t *testing.T) {
+			cmd, r, w := createTestRootCmd(t, "--help")
+			require.NoError(t, cmd.Execute())
+			assert.NoError(t, w.Close())
 
-		output, err := io.ReadAll(r)
-		require.NoError(t, err)
-		assert.Contains(t, string(output), "meep")
-		assert.Contains(t, string(output), "multipak")
-		assert.Contains(t, string(output), "javux")
+			output, err := io.ReadAll(r)
+			require.NoError(t, err)
+			assert.Contains(t, string(output), "meep")
+			assert.Contains(t, string(output), "multipak")
+			assert.Contains(t, string(output), "javux")
+		})
+
+		t.Run("resolve command", func(t *testing.T) {
+			deepResolution := runResolveCommand(t)
+			assert.Len(t, deepResolution.Packages, 1)
+			assert.ElementsMatch(t,
+				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
+				[]string{"multipak", "meep", "javabro"})
+		})
+
+		t.Run("assert active sdk version", func(t *testing.T) {
+			assertActiveSdkVersion(t, someOtherSdkVersion)
+		})
 	})
 }
 
 func (suite *MainSuite) TestMultiPackageSdkAndComponentOverrides() {
 	t := suite.T()
 
-	installSdk(t, someSdkVersion)
+	installSdk(t, []string{someSdkVersion})
 
 	deepResolution := runResolveCommand(t)
 	assert.ElementsMatch(t,
@@ -736,7 +815,7 @@ func (suite *MainSuite) TestMultiPackageInstall() {
 	t := suite.T()
 
 	sdkVersion := someSdkVersion
-	installSdk(t, sdkVersion)
+	installSdk(t, []string{sdkVersion})
 
 	t.Run("multi pkg no override", func(t *testing.T) {
 
@@ -823,7 +902,7 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 	})
 
 	t.Run("active sdk version outside project", func(t *testing.T) {
-		installSdk(t, someSdkVersion)
+		installSdk(t, []string{someSdkVersion})
 		assertActiveSdkVersion(t, someSdkVersion)
 	})
 
@@ -883,7 +962,7 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 
 		t.Chdir(tmpDir)
 		assertNoActiveSdkVersion(t)
-		installSdk(t, someSdkVersion)
+		installSdk(t, []string{someSdkVersion})
 		assertActiveSdkVersion(t, someSdkVersion)
 	})
 }
@@ -1002,7 +1081,7 @@ func (suite *MainSuite) TestComponentSubdirFilesPerm() {
 	err = os.Chmod(p, mode)
 	require.NoError(t, err)
 
-	installSdk(t, "latest")
+	installSdk(t, []string{someSdkVersion})
 
 	c, err := assistantconfig.Get()
 	require.NoError(t, err)
@@ -1049,8 +1128,8 @@ func (suite *MainSuite) TestComponentInitFail() {
 	t := suite.T()
 	tmpDir := t.TempDir()
 
-	os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(``), 0666)
-	os.WriteFile(filepath.Join(tmpDir, "component.yaml"), []byte(``), 0666)
+	_ = os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(``), 0666)
+	_ = os.WriteFile(filepath.Join(tmpDir, "component.yaml"), []byte(``), 0666)
 
 	t.Chdir(tmpDir)
 
