@@ -4,3 +4,8 @@ packages:
 - ./interfaces
 - ./main
 - ./test
+
+override-components:
+  javabro:
+    local-path: ../javabro-component
+
