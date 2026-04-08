@@ -18,6 +18,10 @@ const (
 	PackageWorkingDir
 )
 
+type TestCaseDirs struct {
+	WorkingDir, DamlPackageDir, MultiPackageDir string
+}
+
 type SdkVersionTestCase struct {
 	Name                                      string
 	MultiPackageSdkVersion, PackageSdkVersion string
@@ -116,11 +120,11 @@ func (suite *MainSuite) TestActiveSdkVersionExhaustive() {
 	sdkVersions := []string{someSdkVersion, someOtherSdkVersion, globalSdkVersion}
 	installSdk(t, sdkVersions)
 
-	setupTestCase := func(tc SdkVersionTestCase) (multiPackageDir string, damlPackageDir string) {
+	setupTestCase := func(tc SdkVersionTestCase) (dirs TestCaseDirs) {
 		tmpDir := t.TempDir()
-		multiPackageDir = filepath.Join(tmpDir, "multi-package")
-		damlPackageDir = filepath.Join(multiPackageDir, "daml-package")
-		require.NoError(t, utils.EnsureDirs(multiPackageDir, damlPackageDir))
+		dirs.MultiPackageDir = filepath.Join(tmpDir, "multi-package")
+		dirs.DamlPackageDir = filepath.Join(dirs.MultiPackageDir, "daml-package")
+		require.NoError(t, utils.EnsureDirs(dirs.MultiPackageDir, dirs.DamlPackageDir))
 
 		// create multi-package.yaml
 		multiPackageContents := fmt.Sprintf(`
@@ -128,21 +132,22 @@ sdk-version: %s
 packages:
  - ./daml-package`, tc.MultiPackageSdkVersion)
 		require.NoError(t,
-			os.WriteFile(filepath.Join(tmpDir, "multi-package.yaml"), []byte(multiPackageContents), 0666),
+			os.WriteFile(filepath.Join(dirs.MultiPackageDir, "multi-package.yaml"), []byte(multiPackageContents), 0666),
 		)
 		// create daml.yaml
 		require.NoError(t,
-			os.WriteFile(filepath.Join(damlPackageDir, "daml.yaml"), []byte(`sdk-version: `+tc.PackageSdkVersion), 0666),
+			os.WriteFile(filepath.Join(dirs.DamlPackageDir, "daml.yaml"), []byte(`sdk-version: `+tc.PackageSdkVersion), 0666),
 		)
 
 		// chdir
 		switch tc.WorkingDir {
 		case PackageWorkingDir:
-			t.Chdir(damlPackageDir)
+			dirs.WorkingDir = dirs.DamlPackageDir
 		case MultiPackageWorkingDir:
-			t.Chdir(tmpDir)
+			dirs.WorkingDir = dirs.MultiPackageDir
 		default:
 		}
+		t.Chdir(dirs.WorkingDir)
 
 		return
 	}
