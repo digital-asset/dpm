@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/builtincommand"
+	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/packagelock"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/testutil"
@@ -127,4 +129,28 @@ func (suite *MainSuite) TestLockfileUpdate() {
 		require.NoError(t, err)
 		assert.Contains(t, string(dar), "haha not a real dar")
 	})
+}
+
+func (suite *MainSuite) TestLockfileCreateActiveVersion() {
+	t := suite.T()
+
+	tmpDir := t.TempDir()
+
+	t.Chdir(tmpDir)
+
+	t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version"))
+
+	cmd := createStdTestRootCmd(t, string(builtincommand.Version), "--active")
+	require.NoError(t, cmd.Execute())
+
+	data, _ := os.ReadFile(assistantconfig.DamlMultiPackageFilename)
+
+	var config multipackage.MultiPackage
+	yaml.Unmarshal(data, &config)
+
+	for _, v := range config.Packages {
+		assert.FileExists(t, filepath.Join(v, assistantconfig.DpmLockFileName))
+
+	}
+
 }

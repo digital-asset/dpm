@@ -16,7 +16,6 @@ import (
 	"daml.com/x/assistant/pkg/assistant"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/builtincommand"
-	"daml.com/x/assistant/pkg/multipackage"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/sdkmanifest"
@@ -953,29 +952,6 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 	})
 }
 
-func (suite *MainSuite) TestSdkVersionActiveCommand() {
-	t := suite.T()
-
-	tmpDir := t.TempDir()
-
-	t.Chdir(tmpDir)
-
-	t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version"))
-
-	cmd := createStdTestRootCmd(t, string(builtincommand.Version), "--active")
-	require.NoError(t, cmd.Execute())
-
-	data, _ := os.ReadFile(assistantconfig.DamlMultiPackageFilename)
-
-	var config multipackage.MultiPackage
-	yaml.Unmarshal(data, &config)
-
-	for _, v := range config.Packages {
-		assert.FileExists(t, filepath.Join(v, assistantconfig.DpmLockFileName))
-
-	}
-
-}
 func assertNoActiveSdkVersion(t *testing.T) {
 	cmd := createStdTestRootCmd(t, string(builtincommand.Version), "--active")
 	require.ErrorIs(t, cmd.Execute(), versions.ErrNoActiveSdk)
@@ -989,7 +965,7 @@ func assertActiveSdkVersion(t *testing.T, version string) {
 
 	output, err := io.ReadAll(r)
 	require.NoError(t, err)
-	assert.Contains(t, string(output), version+"\n")
+	assert.Equal(t, string(output), version+"\n")
 }
 
 func (suite *MainSuite) TestNullableSdkVersionInDamlYaml() {

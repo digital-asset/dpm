@@ -81,19 +81,20 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 					return ErrNoActiveSdk
 				} else {
 					cmd.Println(activeVersion.String())
-
-					// check for existance of lockfile, if none then create one
-					// TODO: Only creates for daml.yamls, ensure one is created for multi-package.yaml once that's implemented
-					op := packagelock.CheckOnly
-					locker := packagelock.New(config, op)
-					_, err := locker.EnsureLockfiles(cmd.Context())
-					if errors.Is(err, packagelock.ErrLockfileOutOfSync) {
-						cmd.Println("No lockfile associated with existing active version, creating...")
-						op = packagelock.Regular
-						createLock := packagelock.New(config, op)
-						_, err = createLock.EnsureLockfiles(cmd.Context())
-						if err != nil {
-							return err
+					if assistantconfig.DpmLockfileEnabled() {
+						// check for existance of lockfile, if none then create one
+						// TODO: Only creates for daml.yamls, ensure one is created for multi-package.yaml once that's implemented
+						op := packagelock.CheckOnly
+						locker := packagelock.New(config, op)
+						_, err := locker.EnsureLockfiles(cmd.Context())
+						if errors.Is(err, packagelock.ErrLockfileOutOfSync) {
+							cmd.PrintErr("No lockfile associated with existing active version, creating...")
+							op = packagelock.Regular
+							createLock := packagelock.New(config, op)
+							_, err = createLock.EnsureLockfiles(cmd.Context())
+							if err != nil {
+								return err
+							}
 						}
 					}
 				}
