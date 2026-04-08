@@ -87,7 +87,10 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
 
 	t := suite.T()
-	t.Skip("skipping as this hangs on windows")
+	if testutil.OS == "windows" {
+		t.Skip("this test hates windows")
+		return
+	}
 
 	t.Run("3a: when in multi-package dir", func(t *testing.T) {
 		installSdk(t, []string{someSdkVersion})
