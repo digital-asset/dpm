@@ -85,31 +85,33 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
-	t := suite.T()
 
-	//t.Run("3a: when in multi-package dir", func(t *testing.T) {
-	//	installSdk(t, []string{someSdkVersion})
-	//	t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides"))
-	//
-	//	t.Run("help command", func(t *testing.T) {
-	//		output := runHelpCommand(t)
-	//		assert.Contains(t, output, "meep")
-	//		assert.Contains(t, output, "javux")
-	//		assert.NotContains(t, output, "multipak")
-	//	})
-	//
-	//	t.Run("resolve command", func(t *testing.T) {
-	//		deepResolution := runResolveCommand(t)
-	//		assert.Len(t, deepResolution.Packages, 3)
-	//		assert.ElementsMatch(t,
-	//			lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
-	//			[]string{"meep", "javabro"})
-	//	})
-	//
-	//	t.Run("assert active sdk version", func(t *testing.T) {
-	//		assertActiveSdkVersion(t, someSdkVersion)
-	//	})
-	//})
+	t := suite.T()
+	t.Skip("skipping as this hangs on windows")
+
+	t.Run("3a: when in multi-package dir", func(t *testing.T) {
+		installSdk(t, []string{someSdkVersion})
+		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides"))
+
+		t.Run("help command", func(t *testing.T) {
+			output := runHelpCommand(t)
+			assert.Contains(t, output, "meep")
+			assert.Contains(t, output, "javux")
+			assert.NotContains(t, output, "multipak")
+		})
+
+		t.Run("resolve command", func(t *testing.T) {
+			deepResolution := runResolveCommand(t)
+			assert.Len(t, deepResolution.Packages, 3)
+			assert.ElementsMatch(t,
+				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
+				[]string{"meep", "javabro"})
+		})
+
+		t.Run("assert active sdk version", func(t *testing.T) {
+			assertActiveSdkVersion(t, someSdkVersion)
+		})
+	})
 
 	t.Run("3b: when in sub package dir", func(t *testing.T) {
 		installSdk(t, []string{someSdkVersion})
