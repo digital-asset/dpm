@@ -957,7 +957,7 @@ func assertNoActiveSdkVersion(t *testing.T) {
 	require.ErrorIs(t, cmd.Execute(), versions.ErrNoActiveSdk)
 }
 
-func assertActiveSdkVersion(t *testing.T, version string) {
+func assertActiveSdkVersion(t *testing.T, expectedVersion string) {
 	cmd, r, w := createTestRootCmd(t, string(builtincommand.Version), "--active")
 	err := cmd.Execute()
 	assert.NoError(t, w.Close())
@@ -965,7 +965,7 @@ func assertActiveSdkVersion(t *testing.T, version string) {
 
 	output, err := io.ReadAll(r)
 	require.NoError(t, err)
-	assert.Equal(t, version+"\n", string(output))
+	assert.Equal(t, expectedVersion+"\n", string(output))
 }
 
 func (suite *MainSuite) TestNullableSdkVersionInDamlYaml() {
