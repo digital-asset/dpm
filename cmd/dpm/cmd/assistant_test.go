@@ -93,15 +93,10 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides"))
 
 		t.Run("help command", func(t *testing.T) {
-			cmd, r, w := createTestRootCmd(t, "--help")
-			require.NoError(t, cmd.Execute())
-			assert.NoError(t, w.Close())
-
-			output, err := io.ReadAll(r)
-			require.NoError(t, err)
-			assert.Contains(t, string(output), "meep")
-			assert.Contains(t, string(output), "javux")
-			assert.NotContains(t, string(output), "multipak")
+			output := runHelpCommand(t)
+			assert.Contains(t, output, "meep")
+			assert.Contains(t, output, "javux")
+			assert.NotContains(t, output, "multipak")
 		})
 
 		t.Run("resolve command", func(t *testing.T) {
@@ -121,15 +116,10 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides", "main"))
 
 		t.Run("help command", func(t *testing.T) {
-			cmd, r, w := createTestRootCmd(t, "--help")
-			require.NoError(t, cmd.Execute())
-			assert.NoError(t, w.Close())
-
-			output, err := io.ReadAll(r)
-			require.NoError(t, err)
-			assert.Contains(t, string(output), "meep")
-			assert.Contains(t, string(output), "javux")
-			assert.NotContains(t, string(output), "multipak")
+			output := runHelpCommand(t)
+			assert.Contains(t, output, "meep")
+			assert.Contains(t, output, "javux")
+			assert.NotContains(t, output, "multipak")
 		})
 
 		t.Run("resolve command", func(t *testing.T) {
@@ -268,6 +258,16 @@ func testResolution(t *testing.T, expectedPackages int) {
 		assert.True(t, true)
 	})
 
+}
+
+func runHelpCommand(t *testing.T) string {
+	cmd, r, w := createTestRootCmd(t, "--help")
+	require.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+
+	output, err := io.ReadAll(r)
+	require.NoError(t, err)
+	return string(output)
 }
 
 func runResolveCommand(t *testing.T) *resolution.Resolution {
@@ -697,15 +697,10 @@ func (suite *MainSuite) TestMultiPackageComponentOverrides() {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS))
 
 		t.Run("help command", func(t *testing.T) {
-			cmd, r, w := createTestRootCmd(t, "--help")
-			require.NoError(t, cmd.Execute())
-			assert.NoError(t, w.Close())
-
-			output, err := io.ReadAll(r)
-			require.NoError(t, err)
-			assert.Contains(t, string(output), "meep")
-			assert.Contains(t, string(output), "multipak")
-			assert.NotContains(t, string(output), "javux")
+			output := runHelpCommand(t)
+			assert.Contains(t, output, "meep")
+			assert.Contains(t, output, "multipak")
+			assert.NotContains(t, output, "javux")
 		})
 
 		t.Run("resolve command", func(t *testing.T) {
@@ -727,15 +722,10 @@ func (suite *MainSuite) TestMultiPackageComponentOverrides() {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS, "daml-package"))
 
 		t.Run("help command", func(t *testing.T) {
-			cmd, r, w := createTestRootCmd(t, "--help")
-			require.NoError(t, cmd.Execute())
-			assert.NoError(t, w.Close())
-
-			output, err := io.ReadAll(r)
-			require.NoError(t, err)
-			assert.Contains(t, string(output), "meep")
-			assert.Contains(t, string(output), "multipak")
-			assert.Contains(t, string(output), "javux")
+			output := runHelpCommand(t)
+			assert.Contains(t, output, "meep")
+			assert.Contains(t, output, "multipak")
+			assert.Contains(t, output, "javux")
 		})
 
 		t.Run("resolve command", func(t *testing.T) {
@@ -766,15 +756,10 @@ func (suite *MainSuite) TestMultiPackageSdkAndComponentOverrides() {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one-with-null-package-sdk", testutil.OS))
 
 		t.Run("help command", func(t *testing.T) {
-			cmd, r, w := createTestRootCmd(t, "--help")
-			require.NoError(t, cmd.Execute())
-			assert.NoError(t, w.Close())
-
-			output, err := io.ReadAll(r)
-			require.NoError(t, err)
-			assert.Contains(t, string(output), "meep")
-			assert.Contains(t, string(output), "multipak")
-			assert.NotContains(t, string(output), "javux")
+			output := runHelpCommand(t)
+			assert.Contains(t, output, "meep")
+			assert.Contains(t, output, "multipak")
+			assert.NotContains(t, output, "javux")
 		})
 
 		t.Run("resolve command", func(t *testing.T) {
@@ -790,15 +775,10 @@ func (suite *MainSuite) TestMultiPackageSdkAndComponentOverrides() {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one-with-null-package-sdk", testutil.OS, "daml-package"))
 
 		t.Run("help command", func(t *testing.T) {
-			cmd, r, w := createTestRootCmd(t, "--help")
-			require.NoError(t, cmd.Execute())
-			assert.NoError(t, w.Close())
-
-			output, err := io.ReadAll(r)
-			require.NoError(t, err)
-			assert.Contains(t, string(output), "meep")
-			assert.Contains(t, string(output), "multipak")
-			assert.Contains(t, string(output), "javux")
+			output := runHelpCommand(t)
+			assert.Contains(t, output, "meep")
+			assert.Contains(t, output, "multipak")
+			assert.Contains(t, output, "javux")
 		})
 
 		t.Run("resolve command", func(t *testing.T) {
@@ -988,13 +968,8 @@ func (suite *MainSuite) TestNullableSdkVersionInDamlYaml() {
 
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "null-sdk-version"))
 
-	cmd, r, w := createTestRootCmd(t, "--help")
-	require.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
-
-	output, err := io.ReadAll(r)
-	require.NoError(t, err)
-	assert.Contains(t, string(output), "hello-from-null-sdk-daml-yaml")
+	output := runHelpCommand(t)
+	assert.Contains(t, output, "hello-from-null-sdk-daml-yaml")
 
 	t.Run("resolution", func(t *testing.T) {
 		deepResolution := runResolveCommand(t)
@@ -1033,13 +1008,8 @@ func (suite *MainSuite) TestResolutionOfSymlinkPackages() {
 
 	t.Setenv(assistantconfig.DamlProjectEnvVar, symlink)
 
-	cmd, r, w := createTestRootCmd(t, "--help")
-	require.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
-
-	output, err := io.ReadAll(r)
-	require.NoError(t, err)
-	assert.Contains(t, string(output), "hello-from-null-sdk-daml-yaml")
+	output := runHelpCommand(t)
+	assert.Contains(t, output, "hello-from-null-sdk-daml-yaml")
 
 	t.Run("resolution", func(t *testing.T) {
 		deepResolution := runResolveCommand(t)
