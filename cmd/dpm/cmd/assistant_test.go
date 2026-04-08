@@ -87,7 +87,10 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
 
 	t := suite.T()
-	t.Skip("skipping as this hangs on windows")
+	if testutil.OS == "windows" {
+		t.Skip("TODO #114 this test hates windows")
+		return
+	}
 
 	t.Run("3a: when in multi-package dir", func(t *testing.T) {
 		installSdk(t, []string{someSdkVersion})
@@ -304,7 +307,7 @@ func testMeepyComponent(t *testing.T) {
 func (suite *MainSuite) TestInjectedEnvVars() {
 	t := suite.T()
 	if testutil.OS == "windows" {
-		t.Skip("this test hates windows")
+		t.Skip("TODO #114 this test hates windows")
 		return
 	}
 	t.Setenv("DPM_ASSEMBLY", testutil.TestdataPath(t, "local-with-java", testutil.OS, "sdk-manifest.yaml"))
