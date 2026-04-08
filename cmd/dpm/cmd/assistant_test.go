@@ -505,7 +505,7 @@ func installFloatySdk(t *testing.T, version string, floatyTag string) {
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
 	// Install each version
-	cmd, r, w := createTestRootCmd(t, "install", version)
+	cmd, r, w := createTestRootCmd(t, "install", floatyTag)
 
 	require.NoError(t, cmd.Execute())
 	assert.NoError(t, w.Close())
@@ -689,58 +689,58 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 	})
 }
 
-//func (suite *MainSuite) TestMultiPackageComponentOverrides() {
-//	t := suite.T()
-//
-//	t.Run("13a: when in multi-package dir", func(t *testing.T) {
-//		installSdk(t, []string{someSdkVersion, someOtherSdkVersion})
-//		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS))
-//
-//		t.Run("help command", func(t *testing.T) {
-//			output := runHelpCommand(t)
-//			assert.Contains(t, output, "meep")
-//			assert.Contains(t, output, "multipak")
-//			assert.NotContains(t, output, "javux")
-//		})
-//
-//		t.Run("resolve command", func(t *testing.T) {
-//			deepResolution := runResolveCommand(t)
-//			assert.Len(t, deepResolution.Packages, 1)
-//			assert.ElementsMatch(t,
-//				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
-//				[]string{"multipak", "meep", "javabro"})
-//		})
-//
-//		t.Run("assert active sdk version", func(t *testing.T) {
-//			assertActiveSdkVersion(t, someSdkVersion)
-//		})
-//
-//	})
-//
-//	t.Run("13b: when in sub package dir", func(t *testing.T) {
-//		installSdk(t, []string{someSdkVersion, someOtherSdkVersion})
-//		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS, "daml-package"))
-//
-//		t.Run("help command", func(t *testing.T) {
-//			output := runHelpCommand(t)
-//			assert.Contains(t, output, "meep")
-//			assert.Contains(t, output, "multipak")
-//			assert.Contains(t, output, "javux")
-//		})
-//
-//		t.Run("resolve command", func(t *testing.T) {
-//			deepResolution := runResolveCommand(t)
-//			assert.Len(t, deepResolution.Packages, 1)
-//			assert.ElementsMatch(t,
-//				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
-//				[]string{"multipak", "meep", "javabro"})
-//		})
-//
-//		t.Run("assert active sdk version", func(t *testing.T) {
-//			assertActiveSdkVersion(t, someOtherSdkVersion)
-//		})
-//	})
-//}
+func (suite *MainSuite) TestMultiPackageComponentOverrides() {
+	t := suite.T()
+
+	t.Run("13a: when in multi-package dir", func(t *testing.T) {
+		installSdk(t, []string{someSdkVersion, someOtherSdkVersion})
+		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS))
+
+		t.Run("help command", func(t *testing.T) {
+			output := runHelpCommand(t)
+			assert.Contains(t, output, "meep")
+			assert.Contains(t, output, "multipak")
+			assert.NotContains(t, output, "javux")
+		})
+
+		t.Run("resolve command", func(t *testing.T) {
+			deepResolution := runResolveCommand(t)
+			assert.Len(t, deepResolution.Packages, 1)
+			assert.ElementsMatch(t,
+				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
+				[]string{"multipak", "meep", "javabro"})
+		})
+
+		t.Run("assert active sdk version", func(t *testing.T) {
+			assertActiveSdkVersion(t, someSdkVersion)
+		})
+
+	})
+
+	t.Run("13b: when in sub package dir", func(t *testing.T) {
+		installSdk(t, []string{someSdkVersion, someOtherSdkVersion})
+		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS, "daml-package"))
+
+		t.Run("help command", func(t *testing.T) {
+			output := runHelpCommand(t)
+			assert.Contains(t, output, "meep")
+			assert.Contains(t, output, "multipak")
+			assert.Contains(t, output, "javux")
+		})
+
+		t.Run("resolve command", func(t *testing.T) {
+			deepResolution := runResolveCommand(t)
+			assert.Len(t, deepResolution.Packages, 1)
+			assert.ElementsMatch(t,
+				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
+				[]string{"multipak", "meep", "javabro"})
+		})
+
+		t.Run("assert active sdk version", func(t *testing.T) {
+			assertActiveSdkVersion(t, someOtherSdkVersion)
+		})
+	})
+}
 
 func (suite *MainSuite) TestMultiPackageSdkAndComponentOverrides() {
 	t := suite.T()
