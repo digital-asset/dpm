@@ -965,7 +965,7 @@ func assertActiveSdkVersion(t *testing.T, version string) {
 
 	output, err := io.ReadAll(r)
 	require.NoError(t, err)
-	assert.Equal(t, string(output), version+"\n")
+	assert.Equal(t, version+"\n", string(output))
 }
 
 func (suite *MainSuite) TestNullableSdkVersionInDamlYaml() {
