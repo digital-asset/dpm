@@ -54,7 +54,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 							return err
 						}
 					} else {
-						cmd.Println("Skipping installation of multi package sdk version ", sdkVersion)
+						cmd.Println("Skipping installation of multi-package sdk version ", sdkVersion)
 					}
 				}
 
