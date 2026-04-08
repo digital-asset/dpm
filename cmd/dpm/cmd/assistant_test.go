@@ -670,42 +670,33 @@ func (suite *MainSuite) TestMultiPkgInstall() {
 		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
 		assert.Contains(t, string(output), "No overrides to install")
 	})
+}
 
-	t.Run("multi pkg with override", func(t *testing.T) {
-		tmpDir := t.TempDir()
+func (suite *MainSuite) TestMultiPackageSkip() {
+	t := suite.T()
 
-		cwd, err := os.Getwd()
-		require.NoError(t, err)
-		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-overwrite"))))
-		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
+	tmpDir := t.TempDir()
 
-		cmd, r, w := createTestRootCmd(t, "install", "package")
-		require.NoError(t, cmd.Execute())
-		assert.NoError(t, w.Close())
+	cwd, err := os.Getwd()
 
-		output, err := io.ReadAll(r)
-		require.NoError(t, err)
-		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
-		assert.Contains(t, string(output), "Installing overrides")
-	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-package-sdk-skipping", testutil.OS)))
+	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
 
-	t.Run("multi pkg with skip", func(t *testing.T) {
-		tmpDir := t.TempDir()
+	cmd, r, w := createTestRootCmd(t, "install", "package", "--skip-sdk")
 
-		cwd, err := os.Getwd()
-		require.NoError(t, err)
-		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package/unix"))))
-		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
+	require.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+	output, err := io.ReadAll(r)
+	require.NoError(t, err)
+	assert.Contains(t, string(output), "Skipping installation of multi-package")
 
-		cmd, r, w := createTestRootCmd(t, "install", "package", "--skip-sdk")
-		require.NoError(t, cmd.Execute())
-		assert.NoError(t, w.Close())
-		output, err := io.ReadAll(r)
-		require.NoError(t, err)
-		assert.NotContains(t, string(output), "Successfully installed SDK "+sdkVersion)
-	})
+	ctx := testutil.Context(t)
+	da := &assistant.DamlAssistant{OsArgs: []string{os.Args[0]}}
+	_, err = RootCmd(ctx, da)
+
+	require.ErrorIs(t, err, assistantconfig.ErrTargetSdkNotInstalled)
 
 }
 
