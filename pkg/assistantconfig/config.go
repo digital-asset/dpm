@@ -249,7 +249,6 @@ func getInstalledSdkByPredicate(config *Config, chooseFn func(vs []*InstalledSdk
 	if err != nil {
 		return nil, false, err
 	}
-
 	v, ok := chooseFn(sdkManifests)
 	if !ok {
 		return nil, false, nil
@@ -262,13 +261,11 @@ func GetInstalledSDKsForEdition(c *Config) ([]*InstalledSdkVersion, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	p := filepath.Join(c.InstalledSdkManifestsPath, edition.String())
 	entries, err := os.ReadDir(p)
 	if err != nil {
 		return nil, err
 	}
-
 	type Tuple struct {
 		Name    string
 		Version *semver.Version
@@ -291,7 +288,6 @@ func GetInstalledSDKsForEdition(c *Config) ([]*InstalledSdkVersion, error) {
 	slices.SortFunc(vs, func(a, b *InstalledSdkVersion) int {
 		return a.Version.Compare(b.Version)
 	})
-
 	return vs, nil
 }
 
@@ -343,14 +339,6 @@ func getDamlPackageAbsolutePath() (string, bool, error) {
 		return "", false, err
 	}
 	return findInAncestors(cwd, DamlPackageFilename)
-}
-
-func GetDamlLocalAbsolutePath() (string, bool, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", false, err
-	}
-	return findInAncestors(cwd, DamlLocalFilename)
 }
 
 func findInAncestors(startDir, filename string) (absolutePath string, ok bool, err error) {

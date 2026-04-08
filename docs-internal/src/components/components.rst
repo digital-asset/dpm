@@ -81,7 +81,7 @@ the SDK assembly will fail.
 When developing components, the developer is responsible for ensuring
 the assistant brings in the dependencies, so the dependency components
 must be present either as part of the installed SDK, or in ``daml.yaml``
-or in ``dpm.local.yaml`` (See :doc:`component development docs <./component-dev>` for how to import additional components on
+or in ``multi-package.yaml`` (See :doc:`component development docs <./component-dev>` for how to import additional components on
 top of, or without, an SDK)
 
 component.yaml schema

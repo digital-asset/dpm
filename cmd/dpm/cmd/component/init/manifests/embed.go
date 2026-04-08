@@ -8,5 +8,5 @@ import _ "embed"
 //go:embed component.yaml
 var ComponentYaml []byte
 
-//go:embed dpm.local.yaml
-var Daml3LocalYaml []byte
+//go:embed daml.yaml
+var DamlYaml []byte

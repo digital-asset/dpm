@@ -192,7 +192,6 @@ func (da *DamlAssistant) toCobraCommands(execContext context.Context, config *as
 
 				extraEnv[assistantconfig.ResolutionFilePathEnvVar] = deepResolutionFilePath
 				if c.SdkVersion != nil {
-					// when a dpm.local.yaml is being used, there won't be an SDK in effect
 					extraEnv[assistantconfig.DpmSdkVersionEnvVar] = c.SdkVersion.String()
 				}
 
