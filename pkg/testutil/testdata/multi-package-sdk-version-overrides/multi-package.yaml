@@ -6,9 +6,6 @@ packages:
 - ./test
 
 override-components:
-  #not sure why multipak does not pick up correctly
-#  multipak:
-#    local-path: ../multi-package/component
   javabro:
     local-path: ../javabro-component
 
