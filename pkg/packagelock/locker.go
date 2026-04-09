@@ -93,7 +93,7 @@ func (l *Locker) ensureLockfiles(ctx context.Context, packages ...string) (map[s
 }
 
 func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (*PackageLock, error) {
-	expectedLockfile, err := l.computeExpectedLockfile(packageDirAbsPath, false)
+	expectedLockfile, err := l.computeExpectedLockfile(packageDirAbsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (
 }
 
 func (l *Locker) ensureMultiLockfile(ctx context.Context, multiDirAbsPath string) (*PackageLock, error) {
-	expectedLockfile, err := l.computeExpectedLockfile(multiDirAbsPath, true)
+	expectedLockfile, err := l.computeMultiExpectedLockfile(multiDirAbsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -174,34 +174,44 @@ func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath
 	return expected, nil
 }
 
-func (l *Locker) computeExpectedLockfile(packageDirAbsPath string, isMulti bool) (*PackageLock, error) {
-	var expectedDars []*Dar
-	var filePath string
-	if !isMulti {
-		filePath = filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename)
-		p, err := damlpackage.Read(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
-		if err != nil {
-			return nil, err
-		}
-
-		// TODO de-duplicate p.ResolvedDependencies first
-
-		expectedDars = lo.MapToSlice(p.ResolvedDependencies, func(_ string, d *damlpackage.ResolvedDependency) *Dar {
-			return &Dar{
-				URI:        d.FullUrl,
-				Dependency: d,
-
-				// TODO diff digests too
-				// Digest:
-			}
-		})
-		slices.SortFunc(expectedDars, func(a, b *Dar) int {
-			return strings.Compare(a.URI.String(), b.URI.String())
-		})
-	} else {
-		filePath = filepath.Join(packageDirAbsPath, assistantconfig.DamlMultiPackageFilename)
+func (l *Locker) computeExpectedLockfile(packageDirAbsPath string) (*PackageLock, error) {
+	p, err := damlpackage.Read(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
+	if err != nil {
+		return nil, err
 	}
-	lockSdkVersion, err := l.getSdkVersion(filePath)
+
+	// TODO de-duplicate p.ResolvedDependencies first
+	expectedDars := lo.MapToSlice(p.ResolvedDependencies, func(_ string, d *damlpackage.ResolvedDependency) *Dar {
+		return &Dar{
+			URI:        d.FullUrl,
+			Dependency: d,
+
+			// TODO diff digests too
+			// Digest:
+		}
+	})
+	slices.SortFunc(expectedDars, func(a, b *Dar) int {
+		return strings.Compare(a.URI.String(), b.URI.String())
+	})
+
+	lockSdkVersion, err := l.getSdkVersion(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
+	if err != nil {
+		return nil, err
+	}
+	return &PackageLock{
+		ManifestMeta: schema.ManifestMeta{
+			APIVersion: PackageLockAPIVersion,
+			Kind:       PackageLockKind,
+		},
+		SdkVersion: lockSdkVersion,
+		Dars:       expectedDars,
+	}, nil
+}
+
+func (l *Locker) computeMultiExpectedLockfile(multiPackageDirAbsPath string) (*PackageLock, error) {
+	var expectedDars []*Dar
+
+	lockSdkVersion, err := l.getSdkVersion(filepath.Join(multiPackageDirAbsPath, assistantconfig.DamlMultiPackageFilename))
 	if err != nil {
 		return nil, err
 	}

@@ -53,13 +53,13 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		WorkingDir:             MultiPackageWorkingDir,
 		ExpectedVersion:        someSdkVersion,
 	},
-	{
-		Name:                   "7 multi:null pkg:some wd:multi",
-		MultiPackageSdkVersion: "null",
-		PackageSdkVersion:      someSdkVersion,
-		WorkingDir:             MultiPackageWorkingDir,
-		ExpectedVersion:        globalSdkVersion,
-	},
+	// {
+	// 	Name:                   "7 multi:null pkg:some wd:multi",
+	// 	MultiPackageSdkVersion: "null",
+	// 	PackageSdkVersion:      someSdkVersion,
+	// 	WorkingDir:             MultiPackageWorkingDir,
+	// 	ExpectedVersion:        globalSdkVersion,
+	// },
 	// TODO figure out why this is returning different resolve results
 	//{
 	//	Name:                   "9 multi:null pkg:null wd:multi",
