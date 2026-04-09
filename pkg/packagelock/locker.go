@@ -53,15 +53,11 @@ func (l *Locker) EnsureLockfiles(ctx context.Context) (map[string]*PackageLock, 
 		if err != nil {
 			return nil, err
 		}
-		multiLockfile, err := l.ensureMultiLockfile(ctx, filepath.Dir(multiPackagePath))
-		packageLockfiles, err := l.ensureLockfiles(ctx, multiPackage.AbsolutePackages()...)
+		_, err = l.ensureMultiLockfile(ctx, filepath.Dir(multiPackagePath))
 		if err != nil {
 			return nil, err
 		}
-		if l.op == Regular {
-			packageLockfiles[filepath.Dir(multiPackagePath)] = multiLockfile
-		}
-		return packageLockfiles, nil
+		return l.ensureLockfiles(ctx, multiPackage.AbsolutePackages()...)
 	}
 
 	// single package
