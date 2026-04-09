@@ -116,13 +116,6 @@ func (d *DeepResolver) resolvePackageAndDars(ctx context.Context, absPath string
 
 	lock, err := packagelock.ReadPackageLock(filepath.Join(absPath, assistantconfig.DpmLockFileName))
 	if errors.Is(err, os.ErrNotExist) {
-		lock, err = packagelock.New(d.config, packagelock.Regular).EnsureLockfile(ctx, absPath)
-		if err != nil {
-			return nil, err
-		}
-	}
-	_, err = packagelock.New(d.config, packagelock.CheckOnly).EnsureLockfile(ctx, absPath)
-	if err != nil {
 		return nil, err
 	}
 
