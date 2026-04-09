@@ -124,20 +124,30 @@ func (suite *MainSuite) TestLockfileSdkVersion() {
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 
 	testActiveSdkVersionExhaustive(t, func(t *testing.T, tc SdkVersionTestCase, dirs TestCaseDirs) {
-		if tc.WorkingDir != PackageWorkingDir {
-			t.Skip() // TODO these cases require multi-package-level lockfiles
+		// TODO: Implement writing global sdk into lockfile and enforce test
+		if t.Name() == "TestSuite/TestLockfileSdkVersion/7_multi:null_pkg:some_wd:multi" {
+			t.Skip()
 		}
-
 		cmd := createStdTestRootCmd(t, "update")
 		require.NoError(t, cmd.Execute())
 
-		lock, err := packagelock.ReadPackageLock(filepath.Join(dirs.DamlPackageDir, assistantconfig.DpmLockFileName))
-		require.NoError(t, err)
-
-		if tc.ExpectedVersion == "null" {
-			assert.Equal(t, lock.SdkVersion.Version, "")
+		if tc.WorkingDir != PackageWorkingDir {
+			multiLock, err := packagelock.ReadPackageLock(filepath.Join(dirs.MultiPackageDir, assistantconfig.DpmMultiPackageLockFileName))
+			require.NoError(t, err)
+			if tc.ExpectedVersion == "null" {
+				assert.Equal(t, multiLock.SdkVersion.Version, "")
+			} else {
+				assert.Equal(t, multiLock.SdkVersion.Version, tc.ExpectedVersion)
+			}
 		} else {
-			assert.Equal(t, lock.SdkVersion.Version, tc.ExpectedVersion)
+			lock, err := packagelock.ReadPackageLock(filepath.Join(dirs.DamlPackageDir, assistantconfig.DpmLockFileName))
+			require.NoError(t, err)
+
+			if tc.ExpectedVersion == "null" {
+				assert.Equal(t, lock.SdkVersion.Version, "")
+			} else {
+				assert.Equal(t, lock.SdkVersion.Version, tc.ExpectedVersion)
+			}
 		}
 	})
 }
