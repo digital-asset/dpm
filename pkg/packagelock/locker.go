@@ -107,60 +107,18 @@ func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (
 }
 
 func (l *Locker) ensureMultiLockfile(ctx context.Context, multiDirAbsPath string) (*PackageLock, error) {
-	expectedLockfile, err := computeExpectedLockfile(multiDirAbsPath, true)
+	expectedLockfile, err := l.computeExpectedLockfile(multiDirAbsPath, true)
 	if err != nil {
 		return nil, err
 	}
-
+	lockfilePath := filepath.Join(multiDirAbsPath, assistantconfig.DpmMultiPackageLockFileName)
 	if l.op == CheckOnly {
-		return nil, l.checkLockfile(expectedLockfile, assistantconfig.DpmMultiPackageLockFileName)
+		return nil, l.checkLockfile(expectedLockfile, lockfilePath)
 	}
 
-	// TODO this is a placeholder
-	u, err := url.Parse("oci://example.com/sdk-manifests:0.0.0-TODO")
-	if err != nil {
-		return nil, err
-	}
-	v, err := semver.New("0.0.0-TODO")
-	if err != nil {
-		return nil, err
-	}
-	expectedLockfile.SdkVersion = SdkVersion{
-		Version: v,
-		Digest:  "todo",
-		URI:     u,
-	}
-
-	return l.create(ctx, expectedLockfile, filepath.Join(multiDirAbsPath, assistantconfig.DpmMultiPackageLockFileName))
+	return l.create(ctx, expectedLockfile, lockfilePath)
 }
 
-func (l *Locker) ensureMultiLockfile(ctx context.Context, multiDirAbsPath string) (*PackageLock, error) {
-	expectedLockfile, err := computeExpectedLockfile(multiDirAbsPath, true)
-	if err != nil {
-		return nil, err
-	}
-
-	if l.op == CheckOnly {
-		return nil, l.checkLockfile(expectedLockfile, assistantconfig.DpmMultiPackageLockFileName)
-	}
-
-	// TODO this is a placeholder
-	u, err := url.Parse("oci://example.com/sdk-manifests:0.0.0-TODO")
-	if err != nil {
-		return nil, err
-	}
-	v, err := semver.New("0.0.0-TODO")
-	if err != nil {
-		return nil, err
-	}
-	expectedLockfile.SdkVersion = SdkVersion{
-		Version: v,
-		Digest:  "todo",
-		URI:     u,
-	}
-
-	return l.create(ctx, expectedLockfile, filepath.Join(multiDirAbsPath, assistantconfig.DpmMultiPackageLockFileName))
-}
 func (l *Locker) checkLockfile(expectedLockfile *PackageLock, lockfilePath string) error {
 	existingLockfile, err := ReadPackageLock(lockfilePath)
 	if os.IsNotExist(err) {
@@ -218,7 +176,9 @@ func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath
 
 func (l *Locker) computeExpectedLockfile(packageDirAbsPath string, isMulti bool) (*PackageLock, error) {
 	var expectedDars []*Dar
+	var filePath string
 	if !isMulti {
+		filePath = filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename)
 		p, err := damlpackage.Read(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
 		if err != nil {
 			return nil, err
@@ -231,15 +191,17 @@ func (l *Locker) computeExpectedLockfile(packageDirAbsPath string, isMulti bool)
 				URI:        d.FullUrl,
 				Dependency: d,
 
-			// TODO diff digests too
-			// Digest:
-		}
-	})
-	slices.SortFunc(expectedDars, func(a, b *Dar) int {
-		return strings.Compare(a.URI.String(), b.URI.String())
-	})
-
-	lockSdkVersion, err := l.getSdkVersion(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
+				// TODO diff digests too
+				// Digest:
+			}
+		})
+		slices.SortFunc(expectedDars, func(a, b *Dar) int {
+			return strings.Compare(a.URI.String(), b.URI.String())
+		})
+	} else {
+		filePath = filepath.Join(packageDirAbsPath, assistantconfig.DamlMultiPackageFilename)
+	}
+	lockSdkVersion, err := l.getSdkVersion(filePath)
 	if err != nil {
 		return nil, err
 	}
