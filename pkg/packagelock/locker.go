@@ -16,7 +16,7 @@ import (
 	"daml.com/x/assistant/pkg/darpuller"
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/schema"
-	"daml.com/x/assistant/pkg/semver"
+	"daml.com/x/assistant/pkg/versions"
 	"github.com/goccy/go-yaml"
 	"github.com/samber/lo"
 	"oras.land/oras-go/v2/registry"
@@ -89,7 +89,7 @@ func (l *Locker) ensureLockfiles(ctx context.Context, packages ...string) (map[s
 }
 
 func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (*PackageLock, error) {
-	expectedLockfile, err := computeExpectedLockfile(packageDirAbsPath)
+	expectedLockfile, err := l.computeExpectedLockfile(packageDirAbsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -97,21 +97,6 @@ func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (
 
 	if l.op == CheckOnly {
 		return nil, l.checkLockfile(expectedLockfile, lockfilePath)
-	}
-
-	// TODO this is a placeholder
-	u, err := url.Parse("oci://example.com/sdk-manifests:0.0.0-TODO")
-	if err != nil {
-		return nil, err
-	}
-	v, err := semver.New("0.0.0-TODO")
-	if err != nil {
-		return nil, err
-	}
-	expectedLockfile.SdkVersion = SdkVersion{
-		Version: v,
-		Digest:  "todo",
-		URI:     u,
 	}
 
 	return l.create(ctx, expectedLockfile, lockfilePath)
@@ -172,7 +157,7 @@ func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath
 	return expected, nil
 }
 
-func computeExpectedLockfile(packageDirAbsPath string) (*PackageLock, error) {
+func (l *Locker) computeExpectedLockfile(packageDirAbsPath string) (*PackageLock, error) {
 	p, err := damlpackage.Read(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
 	if err != nil {
 		return nil, err
@@ -192,11 +177,44 @@ func computeExpectedLockfile(packageDirAbsPath string) (*PackageLock, error) {
 		return strings.Compare(a.URI.String(), b.URI.String())
 	})
 
+	lockSdkVersion, err := l.getSdkVersion(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
+	if err != nil {
+		return nil, err
+	}
 	return &PackageLock{
 		ManifestMeta: schema.ManifestMeta{
 			APIVersion: PackageLockAPIVersion,
 			Kind:       PackageLockKind,
 		},
-		Dars: expectedDars,
+		SdkVersion: lockSdkVersion,
+		Dars:       expectedDars,
+	}, nil
+}
+
+func (l *Locker) getSdkVersion(packageDirAbsPath string) (SdkVersion, error) {
+	sdkVersion, err := versions.GetFloatyActiveVersion(l.config, packageDirAbsPath)
+	if err != nil {
+		return SdkVersion{}, err
+	}
+
+	// the no-sdk case
+	if sdkVersion == "" {
+		return SdkVersion{
+			Version: "",
+			URI:     nil,
+		}, nil
+	}
+
+	sdkRepo, err := l.config.SdkManifestsRepo()
+	if err != nil {
+		return SdkVersion{}, err
+	}
+	u, err := url.Parse(fmt.Sprintf("oci://%s:%s", sdkRepo, sdkVersion))
+	if err != nil {
+		return SdkVersion{}, err
+	}
+	return SdkVersion{
+		Version: sdkVersion,
+		URI:     u,
 	}, nil
 }

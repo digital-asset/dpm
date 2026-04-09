@@ -7,11 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 
-	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
-	"daml.com/x/assistant/pkg/damlpackage"
-	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/packagelock"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
@@ -143,78 +139,11 @@ func getActiveVersion(config *assistantconfig.Config) (*semver.Version, error) {
 		return nil, err
 	}
 
-	v, err := GetActiveVersion(config, damlPackagePath)
+	v, err := versions.GetActiveVersion(config, damlPackagePath)
 	if errors.Is(err, assistantconfig.ErrNoSdkInstalled) || errors.Is(err, assistantconfig.ErrTargetSdkNotInstalled) {
 		return nil, nil
 	} else if err != nil {
 		return nil, err
 	}
 	return v, nil
-}
-
-/*
-	GetActiveVersion
-
-returns nil
-- when we're in package context, and sdk-version is null or "" in both daml.yaml and multi-package.yaml
-- or when DPM_SDK_VERSION=""
-*/
-func GetActiveVersion(config *assistantconfig.Config, damlPackagePath string) (*semver.Version, error) {
-	// DPM_SDK_VERSION override
-	versionOverride, ok := os.LookupEnv(assistantconfig.DpmSdkVersionEnvVar)
-	if ok {
-		if versionOverride == "" {
-			return nil, nil
-		}
-		return semver.NewVersion(versionOverride)
-	}
-
-	multiPackageVersion := ""
-
-	multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
-	if err != nil {
-		return nil, err
-	}
-	if hasMultiPackage {
-		multiPackage, err := multipackage.Read(multiPackagePath)
-		if err != nil {
-			return nil, err
-		}
-		multiPackageVersion = multiPackage.SdkVersion
-	}
-
-	// in a package context
-	if damlPackagePath != "" {
-		damlPackage, err := damlpackage.Read(damlPackagePath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil, resolutionerrors.NewDamlYamlNotFoundError(err)
-			}
-			return nil, resolutionerrors.NewMalformedDamlYamlError(err)
-		}
-
-		if damlPackage.SdkVersion != "" {
-			return semver.NewVersion(damlPackage.SdkVersion)
-		} else if multiPackageVersion != "" {
-			return semver.NewVersion(multiPackageVersion)
-		}
-
-		// don't inherit the global sdk-version, instead use no sdk
-		return nil, nil
-	}
-
-	// in a multi-package context
-	if hasMultiPackage {
-		if multiPackageVersion != "" {
-			return semver.NewVersion(multiPackageVersion)
-		}
-		// else: fallthrough to using the global sdk
-	}
-
-	// not in a package or multi-package context
-	s, err := assistantconfig.GetInstalledSdkFromEnvOrDefault(config)
-	if err != nil {
-		return nil, err
-	}
-	return s.Version, nil
 }
