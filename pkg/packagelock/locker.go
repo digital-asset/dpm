@@ -53,7 +53,7 @@ func (l *Locker) EnsureLockfiles(ctx context.Context) (map[string]*PackageLock, 
 		if err != nil {
 			return nil, err
 		}
-		_, err = l.ensureMultiLockfile(ctx, filepath.Dir(multiPackagePath))
+		_, err = l.ensureMultiPackageLockfile(ctx, filepath.Dir(multiPackagePath))
 		if err != nil {
 			return nil, err
 		}
@@ -106,12 +106,12 @@ func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (
 	return l.create(ctx, expectedLockfile, lockfilePath)
 }
 
-func (l *Locker) ensureMultiLockfile(ctx context.Context, multiDirAbsPath string) (*PackageLock, error) {
-	expectedLockfile, err := l.computeMultiExpectedLockfile(multiDirAbsPath)
+func (l *Locker) ensureMultiPackageLockfile(ctx context.Context, multiPkgDirAbsPath string) (*PackageLock, error) {
+	expectedLockfile, err := l.computeMultiExpectedLockfile(multiPkgDirAbsPath)
 	if err != nil {
 		return nil, err
 	}
-	lockfilePath := filepath.Join(multiDirAbsPath, assistantconfig.DpmMultiPackageLockFileName)
+	lockfilePath := filepath.Join(multiPkgDirAbsPath, assistantconfig.DpmMultiPackageLockFileName)
 	if l.op == CheckOnly {
 		return nil, l.checkLockfile(expectedLockfile, lockfilePath)
 	}
