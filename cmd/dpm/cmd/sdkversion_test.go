@@ -161,11 +161,17 @@ packages:
 
 			hook(t, tc, dirs)
 
-			// workdir is package
 			if tc.ExpectedVersion == "null" {
-				assertNoActiveSdkVersion(t)
+
+				t.Run("assert no active sdk version", func(t *testing.T) {
+					assertNoActiveSdkVersion(t)
+				})
+
 			} else {
-				assertActiveSdkVersion(t, tc.ExpectedVersion)
+				t.Run("assert active sdk version", func(t *testing.T) {
+					assertActiveSdkVersion(t, tc.ExpectedVersion)
+					testResolution(t, 1, globalSdkVersion)
+				})
 			}
 		})
 	}
