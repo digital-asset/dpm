@@ -46,7 +46,7 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 
 	installSdk(t, []string{someSdkVersion})
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
-	testResolution(t, 1)
+	testResolution(t, 1, someSdkVersion)
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSubdir() {
@@ -60,7 +60,7 @@ func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 
 	// this will make daml.yaml in the CWD
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-package-with-subdir", "package")))
-	testResolution(t, 1)
+	testResolution(t, 1, someSdkVersion)
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
@@ -71,7 +71,7 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 	t.Run("1a: when in multi-package dir", func(t *testing.T) {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version"))
 
-		testResolution(t, 3)
+		testResolution(t, 3, someSdkVersion)
 		assertActiveSdkVersion(t, someSdkVersion)
 	})
 
@@ -80,7 +80,7 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 
 		// test at level of single package
 		assertActiveSdkVersion(t, someSdkVersion)
-		testResolution(t, 3)
+		testResolution(t, 3, someSdkVersion)
 	})
 }
 
@@ -237,7 +237,7 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 	})
 }
 
-func testResolution(t *testing.T, expectedPackages int) {
+func testResolution(t *testing.T, expectedPackages int, expectedDefaultSdk string) {
 	deepResolution := runResolveCommand(t)
 	assert.Len(t, deepResolution.Packages, expectedPackages)
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
@@ -258,8 +258,8 @@ func testResolution(t *testing.T, expectedPackages int) {
 
 	t.Run("default sdk", func(t *testing.T) {
 		assert.Len(t, deepResolution.DefaultSDK, 1)
-		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion].Components, 1)
-		assert.Len(t, deepResolution.DefaultSDK[someSdkVersion].Imports, 2)
+		assert.Len(t, deepResolution.DefaultSDK[expectedDefaultSdk].Components, 1)
+		assert.Len(t, deepResolution.DefaultSDK[expectedDefaultSdk].Imports, 2)
 		assert.True(t, true)
 	})
 
