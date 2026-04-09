@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
-	"daml.com/x/assistant/pkg/builtincommand"
-	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/packagelock"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/testutil"
@@ -66,16 +64,6 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	d = get(t, bLock, fmt.Sprintf("oci://%s/components/sheep:4.5.6", os.Getenv(assistantconfig.OciRegistryEnvVar)))
 	assert.NotEmpty(t, d.Digest)
 
-	t.Run("has sdk-version", func(t *testing.T) {
-		for _, pkg := range []string{"a", "b"} {
-			lock, err := packagelock.ReadPackageLock(filepath.Join(multiPackageDir, pkg, assistantconfig.DpmLockFileName))
-			require.NoError(t, err)
-			assert.NotEmpty(t, lock.SdkVersion.Version)
-			assert.NotEmpty(t, lock.SdkVersion.URI)
-			assert.NotEmpty(t, lock.SdkVersion.Digest)
-		}
-	})
-
 	t.Run("bump versions", func(t *testing.T) {
 		testutil.PushComponent(t, ctx, reg, "meep", "2.0.0", testutil.TestdataPath(t, "some-dar"), "latest")
 		testutil.PushComponent(t, ctx, reg, "sheep", "5.0.0", testutil.TestdataPath(t, "some-dar"), "latest")
@@ -131,27 +119,25 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	})
 }
 
-func (suite *MainSuite) TestLockfileCreateActiveVersion() {
+func (suite *MainSuite) TestLockfileSdkVersion() {
 	t := suite.T()
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 
-	tmpDir := t.TempDir()
+	testActiveSdkVersionExhaustive(t, func(t *testing.T, tc SdkVersionTestCase, dirs TestCaseDirs) {
+		if tc.WorkingDir != PackageWorkingDir {
+			t.Skip() // TODO these cases require multi-package-level lockfiles
+		}
 
-	t.Chdir(tmpDir)
+		cmd := createStdTestRootCmd(t, "update")
+		require.NoError(t, cmd.Execute())
 
-	t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version"))
+		lock, err := packagelock.ReadPackageLock(filepath.Join(dirs.DamlPackageDir, assistantconfig.DpmLockFileName))
+		require.NoError(t, err)
 
-	cmd := createStdTestRootCmd(t, string(builtincommand.Version), "--active")
-	require.NoError(t, cmd.Execute())
-
-	data, _ := os.ReadFile(assistantconfig.DamlMultiPackageFilename)
-
-	var config multipackage.MultiPackage
-	yaml.Unmarshal(data, &config)
-
-	for _, v := range config.Packages {
-		assert.FileExists(t, filepath.Join(v, assistantconfig.DpmLockFileName))
-
-	}
-
+		if tc.ExpectedVersion == "null" {
+			assert.Equal(t, lock.SdkVersion.Version, "")
+		} else {
+			assert.Equal(t, lock.SdkVersion.Version, tc.ExpectedVersion)
+		}
+	})
 }

@@ -10,13 +10,13 @@ import (
 	"os"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
-	"daml.com/x/assistant/cmd/dpm/cmd/versions"
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/sdkinstall"
 	"daml.com/x/assistant/pkg/sdkmanifest"
+	"daml.com/x/assistant/pkg/versions"
 	"github.com/Masterminds/semver/v3"
 )
 
@@ -75,7 +75,6 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 			}
 			return nil, resolutionerrors.NewMalformedDamlYamlError(err)
 		}
-
 
 		if sdkVersion == nil {
 			plan.Base = sdkmanifest.SdkManifest{

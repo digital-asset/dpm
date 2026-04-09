@@ -113,7 +113,10 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 
 func (suite *MainSuite) TestActiveSdkVersionExhaustive() {
 	t := suite.T()
+	testActiveSdkVersionExhaustive(t, func(t *testing.T, testCase SdkVersionTestCase, dirs TestCaseDirs) {})
+}
 
+func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCase SdkVersionTestCase, dirs TestCaseDirs)) {
 	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
@@ -154,7 +157,9 @@ packages:
 
 	for _, tc := range sdkVersionTestCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			setupTestCase(tc)
+			dirs := setupTestCase(tc)
+
+			hook(t, tc, dirs)
 
 			// workdir is package
 			if tc.ExpectedVersion == "null" {

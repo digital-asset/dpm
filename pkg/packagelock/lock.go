@@ -10,8 +10,8 @@ import (
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/schema"
-	"daml.com/x/assistant/pkg/semver"
 	"daml.com/x/assistant/pkg/utils/stringset"
+	"github.com/Masterminds/semver/v3"
 	"github.com/goccy/go-yaml"
 	"oras.land/oras-go/v2/registry"
 )
@@ -31,11 +31,13 @@ type PackageLock struct {
 }
 
 type SdkVersion struct {
-	// Resolved version (semver)
-	Version *semver.StrictSemVer `yaml:"version"`
+	// Resolved version (strict semver), or "" in the no-sdk case
+	Version string `yaml:"version"`
 	// e.g. OCI://europe-docker.pkg.dev/da-images/public/sdk-manifests/open-source:3.4.11
 	URI    *url.URL `yaml:"uri"`
 	Digest string   `yaml:"digest"`
+
+	SemVer *semver.Version `yaml:"-"`
 }
 
 type Dar struct {
@@ -72,8 +74,16 @@ func ReadPackageLockContents(contents []byte) (*PackageLock, error) {
 		return nil, fmt.Errorf("%w: %s", ErrInvalidPackageLock, err.Error())
 	}
 
-	if c.SdkVersion.Version == nil {
-		return nil, fmt.Errorf("%w: sdk-version.version is missing", ErrInvalidPackageLock)
+	if c.SdkVersion.Version != "" {
+		sv, err := semver.StrictNewVersion(c.SdkVersion.Version)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"%w: %v",
+				ErrInvalidPackageLock,
+				fmt.Errorf("failed to parse non-empty sdk-version.version as strict semver: %w", err),
+			)
+		}
+		c.SdkVersion.SemVer = sv
 	}
 
 	return &c, nil
