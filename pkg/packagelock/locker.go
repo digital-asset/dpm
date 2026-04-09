@@ -53,7 +53,15 @@ func (l *Locker) EnsureLockfiles(ctx context.Context) (map[string]*PackageLock, 
 		if err != nil {
 			return nil, err
 		}
-		return l.ensureLockfiles(ctx, multiPackage.AbsolutePackages()...)
+		multiLockfile, err := l.ensureMultiLockfile(ctx, filepath.Dir(multiPackagePath))
+		packageLockfiles, err := l.ensureLockfiles(ctx, multiPackage.AbsolutePackages()...)
+		if err != nil {
+			return nil, err
+		}
+		if l.op == Regular {
+			packageLockfiles[filepath.Dir(multiPackagePath)] = multiLockfile
+		}
+		return packageLockfiles, nil
 	}
 
 	// single package
@@ -89,19 +97,74 @@ func (l *Locker) ensureLockfiles(ctx context.Context, packages ...string) (map[s
 }
 
 func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (*PackageLock, error) {
-	expectedLockfile, err := l.computeExpectedLockfile(packageDirAbsPath)
+	expectedLockfile, err := l.computeExpectedLockfile(packageDirAbsPath, false)
 	if err != nil {
 		return nil, err
 	}
+
 	lockfilePath := filepath.Join(packageDirAbsPath, assistantconfig.DpmLockFileName)
 
 	if l.op == CheckOnly {
 		return nil, l.checkLockfile(expectedLockfile, lockfilePath)
 	}
-
 	return l.create(ctx, expectedLockfile, lockfilePath)
 }
 
+func (l *Locker) ensureMultiLockfile(ctx context.Context, multiDirAbsPath string) (*PackageLock, error) {
+	expectedLockfile, err := computeExpectedLockfile(multiDirAbsPath, true)
+	if err != nil {
+		return nil, err
+	}
+
+	if l.op == CheckOnly {
+		return nil, l.checkLockfile(expectedLockfile, assistantconfig.DpmMultiPackageLockFileName)
+	}
+
+	// TODO this is a placeholder
+	u, err := url.Parse("oci://example.com/sdk-manifests:0.0.0-TODO")
+	if err != nil {
+		return nil, err
+	}
+	v, err := semver.New("0.0.0-TODO")
+	if err != nil {
+		return nil, err
+	}
+	expectedLockfile.SdkVersion = SdkVersion{
+		Version: v,
+		Digest:  "todo",
+		URI:     u,
+	}
+
+	return l.create(ctx, expectedLockfile, filepath.Join(multiDirAbsPath, assistantconfig.DpmMultiPackageLockFileName))
+}
+
+func (l *Locker) ensureMultiLockfile(ctx context.Context, multiDirAbsPath string) (*PackageLock, error) {
+	expectedLockfile, err := computeExpectedLockfile(multiDirAbsPath, true)
+	if err != nil {
+		return nil, err
+	}
+
+	if l.op == CheckOnly {
+		return nil, l.checkLockfile(expectedLockfile, assistantconfig.DpmMultiPackageLockFileName)
+	}
+
+	// TODO this is a placeholder
+	u, err := url.Parse("oci://example.com/sdk-manifests:0.0.0-TODO")
+	if err != nil {
+		return nil, err
+	}
+	v, err := semver.New("0.0.0-TODO")
+	if err != nil {
+		return nil, err
+	}
+	expectedLockfile.SdkVersion = SdkVersion{
+		Version: v,
+		Digest:  "todo",
+		URI:     u,
+	}
+
+	return l.create(ctx, expectedLockfile, filepath.Join(multiDirAbsPath, assistantconfig.DpmMultiPackageLockFileName))
+}
 func (l *Locker) checkLockfile(expectedLockfile *PackageLock, lockfilePath string) error {
 	existingLockfile, err := ReadPackageLock(lockfilePath)
 	if os.IsNotExist(err) {
@@ -157,17 +220,20 @@ func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath
 	return expected, nil
 }
 
-func (l *Locker) computeExpectedLockfile(packageDirAbsPath string) (*PackageLock, error) {
-	p, err := damlpackage.Read(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
-	if err != nil {
-		return nil, err
-	}
+func (l *Locker) computeExpectedLockfile(packageDirAbsPath string, isMulti bool) (*PackageLock, error) {
+	var expectedDars []*Dar
+	if !isMulti {
+		p, err := damlpackage.Read(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
+		if err != nil {
+			return nil, err
+		}
 
-	// TODO de-duplicate p.ResolvedDependencies first
-	expectedDars := lo.MapToSlice(p.ResolvedDependencies, func(_ string, d *damlpackage.ResolvedDependency) *Dar {
-		return &Dar{
-			URI:        d.FullUrl,
-			Dependency: d,
+		// TODO de-duplicate p.ResolvedDependencies first
+
+		expectedDars = lo.MapToSlice(p.ResolvedDependencies, func(_ string, d *damlpackage.ResolvedDependency) *Dar {
+			return &Dar{
+				URI:        d.FullUrl,
+				Dependency: d,
 
 			// TODO diff digests too
 			// Digest:

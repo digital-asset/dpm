@@ -42,3 +42,4 @@ _build/
 generated/
 
 dpm.lock
+multi-package.lock

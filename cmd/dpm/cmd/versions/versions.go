@@ -83,7 +83,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 						locker := packagelock.New(config, op)
 						_, err := locker.EnsureLockfiles(cmd.Context())
 						if errors.Is(err, packagelock.ErrLockfileOutOfSync) {
-							cmd.PrintErr("No lockfile associated with existing active version, creating...")
+							cmd.PrintErr("No lockfile associated with existing active version, creating...\n")
 							op = packagelock.Regular
 							createLock := packagelock.New(config, op)
 							_, err = createLock.EnsureLockfiles(cmd.Context())
