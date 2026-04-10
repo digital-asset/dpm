@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 
+	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/ocipuller"
@@ -26,6 +27,31 @@ import (
 const (
 	assistantVersionCommentPrefix = ":: assistant version: "
 )
+
+// GetOrMaybeInstallSdk will only auto-install if auto-install is enabled
+func GetOrMaybeInstallSdk(ctx context.Context, config *assistantconfig.Config, unparsedVersion string, sourceManifest string) (*assistantconfig.InstalledSdkVersion, error) {
+	version, err := semver.NewVersion(unparsedVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	installedSdk, err := assistantconfig.GetInstalledSdkVersion(config, version)
+	if err == nil {
+		return installedSdk, nil
+	} else if !errors.Is(err, assistantconfig.ErrTargetSdkNotInstalled) {
+		return nil, err
+	}
+
+	if !config.AutoInstall {
+		return nil, resolutionerrors.NewSdkNotInstalledError(fmt.Errorf("%w. You can install the needed sdk (for %q) via 'dpm install %s'", err, sourceManifest, unparsedVersion))
+	}
+
+	installedSdk, err = InstallSdkVersion(ctx, config, version)
+	if err != nil {
+		return nil, fmt.Errorf("error while auto-installing sdk version %q: %w", version.String(), err)
+	}
+	return installedSdk, nil
+}
 
 // InstallSdkVersion installs the given sdk version by pulling the assembly and the components defined in it
 // from the remote OCI registry

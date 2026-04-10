@@ -500,7 +500,7 @@ func installFloatySdk(t *testing.T, version string, floatyTag string) {
 	_, reg := testutil.StartRegistry(t)
 
 	// Push assembly for each version
-	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, version, testutil.TestdataPath(t, "remote-components.yaml"))
+	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, version, testutil.TestdataPath(t, "remote-components.yaml"), floatyTag)
 
 	// push assembly, assistant, and component
 	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
@@ -573,16 +573,10 @@ func (suite *MainSuite) TestAutoInstallDefaultDisabled() {
 	t := suite.T()
 	ctx := testutil.Context(t)
 
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = os.Chdir(cwd) })
-	err = os.Chdir(testutil.TestdataPath(t, "daml-package", testutil.OS))
-	if err != nil {
-		return
-	}
+	t.Chdir(testutil.TestdataPath(t, "daml-package", testutil.OS))
 
 	da := &assistant.DamlAssistant{OsArgs: []string{os.Args[0]}}
-	_, err = RootCmd(ctx, da)
+	_, err := RootCmd(ctx, da)
 	require.ErrorIs(t, err, assistantconfig.ErrTargetSdkNotInstalled)
 }
 

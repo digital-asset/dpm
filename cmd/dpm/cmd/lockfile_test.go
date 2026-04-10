@@ -25,7 +25,7 @@ func get(t *testing.T, lock *packagelock.PackageLock, s string) *packagelock.Dar
 	return d
 }
 
-func (suite *MainSuite) TestLockfileUpdate() {
+func (suite *MainSuite) TestLockfileUpdateDarDeps() {
 	t := suite.T()
 	ctx := t.Context()
 
@@ -119,15 +119,86 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	})
 }
 
+func (suite *MainSuite) TestLockfileUpdateSdkVersionFloaty() {
+	t := suite.T()
+
+	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
+
+	tmpDamlHome := t.TempDir()
+	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
+
+	installFloatySdk(t, "0.0.1-whatever", "meepnet")
+
+	multiPackageDir := testutil.TestdataPath(t, "multi-package-floaty-sdk")
+
+	t.Chdir(filepath.Join(multiPackageDir, "a"))
+	cmd := createStdTestRootCmd(t, "update")
+	require.NoError(t, cmd.Execute())
+
+	t.Chdir(filepath.Join(multiPackageDir, "b"))
+	cmd = createStdTestRootCmd(t, "update")
+	require.NoError(t, cmd.Execute())
+
+	aLock, err := packagelock.ReadPackageLock(filepath.Join(multiPackageDir, "a", assistantconfig.DpmLockFileName))
+	require.NoError(t, err)
+	assert.Equal(t, "0.0.1-whatever", aLock.SdkVersion.Version)
+
+	bLock, err := packagelock.ReadPackageLock(filepath.Join(multiPackageDir, "b", assistantconfig.DpmLockFileName))
+	require.NoError(t, err)
+	assert.Equal(t, "0.0.1-whatever", bLock.SdkVersion.Version)
+
+	//t.Run("bump versions", func(t *testing.T) {
+	//	testutil.PushComponent(t, ctx, reg, "meep", "2.0.0", testutil.TestdataPath(t, "some-dar"), "latest")
+	//	testutil.PushComponent(t, ctx, reg, "sheep", "5.0.0", testutil.TestdataPath(t, "some-dar"), "latest")
+	//
+	//	cmd := createStdTestRootCmd(t, "update")
+	//	require.NoError(t, cmd.Execute())
+	//
+	//	aLock, err := packagelock.ReadPackageLock(filepath.Join(multiPackageDir, "a", assistantconfig.DpmLockFileName))
+	//	require.NoError(t, err)
+	//	bLock, err = packagelock.ReadPackageLock(filepath.Join(multiPackageDir, "b", assistantconfig.DpmLockFileName))
+	//	require.NoError(t, err)
+	//
+	//	assert.Len(t, aLock.Dars, 2)
+	//	assert.Len(t, bLock.Dars, 2)
+	//
+	//	t.Run("pinned stay pinned", func(t *testing.T) {
+	//		d = get(t, aLock, fmt.Sprintf("oci://%s/components/meep:1.2.3", os.Getenv(assistantconfig.OciRegistryEnvVar)))
+	//		assert.NotEmpty(t, d.Digest)
+	//
+	//		d = get(t, bLock, fmt.Sprintf("oci://%s/components/sheep:4.5.6", os.Getenv(assistantconfig.OciRegistryEnvVar)))
+	//		assert.NotEmpty(t, d.Digest)
+	//	})
+	//
+	//	t.Run("floaty get bumped", func(t *testing.T) {
+	//		d = get(t, bLock, fmt.Sprintf("oci://%s/components/meep:2.0.0", os.Getenv(assistantconfig.OciRegistryEnvVar)))
+	//		assert.NotEmpty(t, d.Digest)
+	//	})
+	//})
+
+	t.Run("resolution", func(t *testing.T) {
+		for _, dir := range []string{multiPackageDir, filepath.Join(multiPackageDir, "a"), filepath.Join(multiPackageDir, "b")} {
+			t.Chdir(dir)
+
+			cmd, r, w := createTestRootCmd(t, "resolve")
+			require.NoError(t, cmd.Execute())
+			require.NoError(t, w.Close())
+
+			output, err := io.ReadAll(r)
+			require.NoError(t, err)
+
+			deepResolution := resolution.Resolution{}
+			require.NoError(t, yaml.Unmarshal(output, &deepResolution))
+			assert.Len(t, deepResolution.Packages, 2)
+		}
+	})
+}
+
 func (suite *MainSuite) TestLockfileSdkVersion() {
 	t := suite.T()
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 
 	testActiveSdkVersionExhaustive(t, func(t *testing.T, tc SdkVersionTestCase, dirs TestCaseDirs) {
-		// TODO: Implement writing global sdk into lockfile and enforce test
-		if t.Name() == "TestSuite/TestLockfileSdkVersion/7_multi:null_pkg:some_wd:multi" {
-			t.Skip()
-		}
 		cmd := createStdTestRootCmd(t, "update")
 		require.NoError(t, cmd.Execute())
 

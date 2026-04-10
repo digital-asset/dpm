@@ -2,6 +2,7 @@ package update
 
 import (
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/packagelock"
 	"github.com/spf13/cobra"
@@ -21,8 +22,12 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				op = packagelock.CheckOnly
 			}
 
-			locker := packagelock.New(config, op)
-			_, err := locker.EnsureLockfiles(cmd.Context())
+			client, err := assistantremote.NewFromConfig(config)
+			if err != nil {
+				return err
+			}
+			locker := packagelock.New(config, client, op)
+			_, err = locker.EnsureLockfiles(cmd.Context())
 			return err
 		},
 	}

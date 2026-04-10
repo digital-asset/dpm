@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"oras.land/oras-go/v2/registry"
 )
 
 func mk(t *testing.T, uris ...string) *PackageLock {
@@ -70,4 +71,23 @@ func TestIsInSync(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestFoo(t *testing.T) {
+
+	//reg := "foo.com/images/public"
+	//app := "components/meep"
+	////tag := "latest"
+	//
+	r, err := registry.ParseReference("foo.com/x@sha256:c067c2cf54e12b61abc3fbc5978d372d0917f89cffd18aebfe3bff9136328848")
+	require.NoError(t, err)
+	assert.Equal(t, r.Reference, nil)
+
+	////r, _ := registry.ParseReference("foo.com/x/y/z:1.2.3")
+	//
+	//client, _ := assistantremote.New(reg, "", false)
+	//repo, _ := client.Repo(app)
+	//oras.Copy()
+	//
+	//assert.Equal(t, repo. + ":latest", resolvedRefToURI(reg, app, "latest").String())
 }

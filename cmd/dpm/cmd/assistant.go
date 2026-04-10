@@ -10,6 +10,7 @@ import (
 
 	"daml.com/x/assistant/cmd/dpm/cmd/uninstall"
 	"daml.com/x/assistant/cmd/dpm/cmd/update"
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/bootstrap"
 	componentCmd "daml.com/x/assistant/cmd/dpm/cmd/component"
@@ -89,7 +90,13 @@ func RootCmd(ctx context.Context, da *assistant.DamlAssistant) (*cobra.Command, 
 	)
 
 	if shouldAddSdkCommands(da.OsArgs) {
-		sdkCommands, err := da.ComputeSdkCommandsFromAssemblyPlan(ctx, config, resolutionType)
+		remote, err := assistantremote.NewFromConfig(config) // TODO does this mess with bare assistant usage?
+		if err != nil {
+			cmd.PrintErr(err.Error())
+			return nil, err
+		}
+
+		sdkCommands, err := da.ComputeSdkCommandsFromAssemblyPlan(ctx, remote, config, resolutionType)
 		if errors.Is(err, assistantconfig.ErrNoSdkInstalled) {
 			cmd.PrintErr("You currently do not have an SDK installed.\nYou may opt in to specific components by installing a specific SDK version or by using `multi-package.yaml` or `daml.yaml`, or see the docs for more info.\n")
 		} else if err != nil {

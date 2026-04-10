@@ -12,9 +12,13 @@ import (
 
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/darpuller"
 	"daml.com/x/assistant/pkg/multipackage"
+	ociconsts "daml.com/x/assistant/pkg/oci"
+	"daml.com/x/assistant/pkg/ociindex"
+	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/schema"
 	"daml.com/x/assistant/pkg/versions"
 	"github.com/goccy/go-yaml"
@@ -29,17 +33,18 @@ var ErrLockfileOutOfSync = resolutionerrors.NewOutdatedLockfileError(
 type Locker struct {
 	config *assistantconfig.Config
 	op     Operation
+	remote *assistantremote.Remote // Needed for resolving floaty versions
 }
 
 type Operation int
 
 const (
 	CheckOnly Operation = iota
-	Regular
+	Regular             // resolves only, doesn't install!!
 )
 
-func New(config *assistantconfig.Config, op Operation) *Locker {
-	return &Locker{config: config, op: op}
+func New(config *assistantconfig.Config, remote *assistantremote.Remote, op Operation) *Locker {
+	return &Locker{config: config, remote: remote, op: op}
 }
 
 func (l *Locker) EnsureLockfiles(ctx context.Context) (map[string]*PackageLock, error) {
@@ -53,7 +58,7 @@ func (l *Locker) EnsureLockfiles(ctx context.Context) (map[string]*PackageLock, 
 		if err != nil {
 			return nil, err
 		}
-		_, err = l.ensureMultiPackageLockfile(ctx, filepath.Dir(multiPackagePath))
+		_, err = l.EnsureMultiPackageLockfile(ctx, filepath.Dir(multiPackagePath))
 		if err != nil {
 			return nil, err
 		}
@@ -106,8 +111,8 @@ func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (
 	return l.create(ctx, expectedLockfile, lockfilePath)
 }
 
-func (l *Locker) ensureMultiPackageLockfile(ctx context.Context, multiPkgDirAbsPath string) (*PackageLock, error) {
-	expectedLockfile, err := l.computeMultiExpectedLockfile(multiPkgDirAbsPath)
+func (l *Locker) EnsureMultiPackageLockfile(ctx context.Context, multiPkgDirAbsPath string) (*PackageLock, error) {
+	expectedLockfile, err := l.computeMultiExpectedLockfile()
 	if err != nil {
 		return nil, err
 	}
@@ -140,13 +145,23 @@ func (l *Locker) checkLockfile(expectedLockfile *PackageLock, lockfilePath strin
 	return ErrLockfileOutOfSync
 }
 
+// create mutates expected floaty references (if any) to resolved references, and will populate the digests
 func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath string) (*PackageLock, error) {
+	// sdk-version
+	sdkVersion, err := l.lockSdkVersion(ctx, expected.SdkVersion)
+	if err != nil {
+		return nil, err
+	}
+	expected.SdkVersion = sdkVersion
+
+	// dars
 	for _, d := range expected.Dars {
 		if d.URI.Scheme == "builtin" {
 			d.Path = d.URI.Host
 			continue
 		}
 
+		// TODO resolve only, don't pull the full dar
 		pulledDar, err := darpuller.New(l.config).PullDar(ctx, d.Dependency)
 		if err != nil {
 			return nil, err
@@ -160,7 +175,7 @@ func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath
 
 		// TODO this doesn't work for @sha256 pinned refs
 		resolvedRef := ":" + pulledDar.Version.String()
-		d.URI, _ = url.Parse(fmt.Sprintf("oci://%s/%s%s", ref.Registry, ref.Repository, resolvedRef))
+		d.URI = resolvedRefToURI(ref.Registry, ref.Repository, resolvedRef)
 		d.Path = pulledDar.DarFilePath
 	}
 
@@ -172,6 +187,45 @@ func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath
 		return nil, err
 	}
 	return expected, nil
+}
+
+// lockSdkVersion will resolve sdk version (if floaty) and return the populated (strict) semver
+func (l *Locker) lockSdkVersion(ctx context.Context, expectedSdkVersion SdkVersion) (SdkVersion, error) {
+	// the no-sdk case
+	if expectedSdkVersion.Version == "" {
+		return SdkVersion{
+			Version: "",
+		}, nil
+	}
+
+	if !ocilister.IsFloaty(expectedSdkVersion.Version) {
+		return SdkVersion{
+			Version: expectedSdkVersion.Version,
+		}, nil
+	}
+
+	// resolve floaty version
+	repoName, err := l.config.SdkManifestsRepo()
+	if err != nil {
+		return SdkVersion{}, err
+	}
+
+	artifact := &ociconsts.SdkManifestArtifact{
+		SdkManifestsRepo: repoName,
+	}
+	resolvedVersion, err := ociindex.ResolveTag(ctx, l.remote, artifact, expectedSdkVersion.Version)
+	if err != nil {
+		return SdkVersion{}, err
+	}
+
+	return SdkVersion{
+		Version: resolvedVersion.String(),
+	}, nil
+}
+
+func resolvedRefToURI(refRegistry, refRepository, version string) *url.URL {
+	u, _ := url.Parse(fmt.Sprintf("oci://%s/%s%s", refRegistry, refRepository, version))
+	return u
 }
 
 func (l *Locker) computeExpectedLockfile(packageDirAbsPath string) (*PackageLock, error) {
@@ -194,7 +248,7 @@ func (l *Locker) computeExpectedLockfile(packageDirAbsPath string) (*PackageLock
 		return strings.Compare(a.URI.String(), b.URI.String())
 	})
 
-	lockSdkVersion, err := l.getSdkVersion(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
+	lockSdkVersion, err := l.getExpectedSdkVersion(filepath.Join(packageDirAbsPath, assistantconfig.DamlPackageFilename))
 	if err != nil {
 		return nil, err
 	}
@@ -208,10 +262,10 @@ func (l *Locker) computeExpectedLockfile(packageDirAbsPath string) (*PackageLock
 	}, nil
 }
 
-func (l *Locker) computeMultiExpectedLockfile(multiPackageDirAbsPath string) (*PackageLock, error) {
+func (l *Locker) computeMultiExpectedLockfile() (*PackageLock, error) {
 	var expectedDars []*Dar
 
-	lockSdkVersion, err := l.getSdkVersion(filepath.Join(multiPackageDirAbsPath, assistantconfig.DamlMultiPackageFilename))
+	lockSdkVersion, err := l.getExpectedSdkVersion("")
 	if err != nil {
 		return nil, err
 	}
@@ -225,8 +279,8 @@ func (l *Locker) computeMultiExpectedLockfile(multiPackageDirAbsPath string) (*P
 	}, nil
 }
 
-func (l *Locker) getSdkVersion(packageDirAbsPath string) (SdkVersion, error) {
-	sdkVersion, err := versions.GetFloatyActiveVersion(l.config, packageDirAbsPath)
+func (l *Locker) getExpectedSdkVersion(packageDirAbsPath string) (SdkVersion, error) {
+	sdkVersion, _, err := versions.GetFloatyActiveVersion(l.config, packageDirAbsPath)
 	if err != nil {
 		return SdkVersion{}, err
 	}
@@ -235,20 +289,10 @@ func (l *Locker) getSdkVersion(packageDirAbsPath string) (SdkVersion, error) {
 	if sdkVersion == "" {
 		return SdkVersion{
 			Version: "",
-			URI:     nil,
 		}, nil
 	}
 
-	sdkRepo, err := l.config.SdkManifestsRepo()
-	if err != nil {
-		return SdkVersion{}, err
-	}
-	u, err := url.Parse(fmt.Sprintf("oci://%s:%s", sdkRepo, sdkVersion))
-	if err != nil {
-		return SdkVersion{}, err
-	}
 	return SdkVersion{
 		Version: sdkVersion,
-		URI:     u,
 	}, nil
 }

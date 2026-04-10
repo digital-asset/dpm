@@ -80,12 +80,13 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 						// check for existance of lockfile, if none then create one
 						// TODO: Only creates for daml.yamls, ensure one is created for multi-package.yaml once that's implemented
 						op := packagelock.CheckOnly
-						locker := packagelock.New(config, op)
+						locker := packagelock.New(config, nil, op)
 						_, err := locker.EnsureLockfiles(cmd.Context())
 						if errors.Is(err, packagelock.ErrLockfileOutOfSync) {
-							cmd.PrintErr("No lockfile associated with existing active version, creating...\n")
+							// TODO i commented out this because the tests  don't pre-create the lockfile, but they don't distinguish between stdout and stderr either
+							// cmd.PrintErr("No lockfile associated with existing active version, creating...\n")
 							op = packagelock.Regular
-							createLock := packagelock.New(config, op)
+							createLock := packagelock.New(config, nil, op)
 							_, err = createLock.EnsureLockfiles(cmd.Context())
 							if err != nil {
 								return err
@@ -139,7 +140,7 @@ func getActiveVersion(config *assistantconfig.Config) (*semver.Version, error) {
 		return nil, err
 	}
 
-	v, err := versions.GetActiveVersion(config, damlPackagePath)
+	v, _, err := versions.GetActiveVersion(config, damlPackagePath)
 	if errors.Is(err, assistantconfig.ErrNoSdkInstalled) || errors.Is(err, assistantconfig.ErrTargetSdkNotInstalled) {
 		return nil, nil
 	} else if err != nil {

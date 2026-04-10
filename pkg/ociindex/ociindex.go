@@ -123,13 +123,17 @@ func FindTargetPlatform(descriptors []v1.Descriptor, preferred *simpleplatform.N
 }
 
 func ResolveTag(ctx context.Context, client *assistantremote.Remote, artifact oci.Artifact, tag string) (*semver.Version, error) {
-	index, _, err := FetchIndex(ctx, client, artifact.RepoName(), tag)
+	return ResolveTagRaw(ctx, client, artifact.RepoName(), tag)
+}
+
+func ResolveTagRaw(ctx context.Context, client *assistantremote.Remote, repo, tag string) (*semver.Version, error) {
+	index, _, err := FetchIndex(ctx, client, repo, tag)
 	if err != nil {
 		return nil, err
 	}
 	v, err := oci.VersionFromDescriptorAnnotations(index.Annotations)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve '%s:%s': %w", artifact.RepoName(), tag, err)
+		return nil, fmt.Errorf("failed to resolve '%s:%s': %w", repo, tag, err)
 	}
 	return v, err
 }
