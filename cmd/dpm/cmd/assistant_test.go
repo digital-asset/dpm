@@ -34,14 +34,14 @@ type MainSuite struct {
 	testutil.CommonSetupSuite
 }
 
-type ExpectedPackages struct {
-	ExpectedPackages   int
-	ExpectedDefaultSdk string
-	ExpectedComponents int
-	ExpectedImports    int
+type ExpectedResolution struct {
+	ExpectedPackages          int
+	ExpectedDefaultSdkVersion string
+	ExpectedComponents        int
+	ExpectedImports           int
 }
 
-var defaultExpectedPackages = ExpectedPackages{1, someSdkVersion, 1, 2}
+var defaultExpectedResolution = ExpectedResolution{1, someSdkVersion, 1, 2}
 
 const someSdkVersion = "0.0.1-whatever"
 const someOtherSdkVersion = "0.0.1-not-whatever"
@@ -55,7 +55,7 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 
 	installSdk(t, []string{someSdkVersion})
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
-	testResolution(t, defaultExpectedPackages)
+	testResolution(t, defaultExpectedResolution)
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSubdir() {
@@ -69,7 +69,7 @@ func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 
 	// this will make daml.yaml in the CWD
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-package-with-subdir", "package")))
-	testResolution(t, defaultExpectedPackages)
+	testResolution(t, defaultExpectedResolution)
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
@@ -80,7 +80,7 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 	t.Run("1a: when in multi-package dir", func(t *testing.T) {
 		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version"))
 
-		testResolution(t, ExpectedPackages{3, someSdkVersion, 1, 2})
+		testResolution(t, ExpectedResolution{3, someSdkVersion, 1, 2})
 		assertActiveSdkVersion(t, someSdkVersion)
 	})
 
@@ -89,7 +89,7 @@ func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
 
 		// test at level of single package
 		assertActiveSdkVersion(t, someSdkVersion)
-		testResolution(t, ExpectedPackages{3, someSdkVersion, 1, 2})
+		testResolution(t, ExpectedResolution{3, someSdkVersion, 1, 2})
 	})
 }
 
@@ -246,7 +246,7 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 	})
 }
 
-func testResolution(t *testing.T, expectedPackages ExpectedPackages) {
+func testResolution(t *testing.T, expectedPackages ExpectedResolution) {
 	deepResolution := runResolveCommand(t)
 	assert.Len(t, deepResolution.Packages, expectedPackages.ExpectedPackages)
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, expectedPackages.ExpectedComponents)
@@ -269,8 +269,8 @@ func testResolution(t *testing.T, expectedPackages ExpectedPackages) {
 
 	t.Run("default sdk", func(t *testing.T) {
 		assert.Len(t, deepResolution.DefaultSDK, 1)
-		assert.Len(t, deepResolution.DefaultSDK[expectedPackages.ExpectedDefaultSdk].Components, 1)
-		assert.Len(t, deepResolution.DefaultSDK[expectedPackages.ExpectedDefaultSdk].Imports, 2)
+		assert.Len(t, deepResolution.DefaultSDK[expectedPackages.ExpectedDefaultSdkVersion].Components, 1)
+		assert.Len(t, deepResolution.DefaultSDK[expectedPackages.ExpectedDefaultSdkVersion].Imports, 2)
 		assert.True(t, true)
 	})
 

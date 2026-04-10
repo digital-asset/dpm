@@ -27,12 +27,12 @@ type SdkVersionTestCase struct {
 	MultiPackageSdkVersion, PackageSdkVersion string
 	WorkingDir                                WorkingDir
 	ExpectedVersion                           string
-	ExpectedPackages                          ExpectedPackages
+	ExpectedPackages                          ExpectedResolution
 }
 
 const globalSdkVersion = "999.999.999"
 
-var expectedPackages = ExpectedPackages{1, globalSdkVersion, 1, 2}
+var expectedPackages = ExpectedResolution{1, globalSdkVersion, 1, 2}
 
 var sdkVersionTestCases = []SdkVersionTestCase{
 	{
@@ -73,7 +73,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      "null",
 		WorkingDir:             MultiPackageWorkingDir,
 		ExpectedVersion:        globalSdkVersion,
-		ExpectedPackages:       ExpectedPackages{1, globalSdkVersion, 0, 0},
+		ExpectedPackages:       ExpectedResolution{1, globalSdkVersion, 0, 0},
 	},
 	{
 		Name:                   "10 multi:some pkg:some wd:pkg",
