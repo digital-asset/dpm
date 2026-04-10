@@ -123,17 +123,18 @@ func (suite *RepoSuite) TestRepoPublishAssembly() {
 		cmd := createStdTestRootCmd(t)
 
 		args := []string{"repo", "publish-sdk-manifest", "-t", "latest",
-			"-f", testutil.TestdataPath(t, "publish.yaml")}
+			"-f", testutil.TestdataPath(t, "publish.yaml"), "--extra-tags", "foo"}
 		cmd.SetArgs(appendRegistryArgsFromEnv(args))
 		require.NoError(t, cmd.Execute())
 	})
 
-	t.Run("verify latest tag", func(t *testing.T) {
+	t.Run("verify tags", func(t *testing.T) {
 		repo, err := sdkmanifest.OpenSource.SdkManifestsRepo()
 		require.NoError(t, err)
 		tags, _, err := ocilister.ListTags(testutil.Context(t), client, repo)
 		require.NoError(t, err)
 		assert.Contains(t, tags, "latest")
+		assert.Contains(t, tags, "foo")
 	})
 
 	t.Run("install published sdk manifest", func(t *testing.T) {
