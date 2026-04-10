@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
+	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/schema"
@@ -33,11 +35,9 @@ type PackageLock struct {
 type SdkVersion struct {
 	// Resolved version (strict semver), or "" in the no-sdk case
 	Version string `yaml:"version"`
-	// e.g. OCI://europe-docker.pkg.dev/da-images/public/sdk-manifests/open-source:3.4.11
-	URI    *url.URL `yaml:"uri"`
-	Digest string   `yaml:"digest"`
 
-	SemVer *semver.Version `yaml:"-"`
+	// TODO sdks should really have digest. the same sdk version can have different components on different platforms
+	// Digest  string `yaml:"digest"`
 }
 
 type Dar struct {
@@ -46,6 +46,10 @@ type Dar struct {
 	Path   string   `yaml:"path"`
 
 	Dependency *damlpackage.ResolvedDependency `yaml:"-"`
+}
+
+func ReadPackageLockDir(packageDir string) (*PackageLock, error) {
+	return ReadPackageLock(filepath.Join(packageDir, assistantconfig.DpmLockFileName))
 }
 
 func ReadPackageLock(filePath string) (*PackageLock, error) {
@@ -75,7 +79,7 @@ func ReadPackageLockContents(contents []byte) (*PackageLock, error) {
 	}
 
 	if c.SdkVersion.Version != "" {
-		sv, err := semver.StrictNewVersion(c.SdkVersion.Version)
+		_, err := semver.StrictNewVersion(c.SdkVersion.Version)
 		if err != nil {
 			return nil, fmt.Errorf(
 				"%w: %v",
@@ -83,7 +87,6 @@ func ReadPackageLockContents(contents []byte) (*PackageLock, error) {
 				fmt.Errorf("failed to parse non-empty sdk-version.version as strict semver: %w", err),
 			)
 		}
-		c.SdkVersion.SemVer = sv
 	}
 
 	return &c, nil
@@ -117,6 +120,12 @@ func (l *PackageLock) toDiffableMap() (map[string]stringset.StringSet, error) {
 // isInSync checks whether this (existing) lockfile matches an expected lockfile.
 // it takes into account the fact that tags in the expected lockfile might be floaty
 func (l *PackageLock) isInSync(expected *PackageLock) (bool, error) {
+	if l.SdkVersion.Version != expected.SdkVersion.Version {
+		if !ocilister.IsFloaty(expected.SdkVersion.Version) {
+			return false, nil
+		}
+	}
+
 	expectedMap, err := expected.toDiffableMap()
 	if err != nil {
 		return false, err
@@ -151,4 +160,44 @@ func (l *PackageLock) isInSync(expected *PackageLock) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func GetVersionFromLockfile(config *assistantconfig.Config, damlPackagePath string) (*semver.Version, error) {
+	// DPM_SDK_VERSION override
+	versionOverride, ok := os.LookupEnv(assistantconfig.DpmSdkVersionEnvVar)
+	if ok {
+		if versionOverride == "" {
+			return nil, nil
+		}
+		return semver.StrictNewVersion(versionOverride)
+	}
+
+	outsideOfProject, err := func() (bool, error) {
+		_, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
+		if err != nil {
+			return false, err
+		}
+		return !(hasMultiPackage || damlPackagePath != ""), nil
+	}()
+	if err != nil {
+		return nil, err
+	}
+	if outsideOfProject {
+		s, err := assistantconfig.GetInstalledSdkFromEnvOrDefault(config)
+		if err != nil {
+			return nil, err
+		}
+		return s.Version, nil
+	} else {
+		lock, err := ReadPackageLockDir(filepath.Dir(damlPackagePath))
+		if err != nil {
+			return nil, resolutionerrors.NewUnknownError(err) // TODO make a dedicated resolution error for lockfiles
+		}
+		sdkVersionStr := lock.SdkVersion.Version
+		sdkVersion, err := semver.StrictNewVersion(sdkVersionStr)
+		if err != nil {
+			return nil, err
+		}
+		return sdkVersion, nil
+	}
 }

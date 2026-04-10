@@ -14,6 +14,7 @@ import (
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assembler/assemblyplan"
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/packagelock"
 	"daml.com/x/assistant/pkg/resolution"
@@ -24,12 +25,14 @@ import (
 type DeepResolver struct {
 	assembler *assembler.Assembler
 	config    *assistantconfig.Config
+	remote    *assistantremote.Remote
 }
 
-func New(config *assistantconfig.Config, a *assembler.Assembler) *DeepResolver {
+func New(config *assistantconfig.Config, remote *assistantremote.Remote, a *assembler.Assembler) *DeepResolver {
 	return &DeepResolver{
 		assembler: a,
 		config:    config,
+		remote:    remote,
 	}
 }
 
@@ -105,6 +108,7 @@ func (d *DeepResolver) resolve(ctx context.Context, packageAbsolutePaths ...stri
 }
 
 func (d *DeepResolver) resolvePackageAndDars(ctx context.Context, absPath string) (*resolution.Package, error) {
+	// (floaty) versions needs to be resolved and the lockfiles present by this point
 	result, err := d.resolvePackage(ctx, absPath)
 	if err != nil {
 		return nil, err
@@ -116,6 +120,13 @@ func (d *DeepResolver) resolvePackageAndDars(ctx context.Context, absPath string
 
 	lock, err := packagelock.ReadPackageLock(filepath.Join(absPath, assistantconfig.DpmLockFileName))
 	if errors.Is(err, os.ErrNotExist) {
+		lock, err = packagelock.New(d.config, d.remote, packagelock.Regular).EnsureLockfile(ctx, absPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err = packagelock.New(d.config, d.remote, packagelock.CheckOnly).EnsureLockfile(ctx, absPath)
+	if err != nil {
 		return nil, err
 	}
 

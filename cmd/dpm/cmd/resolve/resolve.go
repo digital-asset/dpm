@@ -11,6 +11,7 @@ import (
 
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/resolver"
@@ -27,7 +28,12 @@ func getDeepResolutionOutput(ctx context.Context, config *assistantconfig.Config
 		return "", err
 	}
 
-	deepResolution, err := resolver.New(config, assembler.New(config, puller)).RunDeepResolution(ctx)
+	client, err := assistantremote.NewFromConfig(config)
+	if err != nil {
+		return "", err
+	}
+
+	deepResolution, err := resolver.New(config, client, assembler.New(config, puller)).RunDeepResolution(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to run deep resolution", "error", err)
 		return "", err

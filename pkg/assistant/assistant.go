@@ -16,6 +16,7 @@ import (
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assembler/assemblyplan"
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/component"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/resolution"
@@ -68,11 +69,11 @@ func (da *DamlAssistant) ComputeSdkCommandsFromAssemblyManifest(ctx context.Cont
 	})
 }
 
-func (da *DamlAssistant) ComputeSdkCommandsFromAssemblyPlan(ctx context.Context, config *assistantconfig.Config, resolutionType resolutionType) ([]*cobra.Command, error) {
+func (da *DamlAssistant) ComputeSdkCommandsFromAssemblyPlan(ctx context.Context, remote *assistantremote.Remote, config *assistantconfig.Config, resolutionType resolutionType) ([]*cobra.Command, error) {
 	return da.computeSdkCommands(ctx, config, func(a *assembler.Assembler) (map[string][]*assembler.ValidatedCommand, string, error) {
 		var deepResolutionFilePath string
 		if resolutionType == DeepResolution {
-			deepResolution, err := resolver.New(config, a).RunDeepResolution(ctx)
+			deepResolution, err := resolver.New(config, remote, a).RunDeepResolution(ctx)
 			if err != nil {
 				return nil, "", err
 			}

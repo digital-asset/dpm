@@ -110,7 +110,7 @@ func PushDar(t *testing.T, ctx context.Context, registry *httptest.Server, darNa
 }
 
 // PushAssembly pushes assembly manifest to OCI registry for all platforms
-func PushAssembly(t *testing.T, ctx context.Context, edition sdkmanifest.Edition, registry *httptest.Server, tag, pathToAssembly string) {
+func PushAssembly(t *testing.T, ctx context.Context, edition sdkmanifest.Edition, registry *httptest.Server, tag, pathToAssembly string, extraTags ...string) {
 	platforms := []string{
 		"windows/amd64",
 		"linux/amd64",
@@ -128,11 +128,13 @@ func PushAssembly(t *testing.T, ctx context.Context, edition sdkmanifest.Edition
 		nonGen := platform.(*simpleplatform.NonGeneric)
 		return *nonGen, pathToAssembly
 	})
+	tags := []string{"latest"}
+	tags = append(tags, extraTags...)
 	args := &sdkmanifestpusher.PushArgs{
 		Edition:     edition,
 		Version:     v,
 		Annotations: map[string]string{},
-		ExtraTags:   []string{"latest"},
+		ExtraTags:   tags,
 	}
 	_, err = sdkmanifestpusher.New(utils.StdPrinter{}, args).PushSdkManifest(ctx, r, manifests)
 	require.NoError(t, err)

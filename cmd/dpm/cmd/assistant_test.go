@@ -500,7 +500,7 @@ func installFloatySdk(t *testing.T, version string, floatyTag string) {
 	_, reg := testutil.StartRegistry(t)
 
 	// Push assembly for each version
-	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, version, testutil.TestdataPath(t, "remote-components.yaml"))
+	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, version, testutil.TestdataPath(t, "remote-components.yaml"), floatyTag)
 
 	// push assembly, assistant, and component
 	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))

@@ -155,38 +155,49 @@ returns nil
 - when we're in package context, and sdk-version is null or "" in both daml.yaml and multi-package.yaml
 - or when DPM_SDK_VERSION=""
 */
-func GetActiveVersion(config *assistantconfig.Config, damlPackagePath string) (*semver.Version, error) {
-	v, err := GetFloatyActiveVersion(config, damlPackagePath)
+func GetActiveVersion(config *assistantconfig.Config, damlPackagePath string) (*semver.Version, VersionSource, error) {
+	v, source, err := GetFloatyActiveVersion(config, damlPackagePath)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if v == "" {
-		return nil, nil
+		return nil, source, nil
 	}
-	return semver.StrictNewVersion(v)
+	sv, err := semver.StrictNewVersion(v)
+	return sv, source, err
 }
 
+// TODO so far it seems this isn't needed/used, so can rip out?
+type VersionSource int
+
+const (
+	VersionSourceGlobal = iota
+	//VersionSourceNone
+	VersionSourcePackage
+	VersionSourceMultiPackage
+)
+
 // GetFloatyActiveVersion is the same as GetActiveVersion but permits floaty versions
-func GetFloatyActiveVersion(config *assistantconfig.Config, damlPackagePath string) (string, error) {
+func GetFloatyActiveVersion(config *assistantconfig.Config, damlPackagePath string) (string, VersionSource, error) {
 	// DPM_SDK_VERSION override
 	versionOverride, ok := os.LookupEnv(assistantconfig.DpmSdkVersionEnvVar)
 	if ok {
 		if versionOverride == "" {
-			return "", nil
+			return "", 0, nil
 		}
-		return versionOverride, nil
+		return versionOverride, 0, nil
 	}
 
 	multiPackageVersion := ""
 
 	multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	if hasMultiPackage {
 		multiPackage, err := multipackage.Read(multiPackagePath)
 		if err != nil {
-			return "", err
+			return "", 0, err
 		}
 		multiPackageVersion = multiPackage.SdkVersion
 	}
@@ -196,25 +207,25 @@ func GetFloatyActiveVersion(config *assistantconfig.Config, damlPackagePath stri
 		damlPackage, err := damlpackage.Read(damlPackagePath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				return "", resolutionerrors.NewDamlYamlNotFoundError(err)
+				return "", 0, resolutionerrors.NewDamlYamlNotFoundError(err)
 			}
-			return "", resolutionerrors.NewMalformedDamlYamlError(err)
+			return "", 0, resolutionerrors.NewMalformedDamlYamlError(err)
 		}
 
 		if damlPackage.SdkVersion != "" {
-			return damlPackage.SdkVersion, nil
+			return damlPackage.SdkVersion, VersionSourcePackage, nil
 		} else if multiPackageVersion != "" {
-			return multiPackageVersion, nil
+			return multiPackageVersion, 0, nil
 		}
 
 		// don't inherit the global sdk-version, instead use no sdk
-		return "", nil
+		return "", VersionSourcePackage, nil
 	}
 
 	// in a multi-package context
 	if hasMultiPackage {
 		if multiPackageVersion != "" {
-			return multiPackageVersion, nil
+			return multiPackageVersion, VersionSourceMultiPackage, nil
 		}
 		// else: fallthrough to using the global sdk
 	}
@@ -222,7 +233,7 @@ func GetFloatyActiveVersion(config *assistantconfig.Config, damlPackagePath stri
 	// not in a package or multi-package context
 	s, err := assistantconfig.GetInstalledSdkFromEnvOrDefault(config)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
-	return s.Version.String(), nil
+	return s.Version.String(), VersionSourceGlobal, nil
 }

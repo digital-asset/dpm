@@ -5,8 +5,6 @@ package assemblyplan
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
@@ -14,10 +12,9 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/multipackage"
+	"daml.com/x/assistant/pkg/packagelock"
 	"daml.com/x/assistant/pkg/sdkinstall"
 	"daml.com/x/assistant/pkg/sdkmanifest"
-	"daml.com/x/assistant/pkg/versions"
-	"github.com/Masterminds/semver/v3"
 )
 
 // AssemblyPlan decides what the final commands that'll be added to the assistant root command are,
@@ -62,7 +59,7 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 	var installedSdk *assistantconfig.InstalledSdkVersion
 	var err error
 
-	sdkVersion, err := versions.GetActiveVersion(config, damlPackagePath)
+	sdkVersion, err := packagelock.GetVersionFromLockfile(config, damlPackagePath)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +83,7 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 				},
 			}
 		} else {
-			installedSdk, err = getOrAutoInstallPackageSdk(ctx, config, sdkVersion.String(), damlPackagePath)
+			installedSdk, err = sdkinstall.GetOrMaybeInstallSdk(ctx, config, sdkVersion.String(), damlPackagePath)
 			if err != nil {
 				return nil, err
 			}
@@ -125,30 +122,6 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 		return nil, err
 	}
 	return plan, nil
-}
-
-func getOrAutoInstallPackageSdk(ctx context.Context, config *assistantconfig.Config, unparsedVersion string, sourceManifest string) (*assistantconfig.InstalledSdkVersion, error) {
-	version, err := semver.NewVersion(unparsedVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	installedSdk, err := assistantconfig.GetInstalledSdkVersion(config, version)
-	if err == nil {
-		return installedSdk, nil
-	} else if !errors.Is(err, assistantconfig.ErrTargetSdkNotInstalled) {
-		return nil, err
-	}
-
-	if !config.AutoInstall {
-		return nil, resolutionerrors.NewSdkNotInstalledError(fmt.Errorf("%w. You can install the needed sdk (for %q) via 'dpm install %s'", err, sourceManifest, unparsedVersion))
-	}
-
-	installedSdk, err = sdkinstall.InstallSdkVersion(ctx, config, version)
-	if err != nil {
-		return nil, fmt.Errorf("error while auto-installing sdk version %q: %w", version.String(), err)
-	}
-	return installedSdk, nil
 }
 
 // configureMultiPackage mutates the AssemblyPlan to account for multi-package.yaml (if any)
