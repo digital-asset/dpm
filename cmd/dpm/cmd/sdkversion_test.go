@@ -32,7 +32,11 @@ type SdkVersionTestCase struct {
 
 const globalSdkVersion = "999.999.999"
 
-var expectedResolution = ExpectedResolution{1, globalSdkVersion, 1, 2}
+var expectedResolution = ExpectedResolution{
+	1,
+	globalSdkVersion,
+	1,
+	2}
 
 var sdkVersionTestCases = []SdkVersionTestCase{
 	{
@@ -73,7 +77,23 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      "null",
 		WorkingDir:             MultiPackageWorkingDir,
 		ExpectedVersion:        globalSdkVersion,
-		ExpectedResolution:     ExpectedResolution{1, globalSdkVersion, 0, 0},
+		ExpectedResolution: ExpectedResolution{
+			1,
+			globalSdkVersion,
+			0,
+			0},
+	},
+	{
+		Name:                   "18 multi:null pkg:null wd:pkg",
+		MultiPackageSdkVersion: "null",
+		PackageSdkVersion:      "null",
+		WorkingDir:             PackageWorkingDir,
+		ExpectedVersion:        "null",
+		ExpectedResolution: ExpectedResolution{
+			1,
+			globalSdkVersion,
+			0,
+			0},
 	},
 	{
 		Name:                   "10 multi:some pkg:some wd:pkg",
@@ -113,14 +133,6 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             PackageWorkingDir,
 		ExpectedVersion:        someSdkVersion,
-		ExpectedResolution:     expectedResolution,
-	},
-	{
-		Name:                   "18 multi:null pkg:null wd:pkg",
-		MultiPackageSdkVersion: "null",
-		PackageSdkVersion:      "null",
-		WorkingDir:             PackageWorkingDir,
-		ExpectedVersion:        "null",
 		ExpectedResolution:     expectedResolution,
 	},
 }
@@ -176,9 +188,9 @@ packages:
 			hook(t, tc, dirs)
 
 			if tc.ExpectedVersion == "null" {
-
 				t.Run("assert no active sdk version", func(t *testing.T) {
 					assertNoActiveSdkVersion(t)
+					testResolution(t, tc.ExpectedResolution)
 				})
 
 			} else {
