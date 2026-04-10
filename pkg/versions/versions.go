@@ -160,7 +160,7 @@ func GetActiveVersion(config *assistantconfig.Config, damlPackagePath string) (*
 	if err != nil {
 		return nil, err
 	}
-	if v == "" {
+	if v == assistantconfig.BlankSdkVersion {
 		return nil, nil
 	}
 	return semver.StrictNewVersion(v)
@@ -171,9 +171,6 @@ func GetFloatyActiveVersion(config *assistantconfig.Config, damlPackagePath stri
 	// DPM_SDK_VERSION override
 	versionOverride, ok := os.LookupEnv(assistantconfig.DpmSdkVersionEnvVar)
 	if ok {
-		if versionOverride == "" {
-			return "", nil
-		}
 		return versionOverride, nil
 	}
 
