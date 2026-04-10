@@ -27,9 +27,12 @@ type SdkVersionTestCase struct {
 	MultiPackageSdkVersion, PackageSdkVersion string
 	WorkingDir                                WorkingDir
 	ExpectedVersion                           string
+	ExpectedPackages                          ExpectedPackages
 }
 
 const globalSdkVersion = "999.999.999"
+
+var expectedPackages = ExpectedPackages{1, globalSdkVersion, 1, 2}
 
 var sdkVersionTestCases = []SdkVersionTestCase{
 	{
@@ -38,6 +41,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             MultiPackageWorkingDir,
 		ExpectedVersion:        someSdkVersion,
+		ExpectedPackages:       expectedPackages,
 	},
 	{
 		Name:                   "2 multi:some pkg:other wd:multi",
@@ -45,6 +49,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      someOtherSdkVersion,
 		WorkingDir:             MultiPackageWorkingDir,
 		ExpectedVersion:        someSdkVersion,
+		ExpectedPackages:       expectedPackages,
 	},
 	{
 		Name:                   "3 multi:some pkg:null wd:multi",
@@ -52,6 +57,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      "null",
 		WorkingDir:             MultiPackageWorkingDir,
 		ExpectedVersion:        someSdkVersion,
+		ExpectedPackages:       expectedPackages,
 	},
 	{
 		Name:                   "7 multi:null pkg:some wd:multi",
@@ -59,21 +65,23 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             MultiPackageWorkingDir,
 		ExpectedVersion:        globalSdkVersion,
+		ExpectedPackages:       expectedPackages,
 	},
-	// TODO figure out why this is returning different resolve results
-	//{
-	//	Name:                   "9 multi:null pkg:null wd:multi",
-	//	MultiPackageSdkVersion: "null",
-	//	PackageSdkVersion:      "null",
-	//	WorkingDir:             MultiPackageWorkingDir,
-	//	ExpectedVersion:        globalSdkVersion,
-	//},
+	{
+		Name:                   "9 multi:null pkg:null wd:multi",
+		MultiPackageSdkVersion: "null",
+		PackageSdkVersion:      "null",
+		WorkingDir:             MultiPackageWorkingDir,
+		ExpectedVersion:        globalSdkVersion,
+		ExpectedPackages:       ExpectedPackages{1, globalSdkVersion, 0, 0},
+	},
 	{
 		Name:                   "10 multi:some pkg:some wd:pkg",
 		MultiPackageSdkVersion: someSdkVersion,
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             PackageWorkingDir,
 		ExpectedVersion:        someSdkVersion,
+		ExpectedPackages:       expectedPackages,
 	},
 	{
 		Name:                   "11 multi:some pkg:other wd:pkg",
@@ -81,6 +89,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      someOtherSdkVersion,
 		WorkingDir:             PackageWorkingDir,
 		ExpectedVersion:        someOtherSdkVersion,
+		ExpectedPackages:       expectedPackages,
 	},
 	{
 		Name:                   "12 multi:some pkg:null wd:pkg",
@@ -88,6 +97,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      "null",
 		WorkingDir:             PackageWorkingDir,
 		ExpectedVersion:        someSdkVersion,
+		ExpectedPackages:       expectedPackages,
 	},
 	{
 		Name:                   "13 multi:other pkg:some wd:pkg",
@@ -95,6 +105,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             PackageWorkingDir,
 		ExpectedVersion:        someSdkVersion,
+		ExpectedPackages:       expectedPackages,
 	},
 	{
 		Name:                   "16 multi:null pkg:some wd:pkg",
@@ -102,6 +113,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             PackageWorkingDir,
 		ExpectedVersion:        someSdkVersion,
+		ExpectedPackages:       expectedPackages,
 	},
 	{
 		Name:                   "18 multi:null pkg:null wd:pkg",
@@ -109,6 +121,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      "null",
 		WorkingDir:             PackageWorkingDir,
 		ExpectedVersion:        "null",
+		ExpectedPackages:       expectedPackages,
 	},
 }
 
@@ -171,7 +184,7 @@ packages:
 			} else {
 				t.Run("assert active sdk version", func(t *testing.T) {
 					assertActiveSdkVersion(t, tc.ExpectedVersion)
-					testResolution(t, 1, globalSdkVersion)
+					testResolution(t, tc.ExpectedPackages)
 				})
 			}
 		})
