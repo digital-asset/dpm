@@ -33,6 +33,8 @@ type DamlAssistant struct {
 	ExitFn                func(exitCode int)
 	// must contain at least one argument, namely the dpm binary name, similar to os.Args
 	OsArgs []string
+
+	CmdPreRunHook func(cmd *exec.Cmd) // Optional, used for testing
 }
 
 type resolutionType struct {
@@ -191,9 +193,7 @@ func (da *DamlAssistant) toCobraCommands(execContext context.Context, config *as
 				}
 
 				extraEnv[assistantconfig.ResolutionFilePathEnvVar] = deepResolutionFilePath
-				if c.SdkVersion != nil {
-					extraEnv[assistantconfig.DpmSdkVersionEnvVar] = c.SdkVersion.String()
-				}
+				extraEnv[assistantconfig.DpmSdkVersionEnvVar] = c.DpmSdkVersionEnvVar
 
 				// inject DAML_PACKAGE env var into command for their convenience
 				if isDamlPkg {
@@ -228,6 +228,10 @@ func (da *DamlAssistant) execSdkCommand(ctx context.Context, path string, args [
 	})
 	env = append(env, os.Environ()...)
 	cmd.Env = env
+
+	if da.CmdPreRunHook != nil {
+		da.CmdPreRunHook(cmd)
+	}
 
 	if err := cmd.Run(); err != nil {
 		var exitError *exec.ExitError

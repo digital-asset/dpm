@@ -16,4 +16,6 @@ const (
 	DpmConfigFileName = "dpm-config.yaml"
 
 	DpmPathInjectedEnvVar = "DPM_BIN_PATH"
+
+	BlankSdkVersion = "" // this will get injected into
 )

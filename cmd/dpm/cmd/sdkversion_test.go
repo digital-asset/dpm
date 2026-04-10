@@ -3,11 +3,18 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strings"
+	"sync/atomic"
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/utils"
+	"github.com/samber/lo"
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -199,6 +206,38 @@ packages:
 					testResolution(t, tc.ExpectedResolution)
 				})
 			}
+
+			// tests DPM_SDK_VERSION and DPM_RESOLUTION_FILE env vars that dpm injects when exec'ing commands
+			t.Run("dynamically injected env vars", func(t *testing.T) {
+				wasCalled := atomic.Bool{}
+				assertEnv := func(cmd *exec.Cmd) {
+					wasCalled.Store(true)
+
+					expected := tc.ExpectedVersion
+					if expected == "null" {
+						expected = ""
+					}
+
+					assert.Contains(t, cmd.Env, fmt.Sprintf("%s=%s", assistantconfig.DpmSdkVersionEnvVar, expected))
+					assert.Regexp(t, regexp.MustCompile(assistantconfig.ResolutionFilePathEnvVar+"=\"?[\\w/._-]+[.]yaml\"?"), strings.Join(cmd.Env, "\n"))
+				}
+
+				commands := lo.Filter(createStdTestRootCmd(t, "--help").Commands(), func(c *cobra.Command, _ int) bool {
+					return c.GroupID == sdkGroupId
+				})
+				for _, c := range commands {
+					_ = createStdTestRootCmdWithPreRunHook(t, assertEnv, c.Use).Execute()
+				}
+
+				if tc.ExpectedVersion == "null" {
+					// TODO since in this testcase there's no sdk, no SDK commands will be available to run (i.e. in the --help).
+					// so there's no command we can run to be able to obtain the injected env var(s).
+					// To test this, we'd need to add an override-component, so that we have at least 1 command
+				} else {
+					assert.True(t, wasCalled.Load(), tc.ExpectedResolution)
+				}
+			})
+
 		})
 	}
 }

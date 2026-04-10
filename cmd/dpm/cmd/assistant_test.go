@@ -6,8 +6,8 @@ package cmd
 import (
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -313,29 +313,6 @@ func testMeepyComponent(t *testing.T) {
 	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
 	assert.Contains(t, string(output), "meep meep! --some-flag")
-}
-
-func (suite *MainSuite) TestInjectedEnvVars() {
-	t := suite.T()
-	if testutil.OS == "windows" {
-		t.Skip("TODO #114 this test hates windows")
-		return
-	}
-	t.Setenv("DPM_ASSEMBLY", testutil.TestdataPath(t, "local-with-java", testutil.OS, "sdk-manifest.yaml"))
-	cmd, r, w := createTestRootCmd(t, "show-env-vars", "--some-flag")
-	assert.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
-
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
-
-	t.Run("resolution file path", func(t *testing.T) {
-		assert.Regexp(t, regexp.MustCompile(assistantconfig.ResolutionFilePathEnvVar+"=\"?[\\w/._-]+[.]yaml\"?"), output)
-	})
-
-	t.Run("sdk version", func(t *testing.T) {
-		assert.Regexp(t, regexp.MustCompile(assistantconfig.DpmSdkVersionEnvVar+"=\"?"+someSdkVersion+"\"?"), output)
-	})
 }
 
 func (suite *MainSuite) TestJavaCommand() {
@@ -1155,6 +1132,27 @@ func createTestRootCmd(t *testing.T, args ...string) (rootCmd *cobra.Command, r 
 		OsArgs: append([]string{DpmName}, args...),
 	}
 
+	rootCmd, err = RootCmd(ctx, &da)
+	require.NoError(t, err)
+
+	return
+}
+
+func createStdTestRootCmdWithPreRunHook(t *testing.T, cmdPreRunHook func(cmd *exec.Cmd), args ...string) (rootCmd *cobra.Command) {
+	ctx := testutil.Context(t)
+
+	da := assistant.DamlAssistant{
+		Stderr: os.Stderr,
+		Stdout: os.Stdout,
+		Stdin:  nil,
+		ExitFn: func(exitCode int) {
+			assert.Equal(t, 0, exitCode)
+		},
+		OsArgs:        append([]string{DpmName}, args...),
+		CmdPreRunHook: cmdPreRunHook,
+	}
+
+	var err error
 	rootCmd, err = RootCmd(ctx, &da)
 	require.NoError(t, err)
 
