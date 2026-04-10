@@ -58,7 +58,7 @@ func (l *Locker) EnsureLockfiles(ctx context.Context) (map[string]*PackageLock, 
 		if err != nil {
 			return nil, err
 		}
-		_, err = l.ensureMultiPackageLockfile(ctx, filepath.Dir(multiPackagePath))
+		_, err = l.EnsureMultiPackageLockfile(ctx, filepath.Dir(multiPackagePath))
 		if err != nil {
 			return nil, err
 		}
@@ -111,8 +111,8 @@ func (l *Locker) EnsureLockfile(ctx context.Context, packageDirAbsPath string) (
 	return l.create(ctx, expectedLockfile, lockfilePath)
 }
 
-func (l *Locker) ensureMultiPackageLockfile(ctx context.Context, multiPkgDirAbsPath string) (*PackageLock, error) {
-	expectedLockfile, err := l.computeMultiExpectedLockfile(multiPkgDirAbsPath)
+func (l *Locker) EnsureMultiPackageLockfile(ctx context.Context, multiPkgDirAbsPath string) (*PackageLock, error) {
+	expectedLockfile, err := l.computeMultiExpectedLockfile()
 	if err != nil {
 		return nil, err
 	}
@@ -262,10 +262,10 @@ func (l *Locker) computeExpectedLockfile(packageDirAbsPath string) (*PackageLock
 	}, nil
 }
 
-func (l *Locker) computeMultiExpectedLockfile(multiPackageDirAbsPath string) (*PackageLock, error) {
+func (l *Locker) computeMultiExpectedLockfile() (*PackageLock, error) {
 	var expectedDars []*Dar
 
-	lockSdkVersion, err := l.getSdkVersion(filepath.Join(multiPackageDirAbsPath, assistantconfig.DamlMultiPackageFilename))
+	lockSdkVersion, err := l.getExpectedSdkVersion("")
 	if err != nil {
 		return nil, err
 	}

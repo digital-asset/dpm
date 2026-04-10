@@ -119,7 +119,7 @@ func (suite *MainSuite) TestLockfileUpdateDarDeps() {
 	})
 }
 
-func (suite *MainSuite) TestLockfileUpdateSdkVersion() {
+func (suite *MainSuite) TestLockfileUpdateSdkVersionFloaty() {
 	t := suite.T()
 
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
@@ -177,24 +177,20 @@ func (suite *MainSuite) TestLockfileUpdateSdkVersion() {
 	//})
 
 	t.Run("resolution", func(t *testing.T) {
-		t.Chdir(filepath.Join(multiPackageDir, "b"))
+		for _, dir := range []string{multiPackageDir, filepath.Join(multiPackageDir, "a"), filepath.Join(multiPackageDir, "b")} {
+			t.Chdir(dir)
 
-		cmd, r, w := createTestRootCmd(t, "resolve")
-		require.NoError(t, cmd.Execute())
-		require.NoError(t, w.Close())
+			cmd, r, w := createTestRootCmd(t, "resolve")
+			require.NoError(t, cmd.Execute())
+			require.NoError(t, w.Close())
 
-		output, err := io.ReadAll(r)
-		require.NoError(t, err)
+			output, err := io.ReadAll(r)
+			require.NoError(t, err)
 
-		deepResolution := resolution.Resolution{}
-		require.NoError(t, yaml.Unmarshal(output, &deepResolution))
-
-		aRes := deepResolution.Packages[filepath.Join(multiPackageDir, "a")].Imports[resolution.DarImportsFields]
-		assert.Len(t, aRes, 2)
-		assert.Len(t,
-			deepResolution.Packages[filepath.Join(multiPackageDir, "b")].Imports[resolution.DarImportsFields],
-			2,
-		)
+			deepResolution := resolution.Resolution{}
+			require.NoError(t, yaml.Unmarshal(output, &deepResolution))
+			assert.Len(t, deepResolution.Packages, 2)
+		}
 	})
 }
 
@@ -203,10 +199,6 @@ func (suite *MainSuite) TestLockfileSdkVersion() {
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 
 	testActiveSdkVersionExhaustive(t, func(t *testing.T, tc SdkVersionTestCase, dirs TestCaseDirs) {
-		// TODO: Implement writing global sdk into lockfile and enforce test
-		if t.Name() == "TestSuite/TestLockfileSdkVersion/7_multi:null_pkg:some_wd:multi" {
-			t.Skip()
-		}
 		cmd := createStdTestRootCmd(t, "update")
 		require.NoError(t, cmd.Execute())
 

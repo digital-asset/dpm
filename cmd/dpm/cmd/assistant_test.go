@@ -573,16 +573,10 @@ func (suite *MainSuite) TestAutoInstallDefaultDisabled() {
 	t := suite.T()
 	ctx := testutil.Context(t)
 
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = os.Chdir(cwd) })
-	err = os.Chdir(testutil.TestdataPath(t, "daml-package", testutil.OS))
-	if err != nil {
-		return
-	}
+	t.Chdir(testutil.TestdataPath(t, "daml-package", testutil.OS))
 
 	da := &assistant.DamlAssistant{OsArgs: []string{os.Args[0]}}
-	_, err = RootCmd(ctx, da)
+	_, err := RootCmd(ctx, da)
 	require.ErrorIs(t, err, assistantconfig.ErrTargetSdkNotInstalled)
 }
 

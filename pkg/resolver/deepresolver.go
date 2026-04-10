@@ -66,6 +66,23 @@ func (d *DeepResolver) resolvePackages(ctx context.Context) (resolution.Packages
 		if err != nil {
 			return nil, err
 		}
+
+		// ensure multi-package.lock
+		multiPackageDir := filepath.Dir(multiPackagePath)
+		multiPackageLockPath := filepath.Join(multiPackageDir, assistantconfig.DpmMultiPackageLockFileName)
+		_, err = packagelock.ReadPackageLock(multiPackageLockPath)
+		if errors.Is(err, os.ErrNotExist) {
+			_, err := packagelock.New(d.config, d.remote, packagelock.Regular).EnsureMultiPackageLockfile(ctx, multiPackageDir)
+			if err != nil {
+				return nil, err
+			}
+		}
+		_, err = packagelock.New(d.config, d.remote, packagelock.CheckOnly).EnsureMultiPackageLockfile(ctx, multiPackageDir)
+		if err != nil {
+			return nil, err
+		}
+
+		// handle all sub-packages
 		return d.resolve(ctx, multiPackage.AbsolutePackages()...)
 	}
 
@@ -108,16 +125,6 @@ func (d *DeepResolver) resolve(ctx context.Context, packageAbsolutePaths ...stri
 }
 
 func (d *DeepResolver) resolvePackageAndDars(ctx context.Context, absPath string) (*resolution.Package, error) {
-	// (floaty) versions needs to be resolved and the lockfiles present by this point
-	result, err := d.resolvePackage(ctx, absPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if !assistantconfig.DpmLockfileEnabled() {
-		return result.ShallowResolution, nil
-	}
-
 	lock, err := packagelock.ReadPackageLock(filepath.Join(absPath, assistantconfig.DpmLockFileName))
 	if errors.Is(err, os.ErrNotExist) {
 		lock, err = packagelock.New(d.config, d.remote, packagelock.Regular).EnsureLockfile(ctx, absPath)
@@ -126,6 +133,12 @@ func (d *DeepResolver) resolvePackageAndDars(ctx context.Context, absPath string
 		}
 	}
 	_, err = packagelock.New(d.config, d.remote, packagelock.CheckOnly).EnsureLockfile(ctx, absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// (floaty) versions needs to have been resolved and the lockfiles present by this point
+	result, err := d.resolvePackage(ctx, absPath)
 	if err != nil {
 		return nil, err
 	}
