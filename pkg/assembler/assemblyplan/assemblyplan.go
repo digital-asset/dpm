@@ -27,6 +27,7 @@ type AssemblyPlan struct {
 	Base         sdkmanifest.SdkManifest
 	DamlPackage  *sdkmanifest.SdkManifest
 	MultiPackage *sdkmanifest.SdkManifest
+	SdkVersion   *semver.Version
 
 	assembler *assembler.Assembler
 	config    *assistantconfig.Config
@@ -54,18 +55,18 @@ func New(ctx context.Context, config *assistantconfig.Config, a *assembler.Assem
 }
 
 func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assembler.Assembler, damlPackagePath string) (*AssemblyPlan, error) {
-	plan := &AssemblyPlan{
-		config:    config,
-		assembler: a,
-	}
-
-	var installedSdk *assistantconfig.InstalledSdkVersion
-	var err error
-
 	sdkVersion, err := versions.GetActiveVersion(config, damlPackagePath)
 	if err != nil {
 		return nil, err
 	}
+
+	plan := &AssemblyPlan{
+		config:     config,
+		assembler:  a,
+		SdkVersion: sdkVersion,
+	}
+
+	var installedSdk *assistantconfig.InstalledSdkVersion
 
 	if damlPackagePath != "" {
 		damlPackage, err := damlpackage.Read(damlPackagePath)
@@ -201,5 +202,16 @@ func (plan *AssemblyPlan) Assemble(ctx context.Context) (*assembler.AssemblyResu
 	if err != nil {
 		return nil, err
 	}
+
+	// set commands' sdk version
+	for _, cs := range result.ValidatedCommands {
+		for _, c := range cs {
+			c.DpmSdkVersionEnvVar = assistantconfig.BlankSdkVersion
+			if plan.SdkVersion != nil {
+				c.DpmSdkVersionEnvVar = plan.SdkVersion.String()
+			}
+		}
+	}
+
 	return result, nil
 }

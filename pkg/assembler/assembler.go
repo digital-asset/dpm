@@ -13,8 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Masterminds/semver/v3"
-
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/component"
@@ -84,16 +82,12 @@ func (a *Assembler) Assemble(ctx context.Context, assemblyManifest *sdkmanifest.
 func (a *Assembler) AssembleManyWithOverlay(ctx context.Context, assemblyManifests ...*sdkmanifest.SdkManifest) (*AssemblyResult, error) {
 	components := make(map[string]*ResolvedComponent)
 
-	var sdkVersion *sdkmanifest.SemVer
 	for _, assemblyManifest := range assemblyManifests {
 		manifestComponents, err := a.collectComponents(ctx, assemblyManifest)
 		if err != nil {
 			return nil, err
 		}
 		maps.Copy(components, manifestComponents)
-		if assemblyManifest.Spec.Version != nil {
-			sdkVersion = assemblyManifest.Spec.Version
-		}
 	}
 
 	cmds := extractCommands(components)
@@ -103,16 +97,6 @@ func (a *Assembler) AssembleManyWithOverlay(ctx context.Context, assemblyManifes
 
 	if err := a.setCommandsDependencyPaths(cmds, components); err != nil {
 		return nil, err
-	}
-
-	// set commands' sdk version
-	if sdkVersion != nil {
-		for _, cs := range cmds {
-			for _, c := range cs {
-				v := sdkVersion.Value()
-				c.SdkVersion = &v
-			}
-		}
 	}
 
 	imports, err := a.computeImports(components)
@@ -196,7 +180,7 @@ type ValidatedCommand struct {
 	AbsolutePath         string
 	ComponentName        string
 	ResolvedDependencies map[string]string // <env var key> -> <some component's absolute path>
-	SdkVersion           *semver.Version
+	DpmSdkVersionEnvVar  string            // the DPM_SDK_VERSION to be injected into the commands env at runtime
 }
 
 type ResolvedComponent struct {
