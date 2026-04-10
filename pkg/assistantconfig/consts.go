@@ -17,5 +17,7 @@ const (
 
 	DpmPathInjectedEnvVar = "DPM_BIN_PATH"
 
-	BlankSdkVersion = "" // this will get injected into
+	// BlankSdkVersion this will be the value of the DPM_SDK_VERSION env var that dpm injects into the commands it runs
+	// in the blank (aka no-sdk) case.
+	BlankSdkVersion = ""
 )

@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -219,7 +218,14 @@ packages:
 					}
 
 					assert.Contains(t, cmd.Env, fmt.Sprintf("%s=%s", assistantconfig.DpmSdkVersionEnvVar, expected))
-					assert.Regexp(t, regexp.MustCompile(assistantconfig.ResolutionFilePathEnvVar+"=\"?[\\w/._-]+[.]yaml\"?"), strings.Join(cmd.Env, "\n"))
+					kv, _ := lo.Find(cmd.Env, func(kv string) bool {
+						return strings.Contains(kv, assistantconfig.ResolutionFilePathEnvVar)
+					})
+					_, val, _ := strings.Cut(kv, "=")
+					contents, err := os.ReadFile(val)
+					require.NoError(t, err)
+					require.Contains(t, string(contents), "kind: Resolution")
+					assert.True(t, filepath.IsAbs(val))
 				}
 
 				commands := lo.Filter(createStdTestRootCmd(t, "--help").Commands(), func(c *cobra.Command, _ int) bool {
@@ -230,8 +236,8 @@ packages:
 				}
 
 				if tc.ExpectedVersion == "null" {
-					// TODO since in this testcase there's no sdk, no SDK commands will be available to run (i.e. in the --help).
-					// so there's no command we can run to be able to obtain the injected env var(s).
+					// TODO since in this testcase there's no sdk, no SDK commands will be available
+					// to run (i.e. in the --help) so that we can obtain the injected env var(s).
 					// To test this, we'd need to add an override-component, so that we have at least 1 command
 				} else {
 					assert.True(t, wasCalled.Load(), tc.ExpectedResolution)
