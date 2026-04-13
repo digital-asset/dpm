@@ -16,6 +16,7 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/component"
+	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ocipuller"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/resolution"
@@ -23,6 +24,7 @@ import (
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/samber/lo"
+	"oras.land/oras-go/v2/registry"
 )
 
 const (
@@ -352,9 +354,10 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 }
 
 func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+
 	destPath := a.ociComponentPath(comp)
 	tag := ComputeTagOrDigest(comp)
-
+	componentName := ociconsts.ComponentRepoPrefix + comp.Name
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
 	if err != nil {
@@ -374,14 +377,16 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 		}
 		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
 		if comp.Uri != nil {
-			a.config.Registry = *comp.Uri
+			ref, err := registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
+			componentName = ref.Repository
+			a.config.Registry = ref.Registry
 			customPuller, err := remotepuller.NewFromRemoteConfig(a.config)
 			if err != nil {
 				return "", err
 			}
 			a.puller = customPuller
 		}
-		if err := a.puller.PullComponent(ctx, comp.Name, tag, destPath, platform); err != nil {
+		if err := a.puller.PullComponent(ctx, componentName, tag, destPath, platform); err != nil {
 			return "", err
 		}
 	}
@@ -391,10 +396,28 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 
 func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
 	// TODO fully flesh this out
+	if comp.Uri != nil {
+		ref, err := registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
+		if err != nil {
+			fmt.Errorf("Invalid URI provided")
+		}
+		if ref.Reference != "" {
+			return ref.Reference
+		}
+	}
 	return comp.Version.Value().String()
 }
 
 func (a *Assembler) ociComponentPath(comp *sdkmanifest.Component) string {
+	if comp.Uri != nil {
+		ref, err := registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
+		if err != nil {
+			fmt.Errorf("Invalid URI provided")
+		}
+		if ref.Reference != "" {
+			return filepath.Join(a.config.CachePath, "components", comp.Name, ref.Reference)
+		}
+	}
 	return filepath.Join(a.config.CachePath, "components", comp.Name, comp.Version.Value().String())
 }
 

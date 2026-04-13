@@ -9,7 +9,6 @@ import (
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
-	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ocicache"
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocipuller"
@@ -43,7 +42,7 @@ func NewFromRemoteConfig(config *assistantconfig.Config) (*RemoteOciPuller, erro
 }
 
 func (a *RemoteOciPuller) PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error {
-	return a.pull(ctx, ociconsts.ComponentRepoPrefix+componentName, tag, destPath, platform)
+	return a.pull(ctx, componentName, tag, destPath, platform)
 }
 
 func (a *RemoteOciPuller) PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, platform *simpleplatform.NonGeneric) error {
@@ -59,7 +58,6 @@ func (a *RemoteOciPuller) pull(ctx context.Context, repo, tag, destPath string, 
 	if err != nil {
 		return err
 	}
-
 	dest, err := file.New(destPath)
 	if err != nil {
 		return err
@@ -67,9 +65,7 @@ func (a *RemoteOciPuller) pull(ctx context.Context, repo, tag, destPath string, 
 	dest.PreservePermissions = true
 	// errors out if dest already exists
 	dest.DisableOverwrite = true
-
 	opts := ocipuller.ApplyFileInfoCopyOptions(destPath)
-
 	if nonGeneric, ok := platform.(*simpleplatform.NonGeneric); ok {
 		index, _, err := ociindex.FetchIndex(ctx, a.remote, repo, tag)
 		if err != nil {
