@@ -373,6 +373,14 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 			platform = a.overridePlatform
 		}
 		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
+		if comp.Uri != nil {
+			a.config.Registry = *comp.Uri
+			customPuller, err := remotepuller.NewFromRemoteConfig(a.config)
+			if err != nil {
+				return "", err
+			}
+			a.puller = customPuller
+		}
 		if err := a.puller.PullComponent(ctx, comp.Name, tag, destPath, platform); err != nil {
 			return "", err
 		}
