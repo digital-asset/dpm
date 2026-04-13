@@ -21,13 +21,21 @@ import (
 )
 
 // AssemblyPlan decides what the final commands that'll be added to the assistant root command are,
-// or rather where they'll be sourced from. It takes into account the existence of
-// daml.yaml, multi-package.yaml, or lack thereof in making that decision.
+// or rather where they'll be sourced from.
+// It takes into account the existence of daml.yaml, multi-package.yaml, override-component or lack
+// thereof (and also, importantly, the CWD) in making that decision.
 type AssemblyPlan struct {
-	Base         sdkmanifest.SdkManifest
-	DamlPackage  *sdkmanifest.SdkManifest
+	// the base will contain all the components from the effective SDK version,
+	// or be completely empty in the blank sdk case
+	Base       sdkmanifest.SdkManifest
+	SdkVersion *semver.Version // the effective sdk version (for the current working directory)
+
+	// this will contain any component-overrides (from multi-package.yaml) to overlay on top of the base
 	MultiPackage *sdkmanifest.SdkManifest
-	SdkVersion   *semver.Version
+
+	// this will contain any component-overrides (from daml.yaml) to overlay on top of (Base + MultiPackage).
+	// i.e. this will effectively have the highest precedence
+	DamlPackage *sdkmanifest.SdkManifest
 
 	assembler *assembler.Assembler
 	config    *assistantconfig.Config
@@ -81,9 +89,7 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 			plan.Base = sdkmanifest.SdkManifest{
 				AbsolutePath: "",
 				Spec: &sdkmanifest.Spec{
-					Version:    nil,
-					Edition:    nil,
-					Components: map[string]*sdkmanifest.Component{}, //. should be overriden by multi if not there
+					Components: map[string]*sdkmanifest.Component{},
 				},
 			}
 		} else {
@@ -103,8 +109,6 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 			plan.DamlPackage = &sdkmanifest.SdkManifest{
 				AbsolutePath: damlPackagePath,
 				Spec: &sdkmanifest.Spec{
-					Version:    nil,
-					Edition:    nil,
 					Components: damlPackage.OverrideComponents,
 				},
 			}
@@ -169,8 +173,6 @@ func configureMultiPackage(plan *AssemblyPlan) error {
 	plan.MultiPackage = &sdkmanifest.SdkManifest{
 		AbsolutePath: multiPackagePath,
 		Spec: &sdkmanifest.Spec{
-			Version:    nil,
-			Edition:    nil,
 			Components: multiPackage.OverrideComponents,
 		},
 	}
@@ -188,6 +190,7 @@ func (plan *AssemblyPlan) getOverrides() (assemblies []*sdkmanifest.SdkManifest)
 	return
 }
 
+// HasOverrides whether there are component-overrides defined in either multi-package.yaml or daml.yaml
 func (plan *AssemblyPlan) HasOverrides() bool {
 	return len(plan.getOverrides()) != 0
 }
@@ -203,7 +206,6 @@ func (plan *AssemblyPlan) Assemble(ctx context.Context) (*assembler.AssemblyResu
 		return nil, err
 	}
 
-	// set commands' sdk version
 	for _, cs := range result.ValidatedCommands {
 		for _, c := range cs {
 			c.DpmSdkVersionEnvVar = assistantconfig.BlankSdkVersion
