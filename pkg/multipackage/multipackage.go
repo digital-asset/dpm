@@ -4,6 +4,8 @@
 package multipackage
 
 import (
+	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 
@@ -15,10 +17,13 @@ import (
 )
 
 type MultiPackage struct {
-	SdkVersion         string                            `yaml:"sdk-version"`
-	AbsolutePath       string                            `yaml:"-"`
-	Packages           []string                          `yaml:"packages"`
-	OverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components"`
+	SdkVersion   string   `yaml:"sdk-version"`
+	AbsolutePath string   `yaml:"-"`
+	Packages     []string `yaml:"packages"`
+
+	Components map[string]*sdkmanifest.Component `yaml:"components"`
+	// deprecated in favor of Components
+	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components"`
 }
 
 func (m *MultiPackage) AbsolutePackages() []string {
@@ -64,11 +69,29 @@ func ReadFromContents(contents []byte, absPath string) (*MultiPackage, error) {
 	if err := yaml.UnmarshalWithOptions(contents, &obj, yaml.Strict()); err != nil {
 		return nil, err
 	}
-	if obj.OverrideComponents != nil {
-		for name, comp := range obj.OverrideComponents {
+
+	if obj.Components != nil {
+		for name, comp := range obj.Components {
 			comp.Name = name
 		}
 	}
+
+	if obj.DeprecatedOverrideComponents != nil {
+		for name, comp := range obj.DeprecatedOverrideComponents {
+			comp.Name = name
+		}
+
+		if obj.Components != nil {
+			return nil, fmt.Errorf("fields 'components' and 'override-components' cannot be both simultaneously specified. Prefer 'components' as 'override-components' is deprecated")
+		}
+
+		obj.Components = make(map[string]*sdkmanifest.Component)
+		maps.Copy(obj.Components, obj.DeprecatedOverrideComponents)
+
+		// zero it out to make sure we really aren't relying on it past this point
+		obj.DeprecatedOverrideComponents = nil
+	}
+
 	obj.AbsolutePath = absPath
 	return &obj, nil
 }

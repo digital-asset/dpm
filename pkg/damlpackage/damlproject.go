@@ -5,6 +5,7 @@ package damlpackage
 
 import (
 	"fmt"
+	"maps"
 	"os"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
@@ -13,11 +14,15 @@ import (
 )
 
 type DamlPackage struct {
-	SdkVersion           string                            `yaml:"sdk-version"`
-	OverrideComponents   map[string]*sdkmanifest.Component `yaml:"override-components"`
-	Dependencies         []string                          `yaml:"dependencies"`
-	ArtifactLocations    ArtifactLocations                 `yaml:"artifact-locations"`
-	ResolvedDependencies map[string]*ResolvedDependency    `yaml:"-"`
+	SdkVersion string `yaml:"sdk-version"`
+
+	Components map[string]*sdkmanifest.Component `yaml:"components"`
+	// deprecated in favor of Components
+	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components"`
+
+	Dependencies         []string                       `yaml:"dependencies"`
+	ArtifactLocations    ArtifactLocations              `yaml:"artifact-locations"`
+	ResolvedDependencies map[string]*ResolvedDependency `yaml:"-"`
 }
 
 func Read(filePath string) (*DamlPackage, error) {
@@ -38,10 +43,27 @@ func ReadFromContents(contents []byte) (*DamlPackage, error) {
 	if err := yaml.UnmarshalWithOptions(expanded, &obj); err != nil {
 		return nil, err
 	}
-	if obj.OverrideComponents != nil {
-		for name, comp := range obj.OverrideComponents {
+
+	if obj.Components != nil {
+		for name, comp := range obj.Components {
 			comp.Name = name
 		}
+	}
+
+	if obj.DeprecatedOverrideComponents != nil {
+		for name, comp := range obj.DeprecatedOverrideComponents {
+			comp.Name = name
+		}
+
+		if obj.Components != nil {
+			return nil, fmt.Errorf("fields 'components' and 'override-components' cannot be both simultaneously specified. Prefer 'components' as 'override-components' is deprecated")
+		}
+
+		obj.Components = make(map[string]*sdkmanifest.Component)
+		maps.Copy(obj.Components, obj.DeprecatedOverrideComponents)
+
+		// zero it out to make sure we really aren't relying on it past this point
+		obj.DeprecatedOverrideComponents = nil
 	}
 
 	if assistantconfig.DpmLockfileEnabled() {
