@@ -105,11 +105,11 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 			plan.Base = *base
 		}
 
-		if damlPackage.OverrideComponents != nil {
+		if damlPackage.Components != nil {
 			plan.DamlPackage = &sdkmanifest.SdkManifest{
 				AbsolutePath: damlPackagePath,
 				Spec: &sdkmanifest.Spec{
-					Components: damlPackage.OverrideComponents,
+					Components: damlPackage.Components,
 				},
 			}
 		}
@@ -173,7 +173,7 @@ func configureMultiPackage(plan *AssemblyPlan) error {
 	plan.MultiPackage = &sdkmanifest.SdkManifest{
 		AbsolutePath: multiPackagePath,
 		Spec: &sdkmanifest.Spec{
-			Components: multiPackage.OverrideComponents,
+			Components: multiPackage.Components,
 		},
 	}
 	return nil

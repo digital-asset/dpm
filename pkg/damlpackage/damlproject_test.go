@@ -1,6 +1,8 @@
 package damlpackage
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
@@ -28,5 +30,41 @@ func TestDarDependencies(t *testing.T) {
 	assert.Equal(t, p.ResolvedDependencies["foo:devnet"].FullUrl.String(), "oci://localhost:5000/more/official/dars/foo:devnet")
 	assert.Equal(t, p.ResolvedDependencies["oci://localhost:5000/some/dars/foo:1.2.3"].FullUrl.String(), "oci://localhost:5000/some/dars/foo:1.2.3")
 	assert.Equal(t, p.ResolvedDependencies["@my-location/foo:4.5.6"].FullUrl.String(), "oci://localhost:5000/some/dars/n/stuff/foo:4.5.6")
+
+}
+
+func makeDamlYaml(fields ...string) []byte {
+	s := fmt.Sprintf("sdk-version: 3.4.5\n%s", strings.Join(fields, "\n"))
+	return []byte(s)
+}
+
+func TestComponentFields(t *testing.T) {
+	componentsField := `
+components:
+  foo:
+    version: 4.5.6
+`
+	overrideComponentsField := `
+override-components:
+  damlc:
+    version: 1.2.3
+`
+
+	t.Run("cannot use both fields together", func(t *testing.T) {
+		_, err := ReadFromContents(makeDamlYaml(componentsField, overrideComponentsField))
+		require.Error(t, err)
+	})
+
+	t.Run("populates components fields", func(t *testing.T) {
+		p, err := ReadFromContents(makeDamlYaml(componentsField))
+		require.NoError(t, err)
+		assert.Contains(t, p.Components, "foo")
+	})
+
+	t.Run("populates components fields from override-components", func(t *testing.T) {
+		p, err := ReadFromContents(makeDamlYaml(overrideComponentsField))
+		require.NoError(t, err)
+		assert.Contains(t, p.Components, "damlc")
+	})
 
 }
