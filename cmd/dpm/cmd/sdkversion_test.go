@@ -36,12 +36,19 @@ type SdkVersionTestCase struct {
 	ExpectedResolution                        ExpectedResolution
 }
 
-const globalSdkVersion = "999.999.999"
+const (
+	globalSdkVersion = "999.999.999"
+
+	globalSdkComponent    = "bleep" // contained in the globalSdkVersion sdk
+	someSdkComponent      = "meep"  // contained in the someSdkVersion sdk
+	someOtherSdkComponent = "sheep" // contained in the someOtherSdkVersion sdk
+
+)
 
 var expectedResolution = ExpectedResolution{
 	1,
 	globalSdkVersion,
-	1,
+	[]string{someSdkComponent},
 	2}
 
 var sdkVersionTestCases = []SdkVersionTestCase{
@@ -59,7 +66,11 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      someOtherSdkVersion,
 		WorkingDir:             MultiPackageWorkingDir,
 		ExpectedVersion:        someSdkVersion,
-		ExpectedResolution:     expectedResolution,
+		ExpectedResolution: ExpectedResolution{
+			1,
+			globalSdkVersion,
+			[]string{someOtherSdkComponent},
+			2},
 	},
 	{
 		Name:                   "3 multi:some pkg:null wd:multi",
@@ -86,7 +97,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		ExpectedResolution: ExpectedResolution{
 			1,
 			globalSdkVersion,
-			0,
+			[]string{},
 			0},
 	},
 	{
@@ -98,7 +109,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		ExpectedResolution: ExpectedResolution{
 			1,
 			globalSdkVersion,
-			0,
+			[]string{},
 			0},
 	},
 	{
@@ -115,7 +126,11 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		PackageSdkVersion:      someOtherSdkVersion,
 		WorkingDir:             PackageWorkingDir,
 		ExpectedVersion:        someOtherSdkVersion,
-		ExpectedResolution:     expectedResolution,
+		ExpectedResolution: ExpectedResolution{
+			1,
+			globalSdkVersion,
+			[]string{someOtherSdkComponent},
+			2},
 	},
 	{
 		Name:                   "12 multi:some pkg:null wd:pkg",
@@ -152,8 +167,9 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
-	sdkVersions := []string{someSdkVersion, someOtherSdkVersion, globalSdkVersion}
-	installSdk(t, sdkVersions)
+	installSdkForComponent(t, globalSdkVersion, globalSdkComponent, "999.999.999")
+	installSdkForComponent(t, someSdkVersion, someSdkComponent, "1.2.3")
+	installSdkForComponent(t, someOtherSdkVersion, someOtherSdkComponent, "4.5.6")
 
 	setupTestCase := func(tc SdkVersionTestCase) (dirs TestCaseDirs) {
 		tmpDir := t.TempDir()
@@ -240,7 +256,7 @@ packages:
 					// to run (i.e. in the --help) so that we can obtain the injected env var(s).
 					// To test this, we'd need to add an override-component, so that we have at least 1 command
 				} else {
-					assert.True(t, wasCalled.Load(), tc.ExpectedResolution)
+					assert.True(t, wasCalled.Load())
 				}
 			})
 
