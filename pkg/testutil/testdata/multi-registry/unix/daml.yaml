@@ -1,10 +1,10 @@
 components:
-  # override - pushComponents appends components 
+  # TODO - replace /components/ with something more "random" for better uri representation
   meep:
     uri: ${TEST_DPM_REGISTRY}/components/meep:1.2.3
-
+    # TODO : uri: ${TEST_DPM_REGISTRY}/foo/bar/meep:1.2.3
   rando:
     uri: ${TEST_ALT_DPM_REGISTRY}/components/rando:1.2.4
-
+    # TODO : uri: ${TEST_ALT_DPM_REGISTRY}/bar/foo/rando:1.2.4
   needy:
     version: 1.2.5
