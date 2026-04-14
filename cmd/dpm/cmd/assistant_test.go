@@ -851,7 +851,7 @@ func (suite *MainSuite) TestMultiPackageInstall() {
 		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-another"))))
 		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
 
-		cmd := createTestStdRootCmd(t, "install", "package")
+		cmd, r, w := createTestRootCmd(t, "install", "package")
 		require.NoError(t, cmd.Execute())
 		assert.NoError(t, w.Close())
 
@@ -898,15 +898,16 @@ func (suite *MainSuite) TestInstallPackageMultiRegistry() {
 	_, reg := testutil.StartRegistry(t)
 	_, altReg := testutil.StartRegistry(t)
 
-	regURL := reg.URL
-	altURL := altReg.URL
+	regURL := strings.TrimPrefix(reg.URL, "http://")
+	altURL := strings.TrimPrefix(altReg.URL, "http://")
 
-	t.Setenv("TEST_DPM_REGISTRY", regURL)
-	t.Setenv("TEST_ALT_DPM_REGISTRY", altURL)
+	t.Setenv("TEST_DPM_REGISTRY", "oci://"+regURL)
+	t.Setenv("TEST_ALT_DPM_REGISTRY", "oci://"+altURL)
 
-	// push assembly, assistant, and component
+	// TODO - Update dpm repo publish-component to be able to handle different oci path with assuming a structure
 	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
 	testutil.PushComponent(t, ctx, altReg, "rando", "1.2.4", testutil.TestdataPath(t, "components", "rando"))
+	testutil.PushComponent(t, ctx, altReg, "needy", "1.2.5", testutil.TestdataPath(t, "components", "needy", testutil.OS))
 
 	tmpDir := t.TempDir()
 
