@@ -366,8 +366,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 	ref, err = registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
 
 	componentPath := ref.Repository
-
-	destPath := a.ociUriComponentPath(comp, ref)
+	destPath := a.ociComponentPath(comp.Name, ref.Reference)
 	tag := ref.Reference
 
 	// check if component is already in the cache
@@ -401,7 +400,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 }
 
 func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
-	destPath := a.ociComponentPath(comp)
+	destPath := a.ociComponentPath(comp.Name, comp.Version.Value().String())
 	tag := ComputeTagOrDigest(comp)
 
 	// check if component is already in the cache
@@ -431,12 +430,8 @@ func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
 	return comp.Version.Value().String()
 }
 
-func (a *Assembler) ociUriComponentPath(comp *sdkmanifest.Component, tag registry.Reference) string {
-	return filepath.Join(a.config.CachePath, "components", comp.Name, tag.Reference)
-}
-
-func (a *Assembler) ociComponentPath(comp *sdkmanifest.Component) string {
-	return filepath.Join(a.config.CachePath, "components", comp.Name, comp.Version.Value().String())
+func (a *Assembler) ociComponentPath(componentName string, tag string) string {
+	return filepath.Join(a.config.CachePath, "components", componentName, tag)
 }
 
 // computeImports merges all components' component.Exports, taking into account their conflict strategy,
