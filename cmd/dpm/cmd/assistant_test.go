@@ -52,6 +52,19 @@ func (r ExpectedResolution) WithSdkVersion(v string) ExpectedResolution {
 	}
 }
 
+func (r ExpectedResolution) WithExtraComponents(components ...string) ExpectedResolution {
+	imports := r.ExpectedImports
+	if r.ExpectedImports == 0 && len(components) > 0 {
+		imports = 2
+	}
+	return ExpectedResolution{
+		ExpectedPackages:          r.ExpectedPackages,
+		ExpectedDefaultSdkVersion: r.ExpectedDefaultSdkVersion,
+		ExpectedComponents:        append(components, r.ExpectedComponents...),
+		ExpectedImports:           imports,
+	}
+}
+
 const someSdkVersion = "0.0.1-whatever"
 const someOtherSdkVersion = "0.0.1-not-whatever"
 
