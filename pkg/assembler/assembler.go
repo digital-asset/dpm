@@ -365,7 +365,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 
 	ref, err = registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
 
-	componentName := ref.Repository
+	componentPath := ref.Repository
 
 	destPath := a.ociUriComponentPath(comp, ref)
 	tag := ref.Reference
@@ -385,14 +385,15 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		}
 		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
 
-		customRemote, err := assistantremote.New(ref.Registry, "", a.config.Insecure)
+		customRemote, err := assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
 		if err != nil {
 			return "", err
 		}
 
-		customPuller := remotepuller.New(a.config, customRemote)
+		// Passing in old config layoutCache
+		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
 
-		if err := customPuller.PullComponent(ctx, componentName, tag, destPath, platform); err != nil {
+		if err := customPuller.PullComponent(ctx, componentPath, tag, destPath, platform); err != nil {
 			return "", err
 		}
 	}

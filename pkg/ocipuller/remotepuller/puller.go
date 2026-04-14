@@ -20,15 +20,16 @@ import (
 )
 
 type RemoteOciPuller struct {
-	config *assistantconfig.Config
-	remote *assistantremote.Remote
+	ociLayoutCache string
+	remote         *assistantremote.Remote
 }
 
 var _ ocipuller.OciPuller = (*RemoteOciPuller)(nil)
 
-func New(config *assistantconfig.Config, remote *assistantremote.Remote) *RemoteOciPuller {
+func New(OciLayoutCache string, remote *assistantremote.Remote) *RemoteOciPuller {
 	return &RemoteOciPuller{
-		config: config,
+		ociLayoutCache: OciLayoutCache,
+
 		remote: remote,
 	}
 }
@@ -38,11 +39,11 @@ func NewFromRemoteConfig(config *assistantconfig.Config) (*RemoteOciPuller, erro
 	if err != nil {
 		return nil, err
 	}
-	return New(config, remote), nil
+	return New(config.OciLayoutCache, remote), nil
 }
 
-func (a *RemoteOciPuller) PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error {
-	return a.pull(ctx, componentName, tag, destPath, platform)
+func (a *RemoteOciPuller) PullComponent(ctx context.Context, componentPath, tag, destPath string, platform simpleplatform.Platform) error {
+	return a.pull(ctx, componentPath, tag, destPath, platform)
 }
 
 func (a *RemoteOciPuller) PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, platform *simpleplatform.NonGeneric) error {
@@ -91,5 +92,5 @@ func (a *RemoteOciPuller) cachedRepo(url string) (oras.ReadOnlyTarget, error) {
 	}
 	repo.Client = a.remote
 	repo.PlainHTTP = a.remote.Insecure
-	return ocicache.CachedTarget(repo, a.config.OciLayoutCache)
+	return ocicache.CachedTarget(repo, a.ociLayoutCache)
 }
