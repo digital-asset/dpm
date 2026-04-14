@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/component"
 	ociconsts "daml.com/x/assistant/pkg/oci"
@@ -362,12 +363,6 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 	var ref registry.Reference
 	var err error
 
-	prevRegistry := a.config.Registry
-
-	defer func() {
-		a.config.Registry = prevRegistry
-	}()
-
 	ref, err = registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
 
 	componentName := ref.Repository
@@ -390,13 +385,14 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		}
 		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
 
-		a.config.Registry = ref.Registry
-		customPuller, err := remotepuller.NewFromRemoteConfig(a.config)
+		customRemote, err := assistantremote.New(ref.Registry, "", a.config.Insecure)
 		if err != nil {
 			return "", err
 		}
-		a.puller = customPuller
-		if err := a.puller.PullComponent(ctx, componentName, tag, destPath, platform); err != nil {
+
+		customPuller := remotepuller.New(a.config, customRemote)
+
+		if err := customPuller.PullComponent(ctx, componentName, tag, destPath, platform); err != nil {
 			return "", err
 		}
 	}
@@ -414,11 +410,7 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 	}
 	if !ok {
 		if _, isRemote := a.puller.(*remotepuller.RemoteOciPuller); isRemote && !a.config.AutoInstall {
-			// TODO there's no dedicated command for installing remote overridden components like there is for installing SDKs.
-			// As auto-installation of SDKs is disabled by default, so is pulling overridden remote components, as both SDKs and remote overrides
-			// are using the same AutoInstall config variable...
-			// so currently the only way the assistant to have the assistant pull remote overrides is to have the user enable auto-install
-			return "", fmt.Errorf("sdk component %q is missing and won't be downloaded because auto-install is disabled", comp.String())
+			return "", fmt.Errorf("sdk component %q won't be downloaded because auto-install is disabled", comp.String())
 		}
 		platform := simpleplatform.CurrentPlatform()
 		if a.overridePlatform != nil {
