@@ -208,7 +208,7 @@ func (plan *AssemblyPlan) Assemble(ctx context.Context) (*assembler.AssemblyResu
 
 	sdkVersion := assistantconfig.BlankSdkVersion
 	if plan.SdkVersion != nil {
-		plan.SdkVersion.String()
+		sdkVersion = plan.SdkVersion.String()
 	}
 	result.ShallowResolution.SdkVersion = sdkVersion
 	for _, cs := range result.ValidatedCommands {
