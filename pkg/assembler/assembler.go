@@ -361,9 +361,11 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 
 func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
 	var ref registry.Reference
-	var err error
 
-	ref, err = registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
+	ref, err := registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
+	if err != nil {
+		return "", err
+	}
 
 	componentPath := ref.Repository
 	destPath := a.ociComponentPath(comp.Name, ref.Reference)

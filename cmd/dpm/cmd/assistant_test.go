@@ -909,9 +909,6 @@ func (suite *MainSuite) TestInstallPackageMultiRegistry() {
 	testutil.PushComponent(t, ctx, altReg, "rando", "1.2.4", testutil.TestdataPath(t, "components", "rando"))
 	testutil.PushComponent(t, ctx, altReg, "needy", "1.2.5", testutil.TestdataPath(t, "components", "needy", testutil.OS))
 
-	tmpDir := t.TempDir()
-
-	t.Chdir(tmpDir)
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-registry", testutil.OS)))
 	cmd := createStdTestRootCmd(t, "install", "package")
 
