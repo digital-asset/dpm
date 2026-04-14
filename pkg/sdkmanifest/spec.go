@@ -91,7 +91,7 @@ func (c *Component) UnmarshalYAML(bytes []byte) error {
 	}
 
 	if alias.Version == nil && alias.LocalPath == nil && alias.ImageTag == nil && alias.Uri == nil {
-		return fmt.Errorf("%w: a component must include `local-path`, `image-tag` or `version` field", ErrInvalidAssemblyManifest)
+		return fmt.Errorf("%w: a component must include `local-path`, `image-tag`, `uri` or `version` field", ErrInvalidAssemblyManifest)
 	}
 	if alias.LocalPath != nil {
 		if alias.ImageTag != nil || alias.Version != nil || alias.Uri != nil {

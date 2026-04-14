@@ -851,7 +851,7 @@ func (suite *MainSuite) TestMultiPackageInstall() {
 		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-another"))))
 		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
 
-		cmd, r, w := createTestRootCmd(t, "install", "package")
+		cmd := createTestStdRootCmd(t, "install", "package")
 		require.NoError(t, cmd.Execute())
 		assert.NoError(t, w.Close())
 
@@ -893,7 +893,6 @@ func (suite *MainSuite) TestMultiPackageSkip() {
 func (suite *MainSuite) TestInstallPackageMultiRegistry() {
 
 	t := suite.T()
-	// installSdk(t, []string{someSdkVersion})
 
 	ctx := testutil.Context(t)
 	_, reg := testutil.StartRegistry(t)
@@ -913,10 +912,9 @@ func (suite *MainSuite) TestInstallPackageMultiRegistry() {
 
 	t.Chdir(tmpDir)
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-registry", testutil.OS)))
-	cmd, _, w := createTestRootCmd(t, "install", "package")
+	cmd := createStdTestRootCmd(t, "install", "package")
 
 	require.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
 
 }
 
