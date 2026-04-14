@@ -105,11 +105,11 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 			plan.Base = *base
 		}
 
-		if damlPackage.OverrideComponents != nil {
+		if damlPackage.Components != nil {
 			plan.DamlPackage = &sdkmanifest.SdkManifest{
 				AbsolutePath: damlPackagePath,
 				Spec: &sdkmanifest.Spec{
-					Components: damlPackage.OverrideComponents,
+					Components: damlPackage.Components,
 				},
 			}
 		}
@@ -173,7 +173,7 @@ func configureMultiPackage(plan *AssemblyPlan) error {
 	plan.MultiPackage = &sdkmanifest.SdkManifest{
 		AbsolutePath: multiPackagePath,
 		Spec: &sdkmanifest.Spec{
-			Components: multiPackage.OverrideComponents,
+			Components: multiPackage.Components,
 		},
 	}
 	return nil
@@ -206,12 +206,14 @@ func (plan *AssemblyPlan) Assemble(ctx context.Context) (*assembler.AssemblyResu
 		return nil, err
 	}
 
+	sdkVersion := assistantconfig.BlankSdkVersion
+	if plan.SdkVersion != nil {
+		sdkVersion = plan.SdkVersion.String()
+	}
+	result.ShallowResolution.SdkVersion = sdkVersion
 	for _, cs := range result.ValidatedCommands {
 		for _, c := range cs {
-			c.DpmSdkVersionEnvVar = assistantconfig.BlankSdkVersion
-			if plan.SdkVersion != nil {
-				c.DpmSdkVersionEnvVar = plan.SdkVersion.String()
-			}
+			c.DpmSdkVersionEnvVar = sdkVersion
 		}
 	}
 

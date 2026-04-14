@@ -32,17 +32,23 @@ type SdkVersionTestCase struct {
 	Name                                      string
 	MultiPackageSdkVersion, PackageSdkVersion string
 	WorkingDir                                WorkingDir
-	ExpectedVersion                           string
 	ExpectedResolution                        ExpectedResolution
 }
 
-const globalSdkVersion = "999.999.999"
+const (
+	globalSdkVersion = "999.999.999"
+
+	globalSdkComponent    = "bleep" // contained in the globalSdkVersion sdk
+	someSdkComponent      = "meep"  // contained in the someSdkVersion sdk
+	someOtherSdkComponent = "sheep" // contained in the someOtherSdkVersion sdk
+
+)
 
 var expectedResolution = ExpectedResolution{
-	1,
 	globalSdkVersion,
-	1,
-	2}
+	[]string{someSdkComponent},
+	2,
+	""}
 
 var sdkVersionTestCases = []SdkVersionTestCase{
 	{
@@ -50,96 +56,93 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		MultiPackageSdkVersion: someSdkVersion,
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             MultiPackageWorkingDir,
-		ExpectedVersion:        someSdkVersion,
-		ExpectedResolution:     expectedResolution,
+		ExpectedResolution:     expectedResolution.WithSdkVersion(someSdkVersion),
 	},
 	{
 		Name:                   "2 multi:some pkg:other wd:multi",
 		MultiPackageSdkVersion: someSdkVersion,
 		PackageSdkVersion:      someOtherSdkVersion,
 		WorkingDir:             MultiPackageWorkingDir,
-		ExpectedVersion:        someSdkVersion,
-		ExpectedResolution:     expectedResolution,
+		ExpectedResolution: ExpectedResolution{
+			globalSdkVersion,
+			[]string{someOtherSdkComponent},
+			2,
+			someSdkVersion},
 	},
 	{
 		Name:                   "3 multi:some pkg:null wd:multi",
 		MultiPackageSdkVersion: someSdkVersion,
 		PackageSdkVersion:      "null",
 		WorkingDir:             MultiPackageWorkingDir,
-		ExpectedVersion:        someSdkVersion,
-		ExpectedResolution:     expectedResolution,
+		ExpectedResolution:     expectedResolution.WithSdkVersion(someSdkVersion),
 	},
 	{
 		Name:                   "7 multi:null pkg:some wd:multi",
 		MultiPackageSdkVersion: "null",
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             MultiPackageWorkingDir,
-		ExpectedVersion:        globalSdkVersion,
-		ExpectedResolution:     expectedResolution,
+		ExpectedResolution:     expectedResolution.WithSdkVersion(globalSdkVersion),
 	},
 	{
 		Name:                   "9 multi:null pkg:null wd:multi",
 		MultiPackageSdkVersion: "null",
 		PackageSdkVersion:      "null",
 		WorkingDir:             MultiPackageWorkingDir,
-		ExpectedVersion:        globalSdkVersion,
 		ExpectedResolution: ExpectedResolution{
-			1,
 			globalSdkVersion,
+			[]string{},
 			0,
-			0},
+			globalSdkVersion},
 	},
 	{
 		Name:                   "18 multi:null pkg:null wd:pkg",
 		MultiPackageSdkVersion: "null",
 		PackageSdkVersion:      "null",
 		WorkingDir:             PackageWorkingDir,
-		ExpectedVersion:        "null",
 		ExpectedResolution: ExpectedResolution{
-			1,
 			globalSdkVersion,
+			[]string{},
 			0,
-			0},
+			"null"},
 	},
 	{
 		Name:                   "10 multi:some pkg:some wd:pkg",
 		MultiPackageSdkVersion: someSdkVersion,
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             PackageWorkingDir,
-		ExpectedVersion:        someSdkVersion,
-		ExpectedResolution:     expectedResolution,
+		ExpectedResolution:     expectedResolution.WithSdkVersion(someSdkVersion),
 	},
 	{
 		Name:                   "11 multi:some pkg:other wd:pkg",
 		MultiPackageSdkVersion: someSdkVersion,
 		PackageSdkVersion:      someOtherSdkVersion,
 		WorkingDir:             PackageWorkingDir,
-		ExpectedVersion:        someOtherSdkVersion,
-		ExpectedResolution:     expectedResolution,
+		ExpectedResolution: ExpectedResolution{
+			globalSdkVersion,
+			[]string{someOtherSdkComponent},
+			2,
+			someOtherSdkVersion},
 	},
 	{
 		Name:                   "12 multi:some pkg:null wd:pkg",
 		MultiPackageSdkVersion: someSdkVersion,
 		PackageSdkVersion:      "null",
 		WorkingDir:             PackageWorkingDir,
-		ExpectedVersion:        someSdkVersion,
-		ExpectedResolution:     expectedResolution,
+		ExpectedResolution:     expectedResolution.WithSdkVersion(someSdkVersion),
 	},
 	{
 		Name:                   "13 multi:other pkg:some wd:pkg",
 		MultiPackageSdkVersion: someOtherSdkVersion,
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             PackageWorkingDir,
-		ExpectedVersion:        someSdkVersion,
-		ExpectedResolution:     expectedResolution,
+		ExpectedResolution:     expectedResolution.WithSdkVersion(someSdkVersion),
 	},
 	{
 		Name:                   "16 multi:null pkg:some wd:pkg",
 		MultiPackageSdkVersion: "null",
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             PackageWorkingDir,
-		ExpectedVersion:        someSdkVersion,
-		ExpectedResolution:     expectedResolution,
+		ExpectedResolution:     expectedResolution.WithSdkVersion(someSdkVersion),
 	},
 }
 
@@ -152,8 +155,9 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
-	sdkVersions := []string{someSdkVersion, someOtherSdkVersion, globalSdkVersion}
-	installSdk(t, sdkVersions)
+	installSdkForComponent(t, globalSdkVersion, globalSdkComponent, "999.999.999")
+	installSdkForComponent(t, someSdkVersion, someSdkComponent, "1.2.3")
+	installSdkForComponent(t, someOtherSdkVersion, someOtherSdkComponent, "4.5.6")
 
 	setupTestCase := func(tc SdkVersionTestCase) (dirs TestCaseDirs) {
 		tmpDir := t.TempDir()
@@ -193,7 +197,7 @@ packages:
 
 			hook(t, tc, dirs)
 
-			if tc.ExpectedVersion == "null" {
+			if tc.ExpectedResolution.ExpectedSdkVersion == "null" {
 				t.Run("assert no active sdk version", func(t *testing.T) {
 					assertNoActiveSdkVersion(t)
 					testResolution(t, tc.ExpectedResolution)
@@ -201,7 +205,7 @@ packages:
 
 			} else {
 				t.Run("assert active sdk version", func(t *testing.T) {
-					assertActiveSdkVersion(t, tc.ExpectedVersion)
+					assertActiveSdkVersion(t, tc.ExpectedResolution.ExpectedSdkVersion)
 					testResolution(t, tc.ExpectedResolution)
 				})
 			}
@@ -212,7 +216,7 @@ packages:
 				assertEnv := func(cmd *exec.Cmd) {
 					wasCalled.Store(true)
 
-					expected := tc.ExpectedVersion
+					expected := tc.ExpectedResolution.ExpectedSdkVersion
 					if expected == "null" {
 						expected = ""
 					}
@@ -235,12 +239,12 @@ packages:
 					_ = createStdTestRootCmdWithPreRunHook(t, assertEnv, c.Use).Execute()
 				}
 
-				if tc.ExpectedVersion == "null" {
+				if tc.ExpectedResolution.ExpectedSdkVersion == "null" {
 					// TODO since in this testcase there's no sdk, no SDK commands will be available
 					// to run (i.e. in the --help) so that we can obtain the injected env var(s).
 					// To test this, we'd need to add an override-component, so that we have at least 1 command
 				} else {
-					assert.True(t, wasCalled.Load(), tc.ExpectedResolution)
+					assert.True(t, wasCalled.Load())
 				}
 			})
 

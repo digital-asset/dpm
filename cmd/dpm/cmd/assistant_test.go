@@ -18,9 +18,11 @@ import (
 	"daml.com/x/assistant/pkg/builtincommand"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/resolution"
+	"daml.com/x/assistant/pkg/schema"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/testutil"
 	"daml.com/x/assistant/pkg/utils"
+	"github.com/Masterminds/semver/v3"
 	"github.com/goccy/go-yaml"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -35,13 +37,20 @@ type MainSuite struct {
 }
 
 type ExpectedResolution struct {
-	ExpectedPackages          int
 	ExpectedDefaultSdkVersion string
-	ExpectedComponents        int
+	ExpectedComponents        []string
 	ExpectedImports           int
+	ExpectedSdkVersion        string // assumes
 }
 
-var defaultExpectedResolution = ExpectedResolution{1, someSdkVersion, 1, 2}
+func (r ExpectedResolution) WithSdkVersion(v string) ExpectedResolution {
+	return ExpectedResolution{
+		ExpectedDefaultSdkVersion: r.ExpectedDefaultSdkVersion,
+		ExpectedComponents:        append([]string{}, r.ExpectedComponents...),
+		ExpectedImports:           r.ExpectedImports,
+		ExpectedSdkVersion:        v,
+	}
+}
 
 const someSdkVersion = "0.0.1-whatever"
 const someOtherSdkVersion = "0.0.1-not-whatever"
@@ -55,7 +64,7 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 
 	installSdk(t, []string{someSdkVersion})
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
-	testResolution(t, defaultExpectedResolution)
+	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, ""})
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSubdir() {
@@ -69,28 +78,7 @@ func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 
 	// this will make daml.yaml in the CWD
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-package-with-subdir", "package")))
-	testResolution(t, defaultExpectedResolution)
-}
-
-func (suite *MainSuite) TestResolveMultiPackageSdkVersion() {
-	t := suite.T()
-
-	installSdk(t, []string{someSdkVersion})
-
-	t.Run("1a: when in multi-package dir", func(t *testing.T) {
-		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version"))
-
-		testResolution(t, ExpectedResolution{3, someSdkVersion, 1, 2})
-		assertActiveSdkVersion(t, someSdkVersion)
-	})
-
-	t.Run("1b: when in sub package dir", func(t *testing.T) {
-		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version", "main"))
-
-		// test at level of single package
-		assertActiveSdkVersion(t, someSdkVersion)
-		testResolution(t, ExpectedResolution{3, someSdkVersion, 1, 2})
-	})
+	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, ""})
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
@@ -248,16 +236,12 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 
 func testResolution(t *testing.T, expectedPackages ExpectedResolution) {
 	deepResolution := runResolveCommand(t)
-	assert.Len(t, deepResolution.Packages, expectedPackages.ExpectedPackages)
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, expectedPackages.ExpectedComponents)
-	if expectedPackages.ExpectedComponents > 0 {
-		assert.ElementsMatch(t,
-			lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
-			[]string{"meep"})
-	}
+	assert.Len(t, deepResolution.Packages, 1)
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, len(expectedPackages.ExpectedComponents))
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, expectedPackages.ExpectedImports)
 	assert.Equal(t, resolution.Kind, deepResolution.Kind)
 	assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
+	assert.ElementsMatch(t, lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2), expectedPackages.ExpectedComponents)
 
 	t.Run("correct package paths", func(t *testing.T) {
 		for pkgPath := range deepResolution.Packages {
@@ -551,6 +535,73 @@ func installSdk(t *testing.T, versions []string) {
 			assertSdkVersion(t, version)
 		})
 	}
+
+	// verify
+	testMeepyComponent(t)
+	t.Run("link assistant", verifyLink)
+}
+
+func installSdkForComponent(t *testing.T, sdkVersion, componentName, componentVersion string) {
+	ctx := testutil.Context(t)
+	_, reg := testutil.StartRegistry(t)
+
+	assert.NotEmpty(t, os.Getenv(assistantconfig.DpmHomeEnvVar), "must set DPM_HOME to use installSdkForComponent")
+
+	componentSemVer, err := semver.NewVersion(componentVersion)
+	require.NoError(t, err)
+
+	sdkSemVer, err := semver.NewVersion(sdkVersion)
+	require.NoError(t, err)
+
+	assistantVersion, err := semver.NewVersion("4.5.6")
+	require.NoError(t, err)
+
+	// create an SdkManifest and push it
+	edition := sdkmanifest.OpenSource
+	sdkManifest := sdkmanifest.SdkManifest{
+		ManifestMeta: schema.ManifestMeta{
+			APIVersion: sdkmanifest.SdkManifestAPIVersion,
+			Kind:       sdkmanifest.SdkManifestKind,
+		},
+		Spec: &sdkmanifest.Spec{
+			Components: map[string]*sdkmanifest.Component{
+				componentName: &sdkmanifest.Component{
+					Name:    componentName,
+					Version: sdkmanifest.AssemblySemVer(componentSemVer),
+				},
+			},
+			Assistant: &sdkmanifest.Component{
+				Name:    sdkmanifest.AssistantName,
+				Version: sdkmanifest.AssemblySemVer(assistantVersion),
+			},
+			Version: sdkmanifest.AssemblySemVer(sdkSemVer),
+			Edition: &edition,
+		},
+	}
+	sdkManifestBytes, err := yaml.Marshal(sdkManifest)
+	require.NoError(t, err)
+	sdkManifestPath := filepath.Join(t.TempDir(), "sdk.yaml")
+	require.NoError(t, os.WriteFile(sdkManifestPath, sdkManifestBytes, 0666))
+	testutil.PushAssembly(t, ctx, edition, reg, sdkVersion, sdkManifestPath)
+
+	// push assistant, and component
+	testutil.PushComponent(t, ctx, reg, componentName, componentVersion, testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	testutil.PushComponent(t, ctx, reg, sdkmanifest.AssistantName, "4.5.6", testutil.TestdataPath(t, "assistant-binary", testutil.OS))
+
+	t.Run("install_"+sdkVersion, func(t *testing.T) {
+		cmd, r, w := createTestRootCmd(t, "install", sdkVersion)
+
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		require.NoError(t, err)
+
+		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
+
+		// verify installation for this version
+		assertSdkVersion(t, sdkVersion)
+	})
 
 	// verify
 	testMeepyComponent(t)
