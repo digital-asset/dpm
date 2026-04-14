@@ -206,12 +206,14 @@ func (plan *AssemblyPlan) Assemble(ctx context.Context) (*assembler.AssemblyResu
 		return nil, err
 	}
 
+	sdkVersion := assistantconfig.BlankSdkVersion
+	if plan.SdkVersion != nil {
+		plan.SdkVersion.String()
+	}
+	result.ShallowResolution.SdkVersion = sdkVersion
 	for _, cs := range result.ValidatedCommands {
 		for _, c := range cs {
-			c.DpmSdkVersionEnvVar = assistantconfig.BlankSdkVersion
-			if plan.SdkVersion != nil {
-				c.DpmSdkVersionEnvVar = plan.SdkVersion.String()
-			}
+			c.DpmSdkVersionEnvVar = sdkVersion
 		}
 	}
 

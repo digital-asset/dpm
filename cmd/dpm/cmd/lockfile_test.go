@@ -136,11 +136,11 @@ func (suite *MainSuite) TestLockfileSdkVersion() {
 		if tc.WorkingDir != PackageWorkingDir { // multi package
 			multiLock, err := packagelock.ReadPackageLock(filepath.Join(dirs.MultiPackageDir, assistantconfig.DpmMultiPackageLockFileName))
 			require.NoError(t, err)
-			assert.Equal(t, tc.ExpectedVersion, multiLock.SdkVersion.Version)
+			assert.Equal(t, tc.ExpectedResolution.ExpectedSdkVersion, multiLock.SdkVersion.Version)
 		} else { //single package
 			lock, err := packagelock.ReadPackageLock(filepath.Join(dirs.DamlPackageDir, assistantconfig.DpmLockFileName))
 			require.NoError(t, err)
-			assert.Equal(t, tc.ExpectedVersion, lock.SdkVersion.Version)
+			assert.Equal(t, tc.ExpectedResolution.ExpectedSdkVersion, lock.SdkVersion.Version)
 		}
 	})
 }

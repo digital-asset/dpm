@@ -32,6 +32,7 @@ type Package struct {
 	Components   map[string]string                   `yaml:"components,omitempty"`
 	ComponentsV2 map[string]map[string]string        `yaml:"componentsV2,omitempty"`
 	Imports      Imports                             `yaml:"imports,omitempty"`
+	SdkVersion   string                              `yaml:"sdk-version"`
 }
 
 // Imports is export Var -> paths list mapping

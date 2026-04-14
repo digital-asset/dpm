@@ -37,10 +37,19 @@ type MainSuite struct {
 }
 
 type ExpectedResolution struct {
-	ExpectedPackages          int
 	ExpectedDefaultSdkVersion string
 	ExpectedComponents        []string
 	ExpectedImports           int
+	ExpectedSdkVersion        string // assumes
+}
+
+func (r ExpectedResolution) WithSdkVersion(v string) ExpectedResolution {
+	return ExpectedResolution{
+		ExpectedDefaultSdkVersion: r.ExpectedDefaultSdkVersion,
+		ExpectedComponents:        append([]string{}, r.ExpectedComponents...),
+		ExpectedImports:           r.ExpectedImports,
+		ExpectedSdkVersion:        v,
+	}
 }
 
 const someSdkVersion = "0.0.1-whatever"
@@ -55,7 +64,7 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 
 	installSdk(t, []string{someSdkVersion})
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
-	testResolution(t, ExpectedResolution{1, someSdkVersion, []string{someSdkComponent}, 2})
+	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, ""})
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSubdir() {
@@ -69,7 +78,7 @@ func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 
 	// this will make daml.yaml in the CWD
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-package-with-subdir", "package")))
-	testResolution(t, ExpectedResolution{1, someSdkVersion, []string{someSdkComponent}, 2})
+	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, ""})
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
@@ -227,7 +236,7 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 
 func testResolution(t *testing.T, expectedPackages ExpectedResolution) {
 	deepResolution := runResolveCommand(t)
-	assert.Len(t, deepResolution.Packages, expectedPackages.ExpectedPackages)
+	assert.Len(t, deepResolution.Packages, 1)
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, len(expectedPackages.ExpectedComponents))
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, expectedPackages.ExpectedImports)
 	assert.Equal(t, resolution.Kind, deepResolution.Kind)
