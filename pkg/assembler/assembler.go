@@ -323,7 +323,7 @@ func (a *Assembler) collectComponent(ctx context.Context, basePath string, comp 
 	if comp.LocalPath != nil {
 		p = a.handleLocalDir(filepath.Dir(basePath), *comp.LocalPath)
 	} else if comp.Uri != nil {
-		p, err = a.handleRemoteOCI(ctx, comp)
+		p, err = a.handleExternalOCI(ctx, comp)
 		if err != nil {
 			return nil, err
 		}
@@ -358,7 +358,7 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 	return utils.ResolvePath(basePath, componentPath)
 }
 
-func (a *Assembler) handleRemoteOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+func (a *Assembler) handleExternalOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
 	var ref registry.Reference
 	var err error
 
