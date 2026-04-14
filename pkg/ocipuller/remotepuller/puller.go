@@ -26,9 +26,9 @@ type RemoteOciPuller struct {
 
 var _ ocipuller.OciPuller = (*RemoteOciPuller)(nil)
 
-func New(OciLayoutCache string, remote *assistantremote.Remote) *RemoteOciPuller {
+func New(ociLayoutCache string, remote *assistantremote.Remote) *RemoteOciPuller {
 	return &RemoteOciPuller{
-		ociLayoutCache: OciLayoutCache,
+		ociLayoutCache: ociLayoutCache,
 
 		remote: remote,
 	}
