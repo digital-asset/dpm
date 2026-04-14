@@ -322,6 +322,11 @@ func (a *Assembler) collectComponent(ctx context.Context, basePath string, comp 
 	var err error
 	if comp.LocalPath != nil {
 		p = a.handleLocalDir(filepath.Dir(basePath), *comp.LocalPath)
+	} else if comp.Uri != nil {
+		p, err = a.handleRemoteOCI(ctx, comp)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		p, err = a.handleOCI(ctx, comp)
 		if err != nil {
@@ -353,11 +358,28 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 	return utils.ResolvePath(basePath, componentPath)
 }
 
-func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+func (a *Assembler) handleRemoteOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+	var ref registry.Reference
+	var err error
 
-	destPath := a.ociComponentPath(comp)
-	tag := ComputeTagOrDigest(comp)
-	componentName := ociconsts.ComponentRepoPrefix + comp.Name
+	// Handle http routes
+	if strings.HasPrefix(*comp.Uri, "http://") {
+		ref, err = registry.ParseReference(strings.TrimPrefix(*comp.Uri, "http://"))
+		if err != nil {
+			return "", err
+		}
+	} else {
+		ref, err = registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
+		if err != nil {
+			return "", err
+		}
+	}
+
+	componentName := ref.Repository
+
+	destPath := a.ociUriComponentPath(comp, ref)
+	tag := ref.Reference
+
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
 	if err != nil {
@@ -376,17 +398,43 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 			platform = a.overridePlatform
 		}
 		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
-		if comp.Uri != nil {
-			ref, err := registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
-			componentName = ref.Repository
-			a.config.Registry = ref.Registry
-			customPuller, err := remotepuller.NewFromRemoteConfig(a.config)
-			if err != nil {
-				return "", err
-			}
-			a.puller = customPuller
+
+		a.config.Registry = ref.Registry
+		customPuller, err := remotepuller.NewFromRemoteConfig(a.config)
+		if err != nil {
+			return "", err
 		}
+		a.puller = customPuller
 		if err := a.puller.PullComponent(ctx, componentName, tag, destPath, platform); err != nil {
+			return "", err
+		}
+	}
+	return destPath, nil
+}
+
+func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+	destPath := a.ociComponentPath(comp)
+	tag := ComputeTagOrDigest(comp)
+
+	// check if component is already in the cache
+	ok, err := utils.DirExists(destPath)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		if _, isRemote := a.puller.(*remotepuller.RemoteOciPuller); isRemote && !a.config.AutoInstall {
+			// TODO there's no dedicated command for installing remote overridden components like there is for installing SDKs.
+			// As auto-installation of SDKs is disabled by default, so is pulling overridden remote components, as both SDKs and remote overrides
+			// are using the same AutoInstall config variable...
+			// so currently the only way the assistant to have the assistant pull remote overrides is to have the user enable auto-install
+			return "", fmt.Errorf("sdk component %q is missing and won't be downloaded because auto-install is disabled", comp.String())
+		}
+		platform := simpleplatform.CurrentPlatform()
+		if a.overridePlatform != nil {
+			platform = a.overridePlatform
+		}
+		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
+		if err := a.puller.PullComponent(ctx, ociconsts.ComponentRepoPrefix+comp.Name, tag, destPath, platform); err != nil {
 			return "", err
 		}
 	}
@@ -395,6 +443,11 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 }
 
 func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
+	// TODO fully flesh this out
+	return comp.Version.Value().String()
+}
+
+func ComputeUriTagOrDigest(comp *sdkmanifest.Component) string {
 	// TODO fully flesh this out
 	if comp.Uri != nil {
 		ref, err := registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
@@ -408,16 +461,11 @@ func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
 	return comp.Version.Value().String()
 }
 
+func (a *Assembler) ociUriComponentPath(comp *sdkmanifest.Component, tag registry.Reference) string {
+	return filepath.Join(a.config.CachePath, "components", comp.Name, tag.Reference)
+}
+
 func (a *Assembler) ociComponentPath(comp *sdkmanifest.Component) string {
-	if comp.Uri != nil {
-		ref, err := registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
-		if err != nil {
-			fmt.Errorf("Invalid URI provided")
-		}
-		if ref.Reference != "" {
-			return filepath.Join(a.config.CachePath, "components", comp.Name, ref.Reference)
-		}
-	}
 	return filepath.Join(a.config.CachePath, "components", comp.Name, comp.Version.Value().String())
 }
 

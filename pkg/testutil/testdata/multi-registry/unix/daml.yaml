@@ -1,0 +1,7 @@
+override-components:
+  # override - pushComponents appends components 
+  meep:
+    uri: ${TEST_DPM_REGISTRY}/components/meep:1.2.3
+
+  rando:
+    uri: ${TEST_ALT_DPM_REGISTRY}/components/rando:1.2.4

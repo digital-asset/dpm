@@ -839,6 +839,36 @@ func (suite *MainSuite) TestMultiPackageSkip() {
 
 }
 
+func (suite *MainSuite) TestInstallPackageMultiRegistry() {
+
+	t := suite.T()
+	// installSdk(t, []string{someSdkVersion})
+
+	ctx := testutil.Context(t)
+	_, reg := testutil.StartRegistry(t)
+	_, altReg := testutil.StartRegistry(t)
+
+	regURL := reg.URL
+	altURL := altReg.URL
+
+	t.Setenv("TEST_DPM_REGISTRY", regURL)
+	t.Setenv("TEST_ALT_DPM_REGISTRY", altURL)
+
+	// push assembly, assistant, and component
+	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	testutil.PushComponent(t, ctx, altReg, "rando", "1.2.4", testutil.TestdataPath(t, "components", "rando"))
+
+	tmpDir := t.TempDir()
+
+	t.Chdir(tmpDir)
+	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-registry", testutil.OS)))
+	cmd, _, w := createTestRootCmd(t, "install", "package")
+
+	require.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+
+}
+
 func (suite *MainSuite) TestSdkVersionCommand() {
 	t := suite.T()
 	ctx := testutil.Context(t)
