@@ -922,9 +922,13 @@ func (suite *MainSuite) TestInstallPackageMultiRegistry() {
 
 	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
 
-	// TODO - Update dpm repo publish-component to be able to handle different oci path with assuming a structure
-	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
-	testutil.PushComponent(t, ctx, altReg, "rando", "1.2.4", testutil.TestdataPath(t, "components", "rando"))
+	args := testutil.PushComponentUri(reg, "meep", "foo/bar", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+	args = testutil.PushComponentUri(altReg, "rando", "bar/foo", "1.2.4", testutil.TestdataPath(t, "components", "rando"))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+	// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
 	testutil.PushComponent(t, ctx, altReg, "needy", "1.2.5", testutil.TestdataPath(t, "components", "needy", testutil.OS))
 
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-registry", testutil.OS)))
