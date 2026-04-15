@@ -936,6 +936,12 @@ func (suite *MainSuite) TestInstallPackageMultiRegistry() {
 
 	require.NoError(t, cmd.Execute())
 
+	require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
+
+	deepResolution := runResolveCommand(t)
+	assert.Len(t, deepResolution.Packages, 1)
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 3)
+
 }
 
 func (suite *MainSuite) TestSdkVersionCommand() {
