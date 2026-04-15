@@ -41,12 +41,6 @@ func TestdataPath(t *testing.T, path ...string) string {
 	return filepath.Join(p...)
 }
 
-// PushComponentUri can be used like so
-//
-//	args := testutil.PushComponentUri(registry, "foo", "some/prefix", "4.5.6", testutil.TestdataPath(t, "meepy-component", "unix"), "latest")
-//	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
-//
-// and that will push "foo" to "some/prefix/foo"
 func PushComponentUri(registry *httptest.Server, name, repo, tag, pathToComponent string, extraTags ...string) (args []string) {
 	uri := fmt.Sprintf("%s/%s", getRemote(registry).Registry, repo)
 
