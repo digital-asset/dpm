@@ -6,7 +6,9 @@ package oci
 import (
 	"fmt"
 
+	"daml.com/x/assistant/pkg/utils"
 	"github.com/Masterminds/semver/v3"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
@@ -25,9 +27,13 @@ const (
 	SdkManifestsEnterpriseRepo = sdkManifestsRepoPrefix + "enterprise"
 	SdkManifestsPrivateRepo    = sdkManifestsRepoPrefix + "private"
 
-	DAAnnotationPrefix          = "com.digitalasset."
-	DescriptorNameAnnotation    = DAAnnotationPrefix + "name"
-	DescriptorVersionAnnotation = DAAnnotationPrefix + "version"
+	// deprecated annotations
+	LegacyDpmAnnotationPrefix = "com.digitalasset."
+	LegacyNameAnnotation      = LegacyDpmAnnotationPrefix + "name"
+	LegacyVersionAnnotation   = LegacyDpmAnnotationPrefix + "version"
+
+	DpmAnnotationPrefix      = "com.dpm."
+	DescriptorNameAnnotation = DpmAnnotationPrefix + "name"
 )
 
 // DescriptorAnnotations are required annotations to be appended onto image and index manifests.
@@ -39,19 +45,28 @@ type DescriptorAnnotations struct {
 
 func (d DescriptorAnnotations) AppendToMap(annotations map[string]string) {
 	annotations[DescriptorNameAnnotation] = d.Name
-	annotations[DescriptorVersionAnnotation] = d.Version.String()
+	annotations[v1.AnnotationVersion] = d.Version.String()
+
+	// deprecated but keeping for backwards compatibility with older dpm binaries
+	annotations[LegacyNameAnnotation] = d.Name
+	annotations[LegacyVersionAnnotation] = d.Version.String()
 }
 
-func DAAnnotation(annotation string) string {
-	return DAAnnotationPrefix + annotation
+func LegacyDpmAnnotation(annotation string) string {
+	return LegacyDpmAnnotationPrefix + annotation
+}
+
+func DpmAnnotation(annotation string) string {
+	return DpmAnnotationPrefix + annotation
 }
 
 func VersionFromDescriptorAnnotations(descriptorAnnotations map[string]string) (*semver.Version, error) {
-	err := fmt.Errorf("descriptor missing required %q annotations", DescriptorVersionAnnotation)
+	err := fmt.Errorf("descriptor missing required (%q, or %q) annotations", v1.AnnotationVersion, LegacyVersionAnnotation)
 	if descriptorAnnotations == nil {
 		return nil, err
 	}
-	version, ok := descriptorAnnotations[DescriptorVersionAnnotation]
+
+	version, ok := utils.GetWithFallback(descriptorAnnotations, v1.AnnotationVersion, LegacyVersionAnnotation)
 	if !ok {
 		return nil, err
 	}
