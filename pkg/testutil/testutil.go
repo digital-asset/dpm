@@ -5,6 +5,7 @@ package testutil
 
 import (
 	"context"
+	"fmt"
 	"net/http/httptest"
 	"path/filepath"
 	"runtime"
@@ -40,6 +41,27 @@ func TestdataPath(t *testing.T, path ...string) string {
 	return filepath.Join(p...)
 }
 
+// PushComponentUri can be used like so
+//
+//	args := testutil.PushComponentUri(registry, "foo", "some/prefix", "4.5.6", testutil.TestdataPath(t, "meepy-component", "unix"), "latest")
+//	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+//
+// and that will push "foo" to "some/prefix/foo"
+func PushComponentUri(registry *httptest.Server, name, repo, tag, pathToComponent string, extraTags ...string) (args []string) {
+	uri := fmt.Sprintf("%s/%s", getRemote(registry).Registry, repo)
+
+	args = []string{"repo", "push-component", name, tag, "--registry", uri, "-p", "generic=" + pathToComponent}
+
+	if strings.HasPrefix(registry.URL, "http://") {
+		args = append(args, "--insecure")
+	}
+	for _, t := range extraTags {
+		args = append(args, "--extra-tags", t)
+	}
+
+	return args
+}
+
 func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server, componentName, tag, pathToComponent string, extraTags ...string) {
 	r := getRemote(registry)
 	v, err := semver.NewVersion(tag)
@@ -49,7 +71,7 @@ func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server,
 		Version: v,
 	}
 	opts := ocipusher.Opts{
-		Artifact:            &ociconsts.ComponentArtifact{ComponentName: componentName},
+		Artifact:            &ociconsts.FirstPartyComponentArtifact{ComponentName: componentName},
 		RawTag:              tag,
 		Dir:                 pathToComponent,
 		RequiredAnnotations: requiredAnnotations,
@@ -62,7 +84,7 @@ func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server,
 	require.NoError(t, err)
 
 	indexOpts := ociindex.Opts{
-		Artifact:            &ociconsts.ComponentArtifact{ComponentName: componentName},
+		Artifact:            &ociconsts.FirstPartyComponentArtifact{ComponentName: componentName},
 		Tag:                 tag,
 		Manifests:           []v1.Descriptor{*desc},
 		ExtraAnnotations:    map[string]string{},
@@ -72,7 +94,7 @@ func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server,
 	require.NoError(t, err)
 
 	if len(extraTags) > 0 {
-		err = ociindex.Tag(ctx, r, &ociconsts.ComponentArtifact{ComponentName: componentName}, v, extraTags)
+		err = ociindex.Tag(ctx, r, &ociconsts.FirstPartyComponentArtifact{ComponentName: componentName}, v, extraTags)
 		require.NoError(t, err)
 	}
 }

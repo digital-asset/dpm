@@ -11,6 +11,7 @@ import (
 
 const PlatformFlagName = "platform"
 const FileFlagName = "file"
+const RegistryFlagName = "registry"
 
 type PublishCmd struct {
 	DryRun, IncludeGitInfo bool

@@ -41,7 +41,7 @@ type Config struct {
 	Annotations            map[string]string
 	ExtraTags              []string
 
-	Registry     string
+	Destination  *Destination
 	AuthFilePath string
 	Insecure     bool
 }
@@ -55,7 +55,7 @@ func (config *Config) RequiredAnnotations() ociconsts.DescriptorAnnotations {
 
 func (config *Config) indexOpts(tag string, descriptors []v1.Descriptor) ociindex.Opts {
 	return ociindex.Opts{
-		Artifact:            &ociconsts.ComponentArtifact{ComponentName: config.Name},
+		Artifact:            config.Destination.Artifact,
 		Tag:                 tag,
 		Manifests:           descriptors,
 		ExtraAnnotations:    config.Annotations,
@@ -73,6 +73,8 @@ func New(config *Config, printer utils.RawPrinter) *Publisher {
 }
 
 func (p *Publisher) Publish(ctx context.Context) (err error) {
+	p.printer.Println("destination is " + p.config.Destination.String())
+	
 	var pushOps []*ocipusher.PushOperation
 	if p.config.Name != sdkmanifest.AssistantName {
 		pushOps, err = p.prepareComponents(ctx)
@@ -93,11 +95,11 @@ func (p *Publisher) Publish(ctx context.Context) (err error) {
 		return nil
 	}
 
-	if p.config.Registry == "" {
+	if p.config.Destination == nil {
 		return fmt.Errorf("--registy must be provided when not in dry-run mode")
 	}
 
-	client, err := assistantremote.New(p.config.Registry, p.config.AuthFilePath, p.config.Insecure)
+	client, err := assistantremote.New(p.config.Destination.Registry, p.config.AuthFilePath, p.config.Insecure)
 	if err != nil {
 		return err
 	}
@@ -147,7 +149,7 @@ func (p *Publisher) Publish(ctx context.Context) (err error) {
 
 	if p.config.ExtraTags != nil && len(p.config.ExtraTags) > 0 {
 		p.printer.Println("pushing extra tags...")
-		err := ociindex.Tag(ctx, client, &ociconsts.ComponentArtifact{ComponentName: p.config.Name}, p.config.Version, p.config.ExtraTags)
+		err := ociindex.Tag(ctx, client, p.config.Destination.Artifact, p.config.Version, p.config.ExtraTags)
 		if err != nil {
 			return err
 		}
@@ -254,11 +256,9 @@ func (p *Publisher) prepare(ctx context.Context, platform simpleplatform.Platfor
 		}
 		maps.Copy(annotations, gitAnnotations)
 	}
-	var artifact ociconsts.Artifact
-	artifact = &ociconsts.ComponentArtifact{ComponentName: p.config.Name}
 
 	opts := ocipusher.Opts{
-		Artifact:            artifact,
+		Artifact:            p.config.Destination.Artifact,
 		RawTag:              p.config.Version.String(),
 		Dir:                 dir,
 		RequiredAnnotations: p.config.RequiredAnnotations(),

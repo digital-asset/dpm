@@ -149,7 +149,7 @@ func resolveFromPublishConfig(ctx context.Context, client *assistantremote.Remot
 func resolveAll(ctx context.Context, client *assistantremote.Remote, componentTags map[string]string) (map[string]*semver.Version, error) {
 	resolved := map[string]*semver.Version{}
 	for comp, tag := range componentTags {
-		version, err := ociindex.ResolveTag(ctx, client, &oci.ComponentArtifact{ComponentName: comp}, tag)
+		version, err := ociindex.ResolveTag(ctx, client, &oci.FirstPartyComponentArtifact{ComponentName: comp}, tag)
 		if err != nil {
 			return nil, err
 		}

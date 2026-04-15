@@ -8,6 +8,7 @@ import (
 	componentPublish "daml.com/x/assistant/cmd/dpm/cmd/repo/component"
 	"daml.com/x/assistant/cmd/dpm/cmd/repo/dar"
 	"daml.com/x/assistant/cmd/dpm/cmd/repo/promote"
+	"daml.com/x/assistant/cmd/dpm/cmd/repo/pushcomponent"
 	"daml.com/x/assistant/cmd/dpm/cmd/repo/resolve"
 	"daml.com/x/assistant/cmd/dpm/cmd/repo/sdkmanifest"
 	"daml.com/x/assistant/cmd/dpm/cmd/repo/tags"
@@ -27,6 +28,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	cmd.AddCommand(sdkmanifest.Cmd())
 	cmd.AddCommand(tarball.Cmd())
 	cmd.AddCommand(componentPublish.Cmd())
+	cmd.AddCommand(pushcomponent.Cmd())
 	cmd.AddCommand(assistant.Cmd())
 	cmd.AddCommand(resolve.Cmd())
 	cmd.AddCommand(promote.Cmd())
