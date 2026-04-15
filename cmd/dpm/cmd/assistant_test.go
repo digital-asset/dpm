@@ -890,6 +890,37 @@ func (suite *MainSuite) TestMultiPackageSkip() {
 
 }
 
+func (suite *MainSuite) TestInstallPackageMultiRegistry() {
+
+	t := suite.T()
+
+	ctx := testutil.Context(t)
+	_, reg := testutil.StartRegistry(t)
+	_, altReg := testutil.StartRegistry(t)
+
+	regURL := strings.TrimPrefix(reg.URL, "http://")
+	altURL := strings.TrimPrefix(altReg.URL, "http://")
+
+	t.Setenv("TEST_DPM_REGISTRY", "oci://"+regURL)
+	t.Setenv("TEST_ALT_DPM_REGISTRY", "oci://"+altURL)
+
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+
+	// TODO - Update dpm repo publish-component to be able to handle different oci path with assuming a structure
+	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	testutil.PushComponent(t, ctx, altReg, "rando", "1.2.4", testutil.TestdataPath(t, "components", "rando"))
+	testutil.PushComponent(t, ctx, altReg, "needy", "1.2.5", testutil.TestdataPath(t, "components", "needy", testutil.OS))
+
+	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-registry", testutil.OS)))
+	cmd := createStdTestRootCmd(t, "install", "package")
+
+	require.NoError(t, cmd.Execute())
+
+}
+
 func (suite *MainSuite) TestSdkVersionCommand() {
 	t := suite.T()
 	ctx := testutil.Context(t)

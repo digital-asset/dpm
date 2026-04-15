@@ -66,6 +66,7 @@ type Component struct {
 	Version   *SemVer `yaml:"version,omitempty"`
 	ImageTag  *string `yaml:"image-tag,omitempty"`
 	LocalPath *string `yaml:"local-path,omitempty"`
+	Uri       *string `yaml:"uri,omitempty"`
 }
 
 // String returns representation meant for humans
@@ -76,6 +77,8 @@ func (c *Component) String() string {
 		return fmt.Sprintf("%s:%s", c.Name, *c.ImageTag)
 	} else if c.LocalPath != nil {
 		return fmt.Sprintf("%s@%s", c.Name, *c.LocalPath)
+	} else if c.Uri != nil {
+		return fmt.Sprintf("%s@%s", c.Name, *c.Uri)
 	}
 	return c.Name
 }
@@ -87,12 +90,12 @@ func (c *Component) UnmarshalYAML(bytes []byte) error {
 		return fmt.Errorf("failed to unmarshal Component: %w", err)
 	}
 
-	if alias.Version == nil && alias.LocalPath == nil && alias.ImageTag == nil {
-		return fmt.Errorf("%w: a component must include `local-path`, `image-tag` or `version` field", ErrInvalidAssemblyManifest)
+	if alias.Version == nil && alias.LocalPath == nil && alias.ImageTag == nil && alias.Uri == nil {
+		return fmt.Errorf("%w: a component must include `local-path`, `image-tag`, `uri` or `version` field", ErrInvalidAssemblyManifest)
 	}
 	if alias.LocalPath != nil {
-		if alias.ImageTag != nil || alias.Version != nil {
-			return fmt.Errorf("%w: a component can't simultaneously be local ('local-path') and remote ('version', 'image-tag')", ErrInvalidAssemblyManifest)
+		if alias.ImageTag != nil || alias.Version != nil || alias.Uri != nil {
+			return fmt.Errorf("%w: a component can't simultaneously be local ('local-path') and remote ('version', 'image-tag', 'uri')", ErrInvalidAssemblyManifest)
 		}
 	}
 	*c = Component(alias)

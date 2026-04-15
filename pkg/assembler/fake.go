@@ -5,12 +5,13 @@ package assembler
 
 import (
 	"context"
-	"daml.com/x/assistant/pkg/ocipuller"
-	"daml.com/x/assistant/pkg/sdkmanifest"
-	"daml.com/x/assistant/pkg/simpleplatform"
 	"net/http/httptest"
 	"os"
 	"strings"
+
+	"daml.com/x/assistant/pkg/ocipuller"
+	"daml.com/x/assistant/pkg/sdkmanifest"
+	"daml.com/x/assistant/pkg/simpleplatform"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
@@ -32,7 +33,7 @@ func Fake(registry *httptest.Server) (*Assembler, error) {
 		return nil, err
 	}
 	if registry != nil {
-		puller := remotepuller.New(config,
+		puller := remotepuller.New(config.OciLayoutCache,
 			assistantremote.NewWithCustomClient(
 				strings.TrimPrefix(registry.URL, "https://"),
 				&auth.Client{Client: registry.Client()},
@@ -50,6 +51,9 @@ func (f *FakePuller) PullAssembly(ctx context.Context, edition sdkmanifest.Editi
 	panic("not implemented")
 }
 func (f *FakePuller) PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error {
+	panic("not implemented")
+}
+func (f *FakePuller) PullComponentByFullPath(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error {
 	panic("not implemented")
 }
 

@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/component"
 	"daml.com/x/assistant/pkg/ocipuller"
@@ -23,6 +24,7 @@ import (
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/samber/lo"
+	"oras.land/oras-go/v2/registry"
 )
 
 const (
@@ -320,6 +322,11 @@ func (a *Assembler) collectComponent(ctx context.Context, basePath string, comp 
 	var err error
 	if comp.LocalPath != nil {
 		p = a.handleLocalDir(filepath.Dir(basePath), *comp.LocalPath)
+	} else if comp.Uri != nil {
+		p, err = a.handleURI(ctx, comp)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		p, err = a.handleOCI(ctx, comp)
 		if err != nil {
@@ -351,8 +358,49 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 	return utils.ResolvePath(basePath, componentPath)
 }
 
+func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+
+	ref, err := registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
+	if err != nil {
+		return "", err
+	}
+
+	componentPath := ref.Repository
+	destPath := a.ociComponentPath(comp.Name, ref.Reference)
+	tag := ref.Reference
+
+	// check if component is already in the cache
+	ok, err := utils.DirExists(destPath)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		if _, isRemote := a.puller.(*remotepuller.RemoteOciPuller); isRemote && !a.config.AutoInstall {
+			return "", fmt.Errorf("sdk component %q won't be downloaded because auto-install is disabled", comp.String())
+		}
+		platform := simpleplatform.CurrentPlatform()
+		if a.overridePlatform != nil {
+			platform = a.overridePlatform
+		}
+		fmt.Printf("pulling sdk component %s %s ...\n", comp.Name, *comp.Uri)
+
+		customRemote, err := assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
+		if err != nil {
+			return "", err
+		}
+
+		// Passing in old config layoutCache
+		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
+
+		if err := customPuller.PullComponentByFullPath(ctx, componentPath, tag, destPath, platform); err != nil {
+			return "", err
+		}
+	}
+	return destPath, nil
+}
+
 func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
-	destPath := a.ociComponentPath(comp)
+	destPath := a.ociComponentPath(comp.Name, comp.Version.Value().String())
 	tag := ComputeTagOrDigest(comp)
 
 	// check if component is already in the cache
@@ -362,11 +410,7 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 	}
 	if !ok {
 		if _, isRemote := a.puller.(*remotepuller.RemoteOciPuller); isRemote && !a.config.AutoInstall {
-			// TODO there's no dedicated command for installing remote overridden components like there is for installing SDKs.
-			// As auto-installation of SDKs is disabled by default, so is pulling overridden remote components, as both SDKs and remote overrides
-			// are using the same AutoInstall config variable...
-			// so currently the only way the assistant to have the assistant pull remote overrides is to have the user enable auto-install
-			return "", fmt.Errorf("sdk component %q is missing and won't be downloaded because auto-install is disabled", comp.String())
+			return "", fmt.Errorf("sdk component %q won't be downloaded because auto-install is disabled", comp.String())
 		}
 		platform := simpleplatform.CurrentPlatform()
 		if a.overridePlatform != nil {
@@ -386,8 +430,8 @@ func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
 	return comp.Version.Value().String()
 }
 
-func (a *Assembler) ociComponentPath(comp *sdkmanifest.Component) string {
-	return filepath.Join(a.config.CachePath, "components", comp.Name, comp.Version.Value().String())
+func (a *Assembler) ociComponentPath(componentName string, tag string) string {
+	return filepath.Join(a.config.CachePath, "components", componentName, tag)
 }
 
 // computeImports merges all components' component.Exports, taking into account their conflict strategy,
