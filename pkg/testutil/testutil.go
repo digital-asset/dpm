@@ -49,7 +49,7 @@ func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server,
 		Version: v,
 	}
 	opts := ocipusher.Opts{
-		Artifact:            &ociconsts.ComponentArtifact{ComponentName: componentName},
+		Artifact:            &ociconsts.FirstPartyComponentArtifact{ComponentName: componentName},
 		RawTag:              tag,
 		Dir:                 pathToComponent,
 		RequiredAnnotations: requiredAnnotations,
@@ -62,7 +62,7 @@ func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server,
 	require.NoError(t, err)
 
 	indexOpts := ociindex.Opts{
-		Artifact:            &ociconsts.ComponentArtifact{ComponentName: componentName},
+		Artifact:            &ociconsts.FirstPartyComponentArtifact{ComponentName: componentName},
 		Tag:                 tag,
 		Manifests:           []v1.Descriptor{*desc},
 		ExtraAnnotations:    map[string]string{},
@@ -72,7 +72,7 @@ func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server,
 	require.NoError(t, err)
 
 	if len(extraTags) > 0 {
-		err = ociindex.Tag(ctx, r, &ociconsts.ComponentArtifact{ComponentName: componentName}, v, extraTags)
+		err = ociindex.Tag(ctx, r, &ociconsts.FirstPartyComponentArtifact{ComponentName: componentName}, v, extraTags)
 		require.NoError(t, err)
 	}
 }

@@ -13,25 +13,25 @@ type Dar interface {
 	DarRepoName() string
 }
 
-type ComponentArtifact struct {
+type FirstPartyComponentArtifact struct {
 	ComponentName string
 }
 
-type ThirdPartyComponentArtifact struct {
+type ComponentArtifact struct {
 	ComponentRepo string
 }
 
-func (a *ThirdPartyComponentArtifact) RepoName() string {
+func (a *ComponentArtifact) RepoName() string {
 	return a.ComponentRepo
 }
-func (a *ThirdPartyComponentArtifact) ArtifactType() string  { return ComponentArtifactType }
-func (a *ThirdPartyComponentArtifact) FileMediaType() string { return ComponentFileMediaType }
+func (a *ComponentArtifact) ArtifactType() string  { return ComponentArtifactType }
+func (a *ComponentArtifact) FileMediaType() string { return ComponentFileMediaType }
 
 type DarArtifact struct {
 	DarName string
 }
 
-func (a *ComponentArtifact) RepoName() string {
+func (a *FirstPartyComponentArtifact) RepoName() string {
 	return ComponentRepoPrefix + a.ComponentName
 }
 
@@ -39,8 +39,8 @@ func (a *DarArtifact) RepoName() string {
 	return DarRepoPrefix + a.DarName
 }
 
-func (a *ComponentArtifact) ArtifactType() string  { return ComponentArtifactType }
-func (a *ComponentArtifact) FileMediaType() string { return ComponentFileMediaType }
+func (a *FirstPartyComponentArtifact) ArtifactType() string  { return ComponentArtifactType }
+func (a *FirstPartyComponentArtifact) FileMediaType() string { return ComponentFileMediaType }
 
 func (a *DarArtifact) ArtifactType() string  { return DarArtifactType }
 func (a *DarArtifact) FileMediaType() string { return DarFileMediaType }

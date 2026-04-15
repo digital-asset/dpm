@@ -43,7 +43,7 @@ func Cmd() *cobra.Command {
 			}
 			destination := &publish.Destination{
 				Registry: ref.Registry,
-				Artifact: &ociconsts.ThirdPartyComponentArtifact{
+				Artifact: &ociconsts.ComponentArtifact{
 					ComponentRepo: ref.Repository,
 				},
 			}

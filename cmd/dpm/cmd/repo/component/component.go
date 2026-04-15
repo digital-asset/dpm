@@ -36,7 +36,7 @@ func Cmd() *cobra.Command {
 
 			destination := &publish.Destination{
 				Registry: strings.TrimRight(c.Registry, "/"),
-				Artifact: &oci.ComponentArtifact{
+				Artifact: &oci.FirstPartyComponentArtifact{
 					ComponentName: name,
 				},
 			}
