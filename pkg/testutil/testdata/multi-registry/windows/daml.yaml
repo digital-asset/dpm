@@ -1,5 +1,4 @@
 components:
-  # TODO - replace /components/ with something more "random" for better uri representation
   meep:
     uri: ${TEST_DPM_REGISTRY}/foo/bar/meep:1.2.3
   rando:
