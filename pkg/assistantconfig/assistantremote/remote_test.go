@@ -16,7 +16,6 @@ import (
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"oras.land/oras-go/v2/registry"
 )
 
 type FakeRegistry struct {
@@ -28,12 +27,6 @@ const expectedSuccessBody = "okdokey"
 // Tests authenticating to a registry via a docker credsStore
 // https://docs.docker.com/reference/cli/docker/login/#credential-stores
 func TestGetRemote(t *testing.T) {
-
-	parsed, err := registry.ParseReference("foo.example.com/a/b/c:1.2.3")
-	require.NoError(t, err)
-
-	print(parsed.Registry)
-
 	withMagicEnv(t, func() {
 		dir, deleteFn, err := utils.MkdirTemp("", "")
 		require.NoError(t, err)

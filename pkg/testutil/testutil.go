@@ -5,6 +5,7 @@ package testutil
 
 import (
 	"context"
+	"fmt"
 	"net/http/httptest"
 	"path/filepath"
 	"runtime"
@@ -38,6 +39,27 @@ func TestdataPath(t *testing.T, path ...string) string {
 	p := []string{filepath.Dir(file), "testdata"}
 	p = append(p, path...)
 	return filepath.Join(p...)
+}
+
+// PushComponentUri can be used like so
+//
+//	args := testutil.PushComponentUri(registry, "foo", "some/prefix", "4.5.6", testutil.TestdataPath(t, "meepy-component", "unix"), "latest")
+//	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+//
+// and that will push "foo" to "some/prefix/foo"
+func PushComponentUri(registry *httptest.Server, name, repo, tag, pathToComponent string, extraTags ...string) (args []string) {
+	uri := fmt.Sprintf("%s/%s", getRemote(registry).Registry, repo)
+
+	args = []string{"repo", "push-component", name, tag, "--registry", uri, "-p", "generic=" + pathToComponent}
+
+	if strings.HasPrefix(registry.URL, "http://") {
+		args = append(args, "--insecure")
+	}
+	for _, t := range extraTags {
+		args = append(args, "--extra-tags", t)
+	}
+
+	return args
 }
 
 func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server, componentName, tag, pathToComponent string, extraTags ...string) {
