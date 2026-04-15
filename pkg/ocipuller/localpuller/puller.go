@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
+	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ocicache"
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocipuller"
@@ -31,8 +32,12 @@ func New(config *assistantconfig.Config, localRegistryPath string) *LocalOciPull
 	return &LocalOciPuller{config, localRegistryPath}
 }
 
-func (p *LocalOciPuller) PullComponent(ctx context.Context, componentPath, tag, destPath string, platform simpleplatform.Platform) error {
-	return p.pull(ctx, componentPath, tag, destPath, platform)
+func (a *LocalOciPuller) PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error {
+	return a.pull(ctx, ociconsts.ComponentRepoPrefix+componentName, tag, destPath, platform)
+}
+
+func (a *LocalOciPuller) PullComponentByFullPath(ctx context.Context, componentPath, tag, destPath string, platform simpleplatform.Platform) error {
+	return a.pull(ctx, componentPath, tag, destPath, platform)
 }
 
 func (p *LocalOciPuller) PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, _ *simpleplatform.NonGeneric) error {

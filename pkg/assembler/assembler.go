@@ -17,7 +17,6 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/component"
-	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ocipuller"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/resolution"
@@ -360,7 +359,6 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 }
 
 func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
-	var ref registry.Reference
 
 	ref, err := registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
 	if err != nil {
@@ -384,7 +382,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		if a.overridePlatform != nil {
 			platform = a.overridePlatform
 		}
-		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
+		fmt.Printf("pulling sdk component %s %s ...\n", comp.Name, *comp.Uri)
 
 		customRemote, err := assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
 		if err != nil {
@@ -394,7 +392,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		// Passing in old config layoutCache
 		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
 
-		if err := customPuller.PullComponent(ctx, componentPath, tag, destPath, platform); err != nil {
+		if err := customPuller.PullComponentByFullPath(ctx, componentPath, tag, destPath, platform); err != nil {
 			return "", err
 		}
 	}
@@ -419,7 +417,7 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 			platform = a.overridePlatform
 		}
 		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
-		if err := a.puller.PullComponent(ctx, ociconsts.ComponentRepoPrefix+comp.Name, tag, destPath, platform); err != nil {
+		if err := a.puller.PullComponent(ctx, comp.Name, tag, destPath, platform); err != nil {
 			return "", err
 		}
 	}

@@ -9,6 +9,7 @@ import (
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
+	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ocicache"
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocipuller"
@@ -29,8 +30,7 @@ var _ ocipuller.OciPuller = (*RemoteOciPuller)(nil)
 func New(ociLayoutCache string, remote *assistantremote.Remote) *RemoteOciPuller {
 	return &RemoteOciPuller{
 		ociLayoutCache: ociLayoutCache,
-
-		remote: remote,
+		remote:         remote,
 	}
 }
 
@@ -42,7 +42,11 @@ func NewFromRemoteConfig(config *assistantconfig.Config) (*RemoteOciPuller, erro
 	return New(config.OciLayoutCache, remote), nil
 }
 
-func (a *RemoteOciPuller) PullComponent(ctx context.Context, componentPath, tag, destPath string, platform simpleplatform.Platform) error {
+func (a *RemoteOciPuller) PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error {
+	return a.pull(ctx, ociconsts.ComponentRepoPrefix+componentName, tag, destPath, platform)
+}
+
+func (a *RemoteOciPuller) PullComponentByFullPath(ctx context.Context, componentPath, tag, destPath string, platform simpleplatform.Platform) error {
 	return a.pull(ctx, componentPath, tag, destPath, platform)
 }
 

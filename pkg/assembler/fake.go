@@ -53,5 +53,8 @@ func (f *FakePuller) PullAssembly(ctx context.Context, edition sdkmanifest.Editi
 func (f *FakePuller) PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error {
 	panic("not implemented")
 }
+func (f *FakePuller) PullComponentByFullPath(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error {
+	panic("not implemented")
+}
 
 var _ ocipuller.OciPuller = (*FakePuller)(nil)

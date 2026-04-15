@@ -904,6 +904,11 @@ func (suite *MainSuite) TestInstallPackageMultiRegistry() {
 	t.Setenv("TEST_DPM_REGISTRY", "oci://"+regURL)
 	t.Setenv("TEST_ALT_DPM_REGISTRY", "oci://"+altURL)
 
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+
 	// TODO - Update dpm repo publish-component to be able to handle different oci path with assuming a structure
 	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
 	testutil.PushComponent(t, ctx, altReg, "rando", "1.2.4", testutil.TestdataPath(t, "components", "rando"))
