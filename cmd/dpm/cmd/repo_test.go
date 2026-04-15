@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -271,6 +272,26 @@ func (suite *RepoSuite) TestPublishDar() {
 	}
 	cmd.SetArgs(args)
 	require.NoError(t, cmd.Execute())
+}
+
+func (suite *RepoSuite) TestPublishThirdPartyComponents() {
+	t := suite.T()
+	_, _ = testutil.StartRegistry(t)
+	uri := fmt.Sprintf("%s/x/y/z", os.Getenv(assistantconfig.OciRegistryEnvVar))
+
+	args := []string{"repo", "push-component", "meep", "1.2.3",
+		"-p", "windows/amd64=" + testutil.TestdataPath(t, "meepy-component", "windows"),
+		"-p", "linux/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
+		"-p", "darwin/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
+		"-p", "darwin/arm64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
+		"--registry", uri,
+	}
+
+	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
+		args = append(args, "--insecure")
+	}
+
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 }
 
 func listTags(t *testing.T, component, registry string) []string {

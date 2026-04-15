@@ -1,26 +1,29 @@
 // Copyright (c) 2017-2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package component
+package pushcomponent
 
 import (
 	"fmt"
 	"strings"
 
-	"daml.com/x/assistant/pkg/oci"
+	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/publish"
 	"daml.com/x/assistant/pkg/publishcmd"
 	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/cobra"
+	"oras.land/oras-go/v2/registry"
 )
 
 func Cmd() *cobra.Command {
 	c := publishcmd.PublishCmd{}
 
+	// TODO stop publishing a tag for every platform
 	cmd := &cobra.Command{
-		Use:     "publish-component <name> <version>",
+		Use:     "push-component <name> <version>",
 		Short:   "Publish a component to an OCI registry",
-		Example: "  dpm repo publish-component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin",
+		Long:    "Will publish the component (OCI index) to <registry>/<name>:<version>",
+		Example: "  dpm repo push-component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin --registry 'example.com/some/path'",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
@@ -34,10 +37,14 @@ func Cmd() *cobra.Command {
 				return err
 			}
 
+			ref, err := registry.ParseReference(fmt.Sprintf("%s/%s", strings.TrimRight(c.Registry, "/"), name))
+			if err != nil {
+				return err
+			}
 			destination := &publish.Destination{
-				Registry: strings.TrimRight(c.Registry, "/"),
-				Artifact: &oci.ComponentArtifact{
-					ComponentName: name,
+				Registry: ref.Registry,
+				Artifact: &ociconsts.ThirdPartyComponentArtifact{
+					ComponentRepo: ref.Repository,
 				},
 			}
 
@@ -68,6 +75,7 @@ func Cmd() *cobra.Command {
 	cmd.Flags().StringSliceVarP(&c.ExtraTags, "extra-tags", "t", []string{}, "publish extra tags besides the semver")
 
 	cmd.Flags().StringVar(&c.Registry, "registry", "", "OCI registry to use for pushing")
+	cmd.MarkFlagRequired(publishcmd.RegistryFlagName)
 	cmd.Flags().BoolVar(&c.Insecure, "insecure", false, "use http instead of https for OCI registry")
 	cmd.Flags().StringVar(&c.RegistryAuth, "auth", "", "path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json")
 

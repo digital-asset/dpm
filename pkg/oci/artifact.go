@@ -17,6 +17,16 @@ type ComponentArtifact struct {
 	ComponentName string
 }
 
+type ThirdPartyComponentArtifact struct {
+	ComponentRepo string
+}
+
+func (a *ThirdPartyComponentArtifact) RepoName() string {
+	return a.ComponentRepo
+}
+func (a *ThirdPartyComponentArtifact) ArtifactType() string  { return ComponentArtifactType }
+func (a *ThirdPartyComponentArtifact) FileMediaType() string { return ComponentFileMediaType }
+
 type DarArtifact struct {
 	DarName string
 }

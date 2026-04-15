@@ -391,15 +391,28 @@ func (suite *MainSuite) TestComponentPublish() {
 
 func (suite *MainSuite) TestComponentPublishDryRun() {
 	t := suite.T()
-	args := []string{"repo", "publish-component", "--dry-run", "meep", "1.2.3-meep",
-		"-p", "generic=" + testutil.TestdataPath(t, "meepy-component", testutil.OS)}
-	cmd, r, w := createTestRootCmd(t, args...)
-	assert.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
 
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
-	assert.Contains(t, string(output), "")
+	doTest := func(t *testing.T, expectedUri string, command []string) {
+		args := append(command, "--dry-run", "--registry", "foo.example.com/a/b",
+			"meep", "1.2.3-meep",
+			"-p", "generic="+testutil.TestdataPath(t, "meepy-component", testutil.OS))
+
+		cmd, r, w := createTestRootCmd(t, args...)
+		assert.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		assert.NoError(t, err)
+		assert.Contains(t, string(output), "destination is "+expectedUri+"\n")
+	}
+
+	t.Run("first party", func(t *testing.T) {
+		doTest(t, "foo.example.com/a/b/components/meep", []string{"repo", "publish-component"})
+	})
+
+	t.Run("third party", func(t *testing.T) {
+		doTest(t, "foo.example.com/a/b/meep", []string{"repo", "push-component"})
+	})
 }
 
 func (suite *MainSuite) TestAssistantVersionCommand() {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/publish"
 	"daml.com/x/assistant/pkg/publishcmd"
 	"daml.com/x/assistant/pkg/sdkmanifest"
@@ -23,7 +24,7 @@ func Cmd() *cobra.Command {
 		Example: "  dpm repo publish-dpm 1.2.3-alpha -p linux/arm64=dist/dpm -p windows/amd64=dist/dpm.exe",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			version, err := semver.NewVersion(args[0])
+			version, err := semver.StrictNewVersion(args[0])
 			if err != nil {
 				return fmt.Errorf("invalid version argument: %w", err)
 			}
@@ -31,6 +32,13 @@ func Cmd() *cobra.Command {
 			platforms, err := c.ParsePlatforms()
 			if err != nil {
 				return err
+			}
+
+			destination := &publish.Destination{
+				Registry: strings.TrimRight(c.Registry, "/"),
+				Artifact: &oci.ComponentArtifact{
+					ComponentName: sdkmanifest.AssistantName,
+				},
 			}
 
 			cmd.SilenceUsage = true
@@ -41,7 +49,7 @@ func Cmd() *cobra.Command {
 				DryRun:         c.DryRun,
 				IncludeGitInfo: c.IncludeGitInfo,
 				Annotations:    c.Annotations,
-				Registry:       strings.TrimRight(c.Registry, "/"),
+				Destination:    destination,
 				AuthFilePath:   c.RegistryAuth,
 				Insecure:       c.Insecure,
 				ExtraTags:      c.ExtraTags,
