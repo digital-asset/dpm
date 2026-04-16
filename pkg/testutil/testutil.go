@@ -12,13 +12,12 @@ import (
 	"strings"
 	"testing"
 
-	"daml.com/x/assistant/pkg/ocipusher/sdkmanifestpusher"
-
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocipusher"
+	"daml.com/x/assistant/pkg/ocipusher/sdkmanifestpusher"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
