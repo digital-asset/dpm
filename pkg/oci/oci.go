@@ -33,7 +33,8 @@ const (
 	LegacyNameAnnotation      = LegacyDpmAnnotationPrefix + "name"
 	LegacyVersionAnnotation   = LegacyDpmAnnotationPrefix + "version"
 
-	DpmAnnotationPrefix = "com.dpm."
+	DpmAnnotationPrefix      = "com.dpm."
+	DescriptorNameAnnotation = DpmAnnotationPrefix + "name"
 
 	// SkipLegacyOciAnnotationsEnvVar will skip attaching legacy annotations when publishing oci manifests
 	SkipLegacyOciAnnotationsEnvVar = "SKIP_LEGACY_OCI_ANNOTATIONS"
@@ -47,7 +48,7 @@ type DescriptorAnnotations struct {
 }
 
 func (d DescriptorAnnotations) AppendToMap(annotations map[string]string) {
-	annotations[v1.AnnotationTitle] = d.Name
+	annotations[DescriptorNameAnnotation] = d.Name
 	annotations[v1.AnnotationVersion] = d.Version.String()
 
 	// deprecated but keeping for backwards compatibility with older dpm binaries
