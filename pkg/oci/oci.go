@@ -5,6 +5,7 @@ package oci
 
 import (
 	"fmt"
+	"os"
 
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/Masterminds/semver/v3"
@@ -34,6 +35,9 @@ const (
 
 	DpmAnnotationPrefix      = "com.dpm."
 	DescriptorNameAnnotation = DpmAnnotationPrefix + "name"
+
+	// SkipLegacyOciAnnotationsEnvVar will skip attaching legacy annotations when publishing oci manifests
+	SkipLegacyOciAnnotationsEnvVar = "SKIP_LEGACY_OCI_ANNOTATIONS"
 )
 
 // DescriptorAnnotations are required annotations to be appended onto image and index manifests.
@@ -48,8 +52,10 @@ func (d DescriptorAnnotations) AppendToMap(annotations map[string]string) {
 	annotations[v1.AnnotationVersion] = d.Version.String()
 
 	// deprecated but keeping for backwards compatibility with older dpm binaries
-	annotations[LegacyNameAnnotation] = d.Name
-	annotations[LegacyVersionAnnotation] = d.Version.String()
+	if os.Getenv(SkipLegacyOciAnnotationsEnvVar) != "true" {
+		annotations[LegacyNameAnnotation] = d.Name
+		annotations[LegacyVersionAnnotation] = d.Version.String()
+	}
 }
 
 func LegacyDpmAnnotation(annotation string) string {

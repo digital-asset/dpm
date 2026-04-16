@@ -5,6 +5,7 @@ package fileinfo
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -39,15 +40,22 @@ func (fi *FileInfo) AsAnnotations() map[string]string {
 	modTime := fi.ModTime.Format(time.RFC3339)
 	fileName := fi.FileName
 
-	return map[string]string{
+	m := map[string]string{
 		FileModeAnnotation: mode,
 		ModTimeAnnotation:  modTime,
 		FileNameAnnotation: fileName,
-
-		LegacyFileModeAnnotation: mode,
-		LegacyModTimeAnnotation:  modTime,
-		LegacyFileNameAnnotation: fileName,
 	}
+
+	if os.Getenv(ociconsts.SkipLegacyOciAnnotationsEnvVar) != "true" {
+		legacy := map[string]string{
+			LegacyFileModeAnnotation: mode,
+			LegacyModTimeAnnotation:  modTime,
+			LegacyFileNameAnnotation: fileName,
+		}
+		maps.Copy(m, legacy)
+	}
+
+	return m
 }
 
 // Apply sets the fileinfo for the corresponding file on the filesystem

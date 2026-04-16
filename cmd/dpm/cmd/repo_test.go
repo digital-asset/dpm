@@ -16,9 +16,12 @@ import (
 	root "daml.com/x/assistant"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/licenseutils"
+	ociconsts "daml.com/x/assistant/pkg/oci"
+	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/testutil"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -201,6 +204,86 @@ func (suite *RepoSuite) TestResolveLatest() {
 		assert.NotContains(t, string(output), c.tag)
 		assert.Contains(t, string(output), "version: 1.2.3")
 	}
+}
+
+func (suite *RepoSuite) TestLegacyOciAnnotation() {
+	t := suite.T()
+	const sdkVersion = "0.0.1-whatever"
+
+	//fetchManifest := func(t *testing.T, ref string) map[string]any {
+	//	ctx := t.Context()
+	//	repo, err := remote.NewRepository(ref)
+	//	require.NoError(t, err)
+	//
+	//	desc, err := repo.Resolve(t.Context(), "")
+	//	require.NoError(t, err)
+	//
+	//	// Fetch manifest content
+	//	rc, err := repo.Fetch(ctx, desc)
+	//	require.NoError(t, err)
+	//	defer rc.Close()
+	//
+	//	bytes, err := io.ReadAll(rc)
+	//	require.NoError(t, err)
+	//
+	//	var m map[string]any
+	//	require.NoError(t, json.Unmarshal(bytes, m))
+	//
+	//	return
+	//}
+
+	assertAnnotations := func(t *testing.T, annotations map[string]string, expectedAnnotations ...string) {
+		for _, a := range expectedAnnotations {
+			assert.Contains(t, annotations, a)
+		}
+	}
+
+	doTest := func(t *testing.T) {
+		tmpDpmHome := t.TempDir()
+		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDpmHome)
+
+		publishComponents(t)
+
+		// push assembly
+		cmd := createStdTestRootCmd(t)
+		args := []string{"repo", "publish-sdk-manifest", "-t", "latest",
+			"-f", testutil.TestdataPath(t, "publish.yaml"), "--extra-tags", "foo"}
+		cmd.SetArgs(appendRegistryArgsFromEnv(args))
+		require.NoError(t, cmd.Execute())
+
+		// install it
+		cmd = createStdTestRootCmd(t)
+		cmd.SetArgs([]string{"install", sdkVersion})
+		require.NoError(t, cmd.Execute())
+
+		// verify
+		assertSdkVersion(t, sdkVersion)
+		testMeepyComponent(t)
+		t.Run("link assistant", verifyLink)
+	}
+
+	t.Run("publishes new and legacy annotation", func(t *testing.T) {
+		_, reg := testutil.StartRegistry(t)
+
+		doTest(t)
+
+		r, err := testutil.GetRemote(reg).Repo("components/meep")
+		require.NoError(t, err)
+
+		index, _, err := ociindex.FetchIndexFromTarget(t.Context(), r, "", "1.2.3")
+		require.NoError(t, err)
+
+		expectedVersionAnnotations := []string{ociconsts.LegacyVersionAnnotation, v1.AnnotationVersion}
+		expectedNameAnnotations := []string{ociconsts.DescriptorNameAnnotation, ociconsts.LegacyNameAnnotation}
+		assertAnnotations(t, index.Annotations, expectedVersionAnnotations...)
+		assertAnnotations(t, index.Annotations, expectedNameAnnotations...)
+		assertAnnotations(t, index.Manifests[0].Annotations, expectedVersionAnnotations...)
+		assertAnnotations(t, index.Manifests[0].Annotations, expectedNameAnnotations...)
+	})
+
+	t.Run("missing legacy on the read side is ok", func(t *testing.T) {
+		
+	})
 }
 
 func (suite *RepoSuite) TestPromoteComponents() {
