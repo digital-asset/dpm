@@ -33,7 +33,7 @@ const (
 	LegacyNameAnnotation      = LegacyDpmAnnotationPrefix + "name"
 	LegacyVersionAnnotation   = LegacyDpmAnnotationPrefix + "version"
 
-	DpmAnnotationPrefix      = "com.dpm."
+	DpmAnnotationPrefix      = "network.canton.dpm."
 	DescriptorNameAnnotation = DpmAnnotationPrefix + "name"
 
 	// SkipLegacyOciAnnotationsEnvVar will skip attaching legacy annotations when publishing oci manifests
