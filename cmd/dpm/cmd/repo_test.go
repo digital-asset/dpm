@@ -4,8 +4,11 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,13 +19,19 @@ import (
 	root "daml.com/x/assistant"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/licenseutils"
+	ociconsts "daml.com/x/assistant/pkg/oci"
+	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/testutil"
+	"daml.com/x/assistant/pkg/utils/fileinfo"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"oras.land/oras-go/v2"
+	"oras.land/oras-go/v2/registry/remote"
 )
 
 type RepoSuite struct {
@@ -201,6 +210,130 @@ func (suite *RepoSuite) TestResolveLatest() {
 		assert.NotContains(t, string(output), c.tag)
 		assert.Contains(t, string(output), "version: 1.2.3")
 	}
+}
+
+func (suite *RepoSuite) TestOciAnnotations() {
+	t := suite.T()
+
+	sdkVersion := "0.0.1-whatever"
+	expectedTopLevelAnnotation := []string{ociconsts.DescriptorNameAnnotation, v1.AnnotationVersion}
+	expectedLegacyTopLevelAnnotation := []string{ociconsts.LegacyNameAnnotation, ociconsts.LegacyVersionAnnotation}
+	expectedFileAnnotation := []string{fileinfo.FileModeAnnotation, fileinfo.FileNameAnnotation, fileinfo.ModTimeAnnotation}
+	expectedLegacyFileAnnotation := []string{fileinfo.LegacyFileModeAnnotation, fileinfo.LegacyFileNameAnnotation, fileinfo.LegacyModTimeAnnotation}
+
+	type LegacyOption int
+	const (
+		IncludesLegacy = iota
+		NoLegacy
+	)
+
+	assertContainsAnnotations := func(t *testing.T, annotations map[string]string, expectedAnnotations ...string) {
+		for _, a := range expectedAnnotations {
+			assert.Contains(t, annotations, a)
+		}
+	}
+	assertNotContainsAnnotations := func(t *testing.T, annotations map[string]string, expectedAnnotations ...string) {
+		for _, a := range expectedAnnotations {
+			assert.NotContains(t, annotations, a)
+		}
+	}
+
+	assertTopLevelAnnotation := func(t *testing.T, annotations map[string]string, legacyOption LegacyOption) {
+		assertContainsAnnotations(t, annotations, expectedTopLevelAnnotation...)
+		if legacyOption == IncludesLegacy {
+			assertContainsAnnotations(t, annotations, expectedLegacyTopLevelAnnotation...)
+		} else {
+			assertNotContainsAnnotations(t, annotations, expectedLegacyTopLevelAnnotation...)
+		}
+	}
+
+	assertFileAnnotations := func(t *testing.T, annotations map[string]string, legacyOption LegacyOption) {
+		assertContainsAnnotations(t, annotations, expectedFileAnnotation...)
+		if legacyOption == IncludesLegacy {
+			assertContainsAnnotations(t, annotations, expectedLegacyFileAnnotation...)
+		} else {
+			assertNotContainsAnnotations(t, annotations, expectedLegacyFileAnnotation...)
+		}
+	}
+
+	testPushAndPull := func(t *testing.T) {
+		tmpDpmHome := t.TempDir()
+		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDpmHome)
+
+		publishComponents(t)
+
+		// push assembly
+		cmd := createStdTestRootCmd(t)
+		args := []string{"repo", "publish-sdk-manifest", "-t", "latest",
+			"-f", testutil.TestdataPath(t, "publish.yaml"), "--extra-tags", "foo"}
+		cmd.SetArgs(appendRegistryArgsFromEnv(args))
+		require.NoError(t, cmd.Execute())
+
+		// install it
+		cmd = createStdTestRootCmd(t)
+		cmd.SetArgs([]string{"install", sdkVersion})
+		require.NoError(t, cmd.Execute())
+
+		// verify
+		assertSdkVersion(t, sdkVersion)
+		testMeepyComponent(t)
+		t.Run("link assistant", verifyLink)
+	}
+
+	testIndexManifest := func(t *testing.T, repo *remote.Repository, tag string, legacyOption LegacyOption) {
+		index, _, err := ociindex.FetchIndexFromTarget(t.Context(), repo, repo.Reference.Repository, tag)
+		require.NoError(t, err)
+
+		assert.NotEmpty(t, index.Manifests)
+		assertTopLevelAnnotation(t, index.Annotations, legacyOption)
+		for _, m := range index.Manifests {
+			assertTopLevelAnnotation(t, m.Annotations, legacyOption)
+		}
+	}
+
+	assertAllAnnotation := func(t *testing.T, registry *httptest.Server, legacyOption LegacyOption) {
+		meepRepo, err := testutil.GetRemote(registry).Repo("components/meep")
+		require.NoError(t, err)
+
+		sdkRepo, err := testutil.GetRemote(registry).Repo("sdk-manifests/open-source")
+		require.NoError(t, err)
+
+		t.Run("component index manifest", func(t *testing.T) {
+			testIndexManifest(t, meepRepo, "1.2.3", legacyOption)
+		})
+
+		t.Run("sdk-manifest index manifest", func(t *testing.T) {
+			testIndexManifest(t, sdkRepo, sdkVersion, legacyOption)
+		})
+
+		t.Run("component image manifests", func(t *testing.T) {
+			index, _, err := ociindex.FetchIndexFromTarget(t.Context(), meepRepo, meepRepo.Reference.Repository, "1.2.3")
+			require.NoError(t, err)
+
+			for _, m := range index.Manifests {
+				image, _, err := FetchImageManifest(t.Context(), meepRepo, meepRepo.Reference.Repository, m.Digest.String())
+				require.NoError(t, err)
+				assertTopLevelAnnotation(t, image.Annotations, legacyOption)
+				for _, layer := range image.Layers {
+					assertFileAnnotations(t, layer.Annotations, legacyOption)
+				}
+			}
+		})
+	}
+
+	t.Run("publishing of new and legacy annotations", func(t *testing.T) {
+		_, reg := testutil.StartRegistry(t)
+		testPushAndPull(t)
+		assertAllAnnotation(t, reg, IncludesLegacy)
+	})
+
+	t.Run("missing legacy on the read side is ok", func(t *testing.T) {
+		t.Setenv(ociconsts.SkipLegacyOciAnnotationsEnvVar, "true")
+
+		_, reg := testutil.StartRegistry(t)
+		testPushAndPull(t)
+		assertAllAnnotation(t, reg, NoLegacy)
+	})
 }
 
 func (suite *RepoSuite) TestPromoteComponents() {
@@ -406,4 +539,21 @@ func verifyLnkAtPath(t *testing.T, path string) {
 	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
 	assert.Contains(t, string(output), "fake assistant, Ha!")
+}
+
+func FetchImageManifest(ctx context.Context, repo oras.ReadOnlyTarget, repoName, tag string) (*v1.Manifest, []byte, error) {
+	desc, bytes, err := oras.FetchBytes(ctx, repo, tag, oras.DefaultFetchBytesOptions)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if desc.MediaType != v1.MediaTypeImageManifest {
+		return nil, nil, fmt.Errorf("reference \"%s:%s\" is %q and not an image manifest", repoName, tag, desc.MediaType)
+	}
+
+	v := v1.Manifest{}
+	if err := json.Unmarshal(bytes, &v); err != nil {
+		return nil, nil, err
+	}
+	return &v, bytes, nil
 }

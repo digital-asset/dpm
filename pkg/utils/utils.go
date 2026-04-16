@@ -29,3 +29,13 @@ var envVarRegex = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 func IsValidEnvVarIdentifier(key string) bool {
 	return envVarRegex.MatchString(key)
 }
+
+func GetWithFallback(m map[string]string, primary, fallback string) (string, bool) {
+	if val, ok := m[primary]; ok {
+		return val, true
+	}
+	if val, ok := m[fallback]; ok {
+		return val, true
+	}
+	return "", false
+}

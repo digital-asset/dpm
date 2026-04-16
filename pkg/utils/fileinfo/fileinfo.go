@@ -5,22 +5,28 @@ package fileinfo
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
 	ociconsts "daml.com/x/assistant/pkg/oci"
+	"daml.com/x/assistant/pkg/utils"
 )
 
 var (
-	FileModeAnnotation = ociconsts.DAAnnotation("file-mode")
-	ModTimeAnnotation  = ociconsts.DAAnnotation("file-modtime")
-	FileNameAnnotation = ociconsts.DAAnnotation("file-name")
+	LegacyFileModeAnnotation = ociconsts.LegacyDpmAnnotation("file-mode")
+	LegacyModTimeAnnotation  = ociconsts.LegacyDpmAnnotation("file-modtime")
+	LegacyFileNameAnnotation = ociconsts.LegacyDpmAnnotation("file-name")
+
+	FileModeAnnotation = ociconsts.DpmAnnotation("file-mode")
+	ModTimeAnnotation  = ociconsts.DpmAnnotation("file-modtime")
+	FileNameAnnotation = ociconsts.DpmAnnotation("file-name")
 )
 
-func missingAnnotation(a string) error {
-	return fmt.Errorf("missing %s annotation", a)
+func missingAnnotations(a, b string) error {
+	return fmt.Errorf("missing (%q, or %q) annotation", a, b)
 }
 
 type FileInfo struct {
@@ -30,11 +36,26 @@ type FileInfo struct {
 }
 
 func (fi *FileInfo) AsAnnotations() map[string]string {
-	return map[string]string{
-		FileModeAnnotation: fmt.Sprintf("%o", fi.FileMode),
-		ModTimeAnnotation:  fi.ModTime.Format(time.RFC3339),
-		FileNameAnnotation: fi.FileName,
+	mode := fmt.Sprintf("%o", fi.FileMode)
+	modTime := fi.ModTime.Format(time.RFC3339)
+	fileName := fi.FileName
+
+	m := map[string]string{
+		FileModeAnnotation: mode,
+		ModTimeAnnotation:  modTime,
+		FileNameAnnotation: fileName,
 	}
+
+	if os.Getenv(ociconsts.SkipLegacyOciAnnotationsEnvVar) != "true" {
+		legacy := map[string]string{
+			LegacyFileModeAnnotation: mode,
+			LegacyModTimeAnnotation:  modTime,
+			LegacyFileNameAnnotation: fileName,
+		}
+		maps.Copy(m, legacy)
+	}
+
+	return m
 }
 
 // Apply sets the fileinfo for the corresponding file on the filesystem
@@ -51,27 +72,27 @@ func NewFromAnnotations(annotations map[string]string) (*FileInfo, error) {
 		return nil, fmt.Errorf("missing fileinfo annotations")
 	}
 
-	fileModeStr, ok := annotations[FileModeAnnotation]
+	fileModeStr, ok := utils.GetWithFallback(annotations, FileModeAnnotation, LegacyFileModeAnnotation)
 	if !ok {
-		return nil, missingAnnotation(FileModeAnnotation)
+		return nil, missingAnnotations(FileModeAnnotation, LegacyFileModeAnnotation)
 	}
 	fileMode, err := strconv.ParseUint(fileModeStr, 8, 32)
 	if err != nil {
 		return nil, err
 	}
 
-	modTimeStr, ok := annotations[ModTimeAnnotation]
+	modTimeStr, ok := utils.GetWithFallback(annotations, ModTimeAnnotation, LegacyModTimeAnnotation)
 	if !ok {
-		return nil, missingAnnotation(FileModeAnnotation)
+		return nil, missingAnnotations(ModTimeAnnotation, LegacyModTimeAnnotation)
 	}
 	modTime, err := time.Parse(time.RFC3339, modTimeStr)
 	if err != nil {
 		return nil, err
 	}
 
-	fileName, ok := annotations[FileNameAnnotation]
+	fileName, ok := utils.GetWithFallback(annotations, FileNameAnnotation, LegacyFileNameAnnotation)
 	if !ok {
-		return nil, missingAnnotation(FileNameAnnotation)
+		return nil, missingAnnotations(FileNameAnnotation, LegacyFileNameAnnotation)
 	}
 
 	return &FileInfo{

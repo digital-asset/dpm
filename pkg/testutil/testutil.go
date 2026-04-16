@@ -12,13 +12,12 @@ import (
 	"strings"
 	"testing"
 
-	"daml.com/x/assistant/pkg/ocipusher/sdkmanifestpusher"
-
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocipusher"
+	"daml.com/x/assistant/pkg/ocipusher/sdkmanifestpusher"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
@@ -42,7 +41,7 @@ func TestdataPath(t *testing.T, path ...string) string {
 }
 
 func PushComponentUri(registry *httptest.Server, name, repo, tag, pathToComponent string, extraTags ...string) (args []string) {
-	uri := fmt.Sprintf("%s/%s", getRemote(registry).Registry, repo)
+	uri := fmt.Sprintf("%s/%s", GetRemote(registry).Registry, repo)
 
 	args = []string{"repo", "push-component", name, tag, "--registry", uri, "-p", "generic=" + pathToComponent}
 
@@ -57,7 +56,7 @@ func PushComponentUri(registry *httptest.Server, name, repo, tag, pathToComponen
 }
 
 func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server, componentName, tag, pathToComponent string, extraTags ...string) {
-	r := getRemote(registry)
+	r := GetRemote(registry)
 	v, err := semver.NewVersion(tag)
 	require.NoError(t, err)
 	requiredAnnotations := ociconsts.DescriptorAnnotations{
@@ -94,7 +93,7 @@ func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server,
 }
 
 func PushDar(t *testing.T, ctx context.Context, registry *httptest.Server, darName, tag, pathToComponent string) {
-	r := getRemote(registry)
+	r := GetRemote(registry)
 	v, err := semver.NewVersion(tag)
 	require.NoError(t, err)
 	requiredAnnotations := ociconsts.DescriptorAnnotations{
@@ -134,7 +133,7 @@ func PushAssembly(t *testing.T, ctx context.Context, edition sdkmanifest.Edition
 		"darwin/arm64",
 	}
 
-	r := getRemote(registry)
+	r := GetRemote(registry)
 	v, err := semver.NewVersion(tag)
 	require.NoError(t, err)
 	manifests := lo.SliceToMap(platforms, func(p string) (simpleplatform.NonGeneric, string) {
@@ -154,7 +153,7 @@ func PushAssembly(t *testing.T, ctx context.Context, edition sdkmanifest.Edition
 	require.NoError(t, err)
 }
 
-func getRemote(registry *httptest.Server) *assistantremote.Remote {
+func GetRemote(registry *httptest.Server) *assistantremote.Remote {
 	prefix := "http://"
 	insecure := strings.HasPrefix(registry.URL, prefix)
 	if !insecure {
@@ -172,7 +171,7 @@ func StartRegistry(t *testing.T) (client *assistantremote.Remote, reg *httptest.
 	t.Setenv(assistantconfig.RegistryAuthConfigPathEnvVar, TestdataPath(t, "empty-docker-config.json"))
 	t.Setenv(assistantconfig.AllowInsecureRegistryEnvVar, "true")
 
-	return getRemote(reg), reg
+	return GetRemote(reg), reg
 }
 
 type CommonSetupSuite struct {

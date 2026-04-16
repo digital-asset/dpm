@@ -1,7 +1,6 @@
 package darpuller
 
 import (
-	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -114,12 +113,8 @@ func (a *OciDarPuller) getVersion(ctx context.Context, repo oras.ReadOnlyTarget,
 		return nil, err
 	}
 
-	v := cmp.Or(
-		annotations[v1.AnnotationVersion],
-		// fallback
-		annotations[ociconsts.DescriptorVersionAnnotation],
-	)
-	if v == "" {
+	v, ok := utils.GetWithFallback(annotations, v1.AnnotationVersion, ociconsts.LegacyVersionAnnotation)
+	if !ok {
 		return nil, fmt.Errorf("missing version annotation in image manifest")
 	}
 	ver, err := semver.StrictNewVersion(v)
