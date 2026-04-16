@@ -216,7 +216,7 @@ func (suite *RepoSuite) TestOciAnnotations() {
 	t := suite.T()
 
 	sdkVersion := "0.0.1-whatever"
-	expectedTopLevelAnnotation := []string{ociconsts.DescriptorNameAnnotation, v1.AnnotationVersion}
+	expectedTopLevelAnnotation := []string{v1.AnnotationTitle, v1.AnnotationVersion}
 	expectedLegacyTopLevelAnnotation := []string{ociconsts.LegacyNameAnnotation, ociconsts.LegacyVersionAnnotation}
 	expectedFileAnnotation := []string{fileinfo.FileModeAnnotation, fileinfo.FileNameAnnotation, fileinfo.ModTimeAnnotation}
 	expectedLegacyFileAnnotation := []string{fileinfo.LegacyFileModeAnnotation, fileinfo.LegacyFileNameAnnotation, fileinfo.LegacyModTimeAnnotation}
