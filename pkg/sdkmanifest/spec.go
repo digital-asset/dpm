@@ -62,8 +62,14 @@ func (s *Spec) UnmarshalYAML(bytes []byte) error {
 }
 
 type Component struct {
-	Name      string  `yaml:"-"`
-	Version   *SemVer `yaml:"version,omitempty"`
+	Name    string  `yaml:"-"`
+	Version *SemVer `yaml:"version,omitempty"`
+
+	// We don't yet have support for floaty or arbitrary tags (as that requires lockfiles),
+	// but the `dpm resolve-tags` command used in the assembly process for putting together
+	// and publishing SDKs uses this same schema and allows floaty ImageTag
+	//
+	// Consider creating a separate struct for use by SDK assembly commands
 	ImageTag  *string `yaml:"image-tag,omitempty"`
 	LocalPath *string `yaml:"local-path,omitempty"`
 	Uri       *string `yaml:"uri,omitempty"`

@@ -306,7 +306,7 @@ func (a *Assembler) collectComponents(ctx context.Context, assemblyManifest *sdk
 	for _, comp := range assemblyManifest.Spec.Components {
 		resolved, err := a.collectComponent(ctx, assemblyManifest.AbsolutePath, comp)
 		if err != nil {
-			errs = append(errs, err)
+			errs = append(errs, fmt.Errorf("error handling component %q in %q: %w", comp.Name, assemblyManifest.AbsolutePath, err))
 			continue
 		}
 		result[comp.Name] = resolved
@@ -366,14 +366,12 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		return "", err
 	}
 
-	componentPath := ref.Repository
-
-	tag, err := semver.StrictNewVersion(ref.Reference)
+	version, err := semver.StrictNewVersion(ref.Reference)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", ref.Reference, *comp.Uri, err)
 	}
 
-	destPath := a.ociComponentPath(comp.Name, tag.String())
+	destPath := a.ociComponentPath(comp.Name, version.String())
 
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
@@ -398,7 +396,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		// Passing in old config layoutCache
 		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
 
-		if err := customPuller.PullComponentByFullPath(ctx, componentPath, tag.String(), destPath, platform); err != nil {
+		if err := customPuller.PullComponentByFullPath(ctx, ref.Repository, version.String(), destPath, platform); err != nil {
 			return "", err
 		}
 	}
