@@ -285,9 +285,9 @@ func findFileInOciBlobs(imageManifestPath, filename string) (string, *v1.Descrip
 	}
 
 	layer, ok := lo.Find(manifest.Layers, func(l v1.Descriptor) bool {
-		fname, ok := l.Annotations[fileinfo.FileNameAnnotation]
+		fname, ok := utils.GetWithFallback(l.Annotations, fileinfo.FileNameAnnotation, fileinfo.LegacyFileNameAnnotation)
 		if !ok {
-			slog.Warn("layer missing annotation", "annotation", fileinfo.FileNameAnnotation)
+			slog.Warn("layer missing annotation or legacy annotation", "annotation", fileinfo.FileNameAnnotation, "legacy-annotation", fileinfo.LegacyFileNameAnnotation)
 			return false
 		}
 		return fname == filename
@@ -318,10 +318,12 @@ func linkAssistant(platform *simpleplatform.NonGeneric, dir, imageManifestPath s
 		return fmt.Errorf("could not determine assistant binary's layer and file: %w", err)
 	}
 
+	fname, _ := utils.GetWithFallback(dpmBinLayer.Annotations, fileinfo.FileNameAnnotation, fileinfo.LegacyFileNameAnnotation)
+
 	// TODO figure out why running linked blob fails on windows, instead of this.
 	// (seems windows isn't happy with the blob filename not having a .exe)
 	if runtime.GOOS == "windows" {
-		return utils.CopyFile(binBlobPath, filepath.Join(dir, "bin", dpmBinLayer.Annotations[fileinfo.FileNameAnnotation]))
+		return utils.CopyFile(binBlobPath, filepath.Join(dir, "bin", fname))
 	}
 
 	// re-use the assistant linking functionality from `dpm install <version>`
@@ -331,7 +333,7 @@ func linkAssistant(platform *simpleplatform.NonGeneric, dir, imageManifestPath s
 		return err
 	}
 
-	renamed := filepath.Join(filepath.Dir(p), dpmBinLayer.Annotations[fileinfo.FileNameAnnotation])
+	renamed := filepath.Join(filepath.Dir(p), fname)
 	if err := os.Rename(p, renamed); err != nil {
 		return err
 	}
