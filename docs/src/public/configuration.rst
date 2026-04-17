@@ -101,25 +101,31 @@ Escape syntax uses the ``\`` prefix: ``\${NOT_INTERPOLATED}``.
 
 .. _dpm-override-components:
 
-(Advanced) Overriding SDK Components
+(Advanced) Extending and overriding SDK Components
 -------------------------------------------------------
 
-``dpm`` supports overriding components for an installed SDK for a single package and/or a multi-package project.
+``dpm`` supports adding components or overriding the SDK components for a single and/or a multi-package project.
 
 in ``daml.yaml``
 ~~~~~~~~~~~~~~~~
 
 .. code:: yaml
 
-   sdk-version: 3.4.0-snapshot.20251013.1566.e75a9cf
-   override-components:
+   sdk-version: 3.4.0-snapshot.20251007.14274.0.ve2024cd6
+
+   components:
      damlc:
-       version: 3.4.0-snapshot.20251007.14274.0.ve2024cd6
+       version: 3.5.1-rc1
+
+     codegen-js:
+        # note: the 'uri' field is only available in SDK versions 3.5 or later
+        # (you can still use earlier versions in this file's 'sdk-version' as long as SDK 3.5 or later is installed)
+        uri: "oci://europe-docker.pkg.dev/da-images/public/components/codegen-js:3.4.11"
 
 in ``multi-package.yaml``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can use the same ``override-components`` yaml object in a ``multi-package.yaml`` too. This applies the specified overrides to all packages.
+You can use the same ``components`` yaml object in a ``multi-package.yaml`` too. This applies the specified overrides to all packages.
 
 .. code:: yaml
 
@@ -127,20 +133,28 @@ You can use the same ``override-components`` yaml object in a ``multi-package.ya
      - ./daml-pkg-1
      - ./daml-pkg-2
 
-   override-components:
+   components:
      damlc:
-       version: 3.4.0-snapshot.20251007.14274.0.ve2024cd6
+       version: 3.5.1-rc1
 
-When both ``multi-package.yaml`` and one of its packages' ``daml.yaml`` simultaneously override components, ``dpm`` overlays ``daml.yaml``'s components on top of ``multi-package.yaml``'s:
+     codegen-js:
+        # note: the 'uri' field is only available in SDK versions 3.5 or later
+        uri: "oci://europe-docker.pkg.dev/da-images/public/components/codegen-js:3.4.11"
 
-- Starting with the components of package’s SDK, which is specified in its ``daml.yaml``
-- Overlay ``override-components`` of ``multi-project.yaml``
-- Overlay ``override-components`` of ``daml.yaml``, so effectively this has the highest precedence in case of conflicts
+When both ``multi-package.yaml`` and one of its packages' ``daml.yaml`` simultaneously define `components` field, ``dpm`` overlays ``daml.yaml``'s components on top of ``multi-package.yaml``'s:
 
-Components specified in ``override-components`` must be installed by running
+- Starting with the components of the package’s SDK, which is specified in its ``daml.yaml``
+- Overlay ``components`` of ``multi-project.yaml``
+- Overlay ``components`` of ``daml.yaml``, so effectively this has the highest precedence in case of conflicts
+
+Components specified in ``components`` must be installed by running
 
 .. code:: shell
 
     dpm install package
 
-in a package containing the ``daml.yaml`` or ``multi-package.yaml``
+in a directory containing the ``daml.yaml`` or ``multi-package.yaml``
+
+.. note::
+
+    Beginning SDK version 3.5, the ``override-components`` field is being deprecated in favor of the ``components`` field.
