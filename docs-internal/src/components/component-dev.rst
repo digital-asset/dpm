@@ -16,7 +16,7 @@ simply running ``dpm``.
 
    # daml.yaml
 
-   override-components:
+   components:
      my-local-component:
        # this is essentially pointing to component.yaml that was created in the same directory
        local-path: .
@@ -56,15 +56,18 @@ or can be remote ones that reside in some OCI registry:
 .. code:: yaml
 
    # daml.yaml
-   override-components:
+   components:
      my-local-component:
        local-path: .
 
-     foo:  # remote component
+     foo:  # remote (OCI) component (pulled from "components/<namely>" OCI repo, so effectively: <configured registry>/components/foo:1.2.3)
        version: 1.2.3 
 
      bar:  # another local component
        local-path: ../project/bar
+
+     baz: # remote (OCI) component with fully specified URI
+        uri: "oci://example.com/some/custom/repo:4.5.6"
 
 Now when you run:
 
@@ -87,7 +90,7 @@ the context of daml single and multi-package projects.
 in ``daml.yaml``
 ~~~~~~~~~~~~~~~~
 
-You can use the same ``override-components`` yaml object (described
+You can use the same ``components`` yaml object (described
 above) in ``daml.yaml``. You can use this to: - import additional
 components present locally - import additional components present
 remotely (in some OCI repo) - replace a component that’s provided by an
@@ -98,7 +101,7 @@ SDK with one present remotely (in some OCI repo)
 
    sdk-version: 4.5.6
    ...
-   override-components:
+   components:
      foo:  # additional component (remote)
        version: 1.2.3
 
@@ -116,7 +119,7 @@ SDK with one present remotely (in some OCI repo)
 in ``multi-package.yaml``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can use the same ``override-components`` yaml object in a
+You can use the same ``components`` yaml object in a
 ``multi-package.yaml`` too. This applies the specified overrides to all
 packages.
 
@@ -126,7 +129,7 @@ packages.
      - ./daml-pkg-1
      - ./daml-pkg-2
 
-   override-components:
+   components:
      foo:  # additional component (remote)
        version: 1.2.3
 
@@ -140,11 +143,12 @@ packages.
        version:  1.2.3   # remote
 
 When both ``multi-project.yaml`` and one of its project’s ``daml.yaml``
-simultaneously override components, the assistant overlays (i.e. merges)
-``daml.yaml``\ ’s components on top of ``multi-project.yaml``\ ’s
+simultaneously override components, the assistant overlays
+``daml.yaml``’s components on top of ``multi-project.yaml``’s
 components. So the overall effective components for that project are
-determined like this: - Start with components as defined by assembly
-manifest of the project’s ``daml.yaml``\ ’s chosen sdk - Overlay
-``override-components`` of ``multi-project.yaml`` - Overlay the
-project’s ``daml.yaml``\ ’s override-components (so effectively this has
+determined like this:
+
+- Start with components as defined by sdk-manifest of the project’s ``daml.yaml``\ ’s chosen sdk
+- Overlay ``components`` of ``multi-project.yaml``
+- Overlay the project’s ``daml.yaml``’s ``components`` (so effectively this has
 the highest precedence in case of conflicts)
