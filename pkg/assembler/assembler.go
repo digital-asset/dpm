@@ -23,6 +23,7 @@ import (
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
+	"github.com/Masterminds/semver/v3"
 	"github.com/samber/lo"
 	"oras.land/oras-go/v2/registry"
 )
@@ -366,8 +367,13 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 	}
 
 	componentPath := ref.Repository
-	destPath := a.ociComponentPath(comp.Name, ref.Reference)
-	tag := ref.Reference
+
+	tag, err := semver.StrictNewVersion(ref.Reference)
+	if err != nil {
+		return "", err
+	}
+
+	destPath := a.ociComponentPath(comp.Name, tag.String())
 
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
@@ -392,7 +398,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		// Passing in old config layoutCache
 		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
 
-		if err := customPuller.PullComponentByFullPath(ctx, componentPath, tag, destPath, platform); err != nil {
+		if err := customPuller.PullComponentByFullPath(ctx, componentPath, tag.String(), destPath, platform); err != nil {
 			return "", err
 		}
 	}
