@@ -24,8 +24,7 @@ func Cmd() *cobra.Command {
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
-
-			version, err := semver.NewVersion(args[1])
+			version, err := semver.StrictNewVersion(args[1])
 			if err != nil {
 				return fmt.Errorf("invalid version argument: %w", err)
 			}
