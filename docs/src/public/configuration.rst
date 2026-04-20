@@ -113,14 +113,14 @@ in ``daml.yaml``
 
    sdk-version: 3.4.0-snapshot.20251007.14274.0.ve2024cd6
 
+   # note: the 'components' field is only available in SDK versions 3.5 or later
    components:
-     damlc:
-       version: 3.5.1-rc1
+     - damlc:3.5.1-rc1
+     - oci://europe-docker.pkg.dev/da-images/public/components/codegen-js:3.4.11
 
-     codegen-js:
-        # note: the 'uri' field is only available in SDK versions 3.5 or later
-        # (you can still use earlier versions in this file's 'sdk-version' as long as SDK 3.5 or later is installed)
-        uri: "oci://europe-docker.pkg.dev/da-images/public/components/codegen-js:3.4.11"
+     # component present locally on the filesystem
+     - name: codegen-java
+       path: ../path/to/component/directory
 
 in ``multi-package.yaml``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -133,13 +133,14 @@ You can use the same ``components`` yaml object in a ``multi-package.yaml`` too.
      - ./daml-pkg-1
      - ./daml-pkg-2
 
+   # note: the 'components' field is only available in SDK versions 3.5 or later
    components:
-     damlc:
-       version: 3.5.1-rc1
+     - damlc:3.5.1-rc1
+     - oci://europe-docker.pkg.dev/da-images/public/components/codegen-js:3.4.11
 
-     codegen-js:
-        # note: the 'uri' field is only available in SDK versions 3.5 or later
-        uri: "oci://europe-docker.pkg.dev/da-images/public/components/codegen-js:3.4.11"
+      # component present locally on the filesystem
+      - name: codegen-java
+        path: ../path/to/component/directory
 
 When both ``multi-package.yaml`` and one of its packages' ``daml.yaml`` simultaneously define `components` field, ``dpm`` overlays ``daml.yaml``'s components on top of ``multi-package.yaml``'s:
 
