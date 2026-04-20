@@ -41,13 +41,12 @@ func makeDamlYaml(fields ...string) []byte {
 func TestComponentFields(t *testing.T) {
 	componentsField := `
 components:
-  foo:
-    version: 4.5.6
+    - foo:4.5.6
 `
 	overrideComponentsField := `
 override-components:
-  damlc:
-    version: 1.2.3
+    damlc:
+        version: 1.2.3
 `
 
 	t.Run("cannot use both fields together", func(t *testing.T) {
