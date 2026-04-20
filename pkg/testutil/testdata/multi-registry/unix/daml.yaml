@@ -1,7 +1,4 @@
 components:
-  meep:
-    uri: ${TEST_DPM_REGISTRY}/foo/bar/meep:1.2.3
-  rando:
-    uri: ${TEST_ALT_DPM_REGISTRY}/bar/foo/rando:1.2.4
-  needy:
-    version: 1.2.5
+    - ${TEST_DPM_REGISTRY}/foo/bar/meep:1.2.3
+    - ${TEST_ALT_DPM_REGISTRY}/bar/foo/rando:1.2.4
+    - needy:1.2.5

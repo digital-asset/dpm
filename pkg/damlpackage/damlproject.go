@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/componentlist"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"github.com/goccy/go-yaml"
 )
@@ -16,9 +17,11 @@ import (
 type DamlPackage struct {
 	SdkVersion string `yaml:"sdk-version"`
 
-	Components map[string]*sdkmanifest.Component `yaml:"components"`
+	// yaml:components expected to be a list of strings
+	ComponentsList componentlist.ComponentList `yaml:"components"`
 	// deprecated in favor of Components
 	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components"`
+	Components                   map[string]*sdkmanifest.Component `yaml:"-"`
 
 	Dependencies         []string                       `yaml:"dependencies"`
 	ArtifactLocations    ArtifactLocations              `yaml:"artifact-locations"`
@@ -44,10 +47,8 @@ func ReadFromContents(contents []byte) (*DamlPackage, error) {
 		return nil, err
 	}
 
-	if obj.Components != nil {
-		for name, comp := range obj.Components {
-			comp.Name = name
-		}
+	if obj.ComponentsList != nil {
+		obj.Components, _ = obj.ComponentsList.ToMap()
 	}
 
 	if obj.DeprecatedOverrideComponents != nil {

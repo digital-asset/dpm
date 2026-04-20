@@ -22,10 +22,10 @@ type MultiPackage struct {
 	Packages     []string `yaml:"packages"`
 
 	// yaml:components expected to be a list of strings
-	ComponentsList componentlist.ComponentList `yaml:"components"` // parse as string, generate map from the list
+	ComponentsList componentlist.ComponentList `yaml:"components"`
 	// deprecated in favor of Components
 	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components"`
-	Components                   map[string]*sdkmanifest.Component
+	Components                   map[string]*sdkmanifest.Component `yaml:"-"`
 }
 
 func (m *MultiPackage) AbsolutePackages() []string {
@@ -72,13 +72,10 @@ func ReadFromContents(contents []byte, absPath string) (*MultiPackage, error) {
 		return nil, err
 	}
 
-	if obj.Components != nil {
-		for name, comp := range obj.Components {
-			comp.Name = name // fxn parseComponentsinList()
-		}
+	if obj.ComponentsList != nil {
+		obj.Components, _ = obj.ComponentsList.ToMap()
 	}
 	// obj.Components := c.asdas.MakeMapFromList()
-
 	if obj.DeprecatedOverrideComponents != nil {
 		for name, comp := range obj.DeprecatedOverrideComponents {
 			comp.Name = name
