@@ -9,11 +9,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"daml.com/x/assistant/pkg/utils"
-	"github.com/samber/lo"
-
+	"daml.com/x/assistant/pkg/componentlist"
 	"daml.com/x/assistant/pkg/sdkmanifest"
+	"daml.com/x/assistant/pkg/utils"
 	"github.com/goccy/go-yaml"
+	"github.com/samber/lo"
 )
 
 type MultiPackage struct {
@@ -21,7 +21,9 @@ type MultiPackage struct {
 	AbsolutePath string   `yaml:"-"`
 	Packages     []string `yaml:"packages"`
 
-	Components map[string]*sdkmanifest.Component `yaml:"components"`
+	ComponentsList componentlist.ComponentList       `yaml:"components"`
+	Components     map[string]*sdkmanifest.Component `yaml:"-"`
+
 	// deprecated in favor of Components
 	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components"`
 }
@@ -66,13 +68,16 @@ func Read(filePath string) (*MultiPackage, error) {
 
 func ReadFromContents(contents []byte, absPath string) (*MultiPackage, error) {
 	var obj MultiPackage
-	if err := yaml.UnmarshalWithOptions(contents, &obj, yaml.Strict()); err != nil {
+	var err error
+
+	if err = yaml.UnmarshalWithOptions(contents, &obj, yaml.Strict()); err != nil {
 		return nil, err
 	}
 
-	if obj.Components != nil {
-		for name, comp := range obj.Components {
-			comp.Name = name
+	if obj.ComponentsList != nil {
+		obj.Components, err = obj.ComponentsList.ToMap()
+		if err != nil {
+			return nil, err
 		}
 	}
 
