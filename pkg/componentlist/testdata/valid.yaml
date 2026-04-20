@@ -1,0 +1,5 @@
+components:
+  - "damlc:1.2.3"
+  - "oci://example.com/a/b/foo:1.2.3"
+  - name: meep
+    path: ./meep
