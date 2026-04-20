@@ -17,11 +17,11 @@ import (
 type DamlPackage struct {
 	SdkVersion string `yaml:"sdk-version"`
 
-	// yaml:components expected to be a list of strings
-	ComponentsList componentlist.ComponentList `yaml:"components"`
+	ComponentsList componentlist.ComponentList       `yaml:"components"`
+	Components     map[string]*sdkmanifest.Component `yaml:"-"`
+
 	// deprecated in favor of Components
 	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components"`
-	Components                   map[string]*sdkmanifest.Component `yaml:"-"`
 
 	Dependencies         []string                       `yaml:"dependencies"`
 	ArtifactLocations    ArtifactLocations              `yaml:"artifact-locations"`
@@ -48,7 +48,10 @@ func ReadFromContents(contents []byte) (*DamlPackage, error) {
 	}
 
 	if obj.ComponentsList != nil {
-		obj.Components, _ = obj.ComponentsList.ToMap()
+		obj.Components, err = obj.ComponentsList.ToMap()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if obj.DeprecatedOverrideComponents != nil {
