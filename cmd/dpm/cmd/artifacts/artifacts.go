@@ -4,6 +4,7 @@
 package artifacts
 
 import (
+	"daml.com/x/assistant/cmd/dpm/cmd/artifacts/list"
 	"daml.com/x/assistant/cmd/dpm/cmd/artifacts/publish"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/builtincommand"
@@ -18,6 +19,6 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	}
 
 	cmd.AddCommand(publish.Cmd())
-
+	cmd.AddCommand(list.Cmd(config))
 	return cmd
 }
