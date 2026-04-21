@@ -412,12 +412,12 @@ func (suite *RepoSuite) TestPublishThirdPartyComponents() {
 	_, _ = testutil.StartRegistry(t)
 	uri := fmt.Sprintf("%s/x/y/z", os.Getenv(assistantconfig.OciRegistryEnvVar))
 
-	args := []string{"artifacts", "publish", "component", "meep", "1.2.3",
+	args := []string{"artifacts", "publish", "component", "--name", "meep", "--version", "1.2.3",
 		"-p", "windows/amd64=" + testutil.TestdataPath(t, "meepy-component", "windows"),
 		"-p", "linux/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
 		"-p", "darwin/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
 		"-p", "darwin/arm64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
-		"--registry", uri,
+		"--registry", "oci://" + uri,
 	}
 
 	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {

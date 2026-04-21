@@ -12,9 +12,13 @@ import (
 const PlatformFlagName = "platform"
 const FileFlagName = "file"
 const RegistryFlagName = "registry"
+const ComponentNameFlagName = "name"
+const VersionFlagName = "version"
 
 type PublishCmd struct {
 	DryRun, IncludeGitInfo bool
+	Name                   string
+	Version                string
 	Annotations            map[string]string
 	Platforms              map[string]string
 	ExtraTags              []string
