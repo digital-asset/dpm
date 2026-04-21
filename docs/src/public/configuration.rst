@@ -128,7 +128,8 @@ Additionally, you can avoid specifying an sdk-version entirely and only opt-in t
 (Advanced) Extending and overriding SDK Components
 -------------------------------------------------------
 
-``dpm`` supports adding components or overriding the SDK components for a single and/or a multi-package project.
+``dpm`` supports adding components, or overriding SDK components, for a single and/or a multi-package project.
+You can use pre-existing components, or ones you create and publish (see :ref:`these docs <dpm-custom-components>` on publishing your own components).
 
 in ``daml.yaml``
 ~~~~~~~~~~~~~~~~
@@ -139,10 +140,13 @@ in ``daml.yaml``
 
    # note: the 'components' field is only available in SDK versions 3.5 or later
    components:
+     # overrides damlc to use version 3.5.1-rc1
      - damlc:3.5.1-rc1
-     - oci://europe-docker.pkg.dev/da-images/public/components/codegen-js:3.4.11
 
-     # component present locally on the filesystem
+     # adding component "foo"
+     - oci://example.com/some/path/foo:1.2.3
+
+     # overrides codegen-java to use a component present locally on the filesystem
      - name: codegen-java
        path: ../path/to/component/directory
 
@@ -160,13 +164,15 @@ You can use the same ``components`` yaml object in a ``multi-package.yaml`` too.
    # note: the 'components' field is only available in SDK versions 3.5 or later
    components:
      - damlc:3.5.1-rc1
-     - oci://europe-docker.pkg.dev/da-images/public/components/codegen-js:3.4.11
 
-      # component present locally on the filesystem
-      - name: codegen-java
-        path: ../path/to/component/directory
+     # adding component "foo"
+     - oci://example.com/some/path/foo:1.2.3
 
-When both ``multi-package.yaml`` and one of its packages' ``daml.yaml`` simultaneously define `components` field, ``dpm`` overlays ``daml.yaml``'s components on top of ``multi-package.yaml``'s:
+     # component present locally on the filesystem
+     - name: codegen-java
+       path: ../path/to/component/directory
+
+When both ``multi-package.yaml`` and one of its packages' ``daml.yaml`` simultaneously define `components` field, ``dpm`` gives precedence to ``daml.yaml`` components over the values specified in ``multi-package.yaml``:
 
 - Starting with the components of the package’s SDK, which is specified in its ``daml.yaml``
 - Overlay ``components`` of ``multi-project.yaml``
