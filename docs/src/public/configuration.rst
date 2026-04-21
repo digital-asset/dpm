@@ -116,6 +116,7 @@ in ``daml.yaml``
 
    # note: the 'components' field is only available in SDK versions 3.5 or later
    components:
+     # overrides damlc to use version 3.5.1-rc1
      - damlc:3.5.1-rc1
 
      # adding component "foo"
