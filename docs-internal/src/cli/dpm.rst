@@ -24,6 +24,7 @@ Options
 SEE ALSO
 ~~~~~~~~
 
+* :ref:`dpm artifacts <dpm_artifacts>` 	 - Commands for managing artifacts
 * :ref:`dpm bootstrap <dpm_bootstrap>` 	 - auxiliary command for installing standalone dpm-sdk bundle
 * :ref:`dpm component <dpm_component>` 	 - commands for component development
 * :ref:`dpm install <dpm_install>` 	 - install a dpm-sdk

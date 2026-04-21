@@ -392,12 +392,9 @@ func (suite *MainSuite) TestComponentPublish() {
 func (suite *MainSuite) TestComponentPublishDryRun() {
 	t := suite.T()
 
-	doTest := func(t *testing.T, expectedUri string, command []string) {
-		args := append(command, "--dry-run", "--registry", "foo.example.com/a/b",
-			"meep", "1.2.3-meep",
-			"-p", "generic="+testutil.TestdataPath(t, "meepy-component", testutil.OS))
-
-		cmd, r, w := createTestRootCmd(t, args...)
+	doTest := func(t *testing.T, expectedUri string, command []string, args []string) {
+		fullCmd := append(command, args...)
+		cmd, r, w := createTestRootCmd(t, fullCmd...)
 		assert.NoError(t, cmd.Execute())
 		assert.NoError(t, w.Close())
 
@@ -407,11 +404,13 @@ func (suite *MainSuite) TestComponentPublishDryRun() {
 	}
 
 	t.Run("first party", func(t *testing.T) {
-		doTest(t, "foo.example.com/a/b/components/meep", []string{"repo", "publish-component"})
+		args := []string{"--dry-run", "--registry", "foo.example.com/a/b", "meep", "1.2.3-meep", "-p", "generic=" + testutil.TestdataPath(t, "meepy-component", testutil.OS)}
+		doTest(t, "foo.example.com/a/b/components/meep", []string{"repo", "publish-component"}, args)
 	})
 
 	t.Run("third party", func(t *testing.T) {
-		doTest(t, "foo.example.com/a/b/meep", []string{"repo", "push-component"})
+		args := []string{"--dry-run", "--registry", "oci://foo.example.com/a/b", "--name", "meep", "--version", "1.2.3-meep", "-p", "generic=" + testutil.TestdataPath(t, "meepy-component", testutil.OS)}
+		doTest(t, "foo.example.com/a/b/meep", []string{"artifacts", "publish", "component"}, args)
 	})
 }
 
