@@ -104,7 +104,7 @@ Escape syntax uses the ``\`` prefix: ``\${NOT_INTERPOLATED}``.
 (Advanced) Extending and overriding SDK Components
 -------------------------------------------------------
 
-``dpm`` supports adding or overriding the SDK components for a single and/or a multi-package project.
+``dpm`` supports adding components, or overriding SDK components, for a single and/or a multi-package project.
 You can use pre-existing components, or ones you create and publish (see :ref:`these docs <dpm-custom-components>` on publishing your own components).
 
 in ``daml.yaml``
