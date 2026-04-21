@@ -122,7 +122,7 @@ in ``daml.yaml``
      # adding component "foo"
      - oci://example.com/some/path/foo:1.2.3
 
-     # component present locally on the filesystem
+     # overrides codegen-java to use a component present locally on the filesystem
      - name: codegen-java
        path: ../path/to/component/directory
 
