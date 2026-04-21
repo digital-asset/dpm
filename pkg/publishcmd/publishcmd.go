@@ -13,6 +13,7 @@ const PlatformFlagName = "platform"
 const FileFlagName = "file"
 const RegistryFlagName = "registry"
 const ComponentNameFlagName = "name"
+const DarNameFlagName = "name"
 const VersionFlagName = "version"
 
 type PublishCmd struct {
@@ -30,6 +31,8 @@ type PublishCmd struct {
 
 type PublishDarCmd struct {
 	DryRun, IncludeGitInfo bool
+	Name                   string
+	Version                string
 	Annotations            map[string]string
 	File                   string
 	ExtraTags              []string

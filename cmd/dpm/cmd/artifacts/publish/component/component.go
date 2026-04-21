@@ -23,8 +23,7 @@ func Cmd() *cobra.Command {
 		Use:     "component",
 		Short:   "Publish a component to an OCI registry",
 		Long:    "Will publish the component (OCI index) to <registry>/<name>:<version>",
-		Example: "dpm artifacts publish component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin --registry 'oci://whatever.dev/bar/test'",
-		Args:    cobra.ExactArgs(0),
+		Example: "dpm artifacts publish component --name foo --version 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin --registry 'oci://whatever.dev/bar/test'",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := c.Name
 			version, err := semver.StrictNewVersion(c.Version)
@@ -68,9 +67,9 @@ func Cmd() *cobra.Command {
 			return publish.New(publishConfig, cmd).Publish(cmd.Context())
 		},
 	}
-	cmd.Flags().StringVarP(&c.Name, "name", "n", "", "Name of component to be pushed")
+	cmd.Flags().StringVarP(&c.Name, publishcmd.ComponentNameFlagName, "n", "", "name of component to be pushed")
 	cmd.MarkFlagRequired(publishcmd.ComponentNameFlagName)
-	cmd.Flags().StringVarP(&c.Version, "version", "v", "", "Version of component to be pushed")
+	cmd.Flags().StringVarP(&c.Version, publishcmd.VersionFlagName, "v", "", "version of component to be pushed")
 	cmd.MarkFlagRequired(publishcmd.VersionFlagName)
 
 	cmd.Flags().BoolVarP(&c.DryRun, "dry-run", "d", false, "don't actually push to the registry")

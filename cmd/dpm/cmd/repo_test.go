@@ -396,7 +396,7 @@ func (suite *RepoSuite) TestPublishDar() {
 
 	cmd := createStdTestRootCmd(t)
 	args := []string{
-		"repo", "publish-dar", "meep", "1.2.3",
+		"artifacts", "publish", "dar", "--name", "meep", "--version", "1.2.3",
 		"-f", testutil.TestdataPath(t, "test-dar"),
 		"--registry", destinationRegistry,
 	}
@@ -501,7 +501,7 @@ func publishDar(t *testing.T) {
 	t.Run("publish dar", func(t *testing.T) {
 		cmd := createStdTestRootCmd(t)
 
-		args := []string{"repo", "publish-dar", "meep", "1.2.3",
+		args := []string{"artifacts", "publish", "dar", "--name", "meep", "--version", "1.2.3",
 			"-f", testutil.TestdataPath(t, "test-dar"), "--dry-run",
 		}
 
