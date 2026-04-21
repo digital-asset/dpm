@@ -25,5 +25,6 @@ SEE ALSO
 ~~~~~~~~
 
 * :ref:`dpm <dpm>` 	 - 
+* :ref:`dpm artifacts list <dpm_artifacts_list>` 	 - Commands for listing artifacts
 * :ref:`dpm artifacts publish <dpm_artifacts_publish>` 	 - Commands for publishing artifacts
 

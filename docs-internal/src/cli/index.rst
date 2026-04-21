@@ -4,6 +4,8 @@
 
    dpm
    dpm_artifacts
+   dpm_artifacts_list
+   dpm_artifacts_list_component
    dpm_artifacts_publish
    dpm_artifacts_publish_component
    dpm_bootstrap
