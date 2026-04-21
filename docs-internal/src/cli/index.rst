@@ -15,7 +15,6 @@
    dpm_repo_publish-component
    dpm_repo_publish-dpm
    dpm_repo_publish-sdk-manifest
-   dpm_repo_push-component
    dpm_repo_resolve-tags
    dpm_repo_tags
    dpm_resolve
