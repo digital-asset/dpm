@@ -45,7 +45,7 @@ Project Configuration
 
 .. _dpm-configuration-files:
 
-``dpm`` also uses ``daml.yaml`` and ``multi-package.yaml`` for single- and multi-package project configuration.
+``dpm`` uses ``daml.yaml`` and ``multi-package.yaml`` for single and multi-package project configuration.
 
 
 Multi-package Configuration file (multi-package.yaml)
@@ -64,7 +64,16 @@ An example is given below:
 ``packages``: an optional list of directories containing Daml packages, and by extension, ``daml.yaml`` config files. These allow Daml Multi-Build to
 find the source code for dependency DARs and build them in topological order.
 
-The multi-package also includes a ``dars`` field, for providing additional information to Daml Studio.
+You can also specify the `sdk-version:` field in ``multi-package.yaml``. This SDK version applies to all packages in the multi-package, unless a package's individual ``daml.yaml`` specifies its own `sdk-version`, which takes precedence over the one in ``multi-package.yaml``.
+
+.. code-block:: yaml
+
+  sdk-version: 3.4.11
+  packages:
+    - ./path/to/package/a
+    - ./path/to/package/b
+
+The multi-package also includes an optional ``dars`` field, for providing additional information to Daml Studio.
 See :externalref:`Daml Studio Jump to definition <daml-studio-jump-to-def>` for more details.
 
 Environment Variable Interpolation
@@ -99,6 +108,10 @@ The following example showcases this:
 
 Escape syntax uses the ``\`` prefix: ``\${NOT_INTERPOLATED}``.
 
+
+Additionally, if you specify the `sdk-version` in the `multi-package.yaml` that references your project `daml.yaml`, you can exclude
+repeating the `sdk-version:` field in your `daml.yaml`, and the value specified in your `multi-package.yaml` will be used.
+
 .. _dpm-override-components:
 
 (Advanced) Extending and overriding SDK Components
@@ -111,7 +124,7 @@ in ``daml.yaml``
 
 .. code:: yaml
 
-   sdk-version: 3.4.0-snapshot.20251007.14274.0.ve2024cd6
+   sdk-version: 3.4.11-snapshot.20251007.14274.0.ve2024cd6
 
    # note: the 'components' field is only available in SDK versions 3.5 or later
    components:
