@@ -45,5 +45,5 @@ Options
 SEE ALSO
 ~~~~~~~~
 
-* :ref:`dpm artifacts publish <dpm_artifacts_publish>` 	 - 
+* :ref:`dpm artifacts publish <dpm_artifacts_publish>` 	 - Commands for publishing artifacts
 

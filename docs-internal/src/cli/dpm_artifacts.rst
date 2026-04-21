@@ -6,7 +6,7 @@ Dpm Artifacts
 dpm artifacts
 -------------
 
-
+Commands for managing artifacts
 
 Synopsis
 ~~~~~~~~
@@ -25,5 +25,5 @@ SEE ALSO
 ~~~~~~~~
 
 * :ref:`dpm <dpm>` 	 - 
-* :ref:`dpm artifacts publish <dpm_artifacts_publish>` 	 - 
+* :ref:`dpm artifacts publish <dpm_artifacts_publish>` 	 - Commands for publishing artifacts
 
