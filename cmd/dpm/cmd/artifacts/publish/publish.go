@@ -11,8 +11,9 @@ import (
 
 func Cmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:  "publish",
-		Long: "Commands for publishing artifacts",
+		Use:   "publish",
+		Short: "Commands for publishing artifacts",
+		Long:  "Commands for publishing artifacts",
 	}
 
 	cmd.AddCommand(publishcomponent.Cmd())

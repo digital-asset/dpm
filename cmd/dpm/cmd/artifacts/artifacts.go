@@ -12,8 +12,9 @@ import (
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:  string(builtincommand.Artifacts),
-		Long: "Commands for managing artifacts",
+		Use:   string(builtincommand.Artifacts),
+		Short: "Commands for managing artifacts",
+		Long:  "Commands for managing artifacts",
 	}
 
 	cmd.AddCommand(publish.Cmd())
