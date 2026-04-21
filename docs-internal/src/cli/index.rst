@@ -3,6 +3,9 @@
    :caption: CLI Reference:
 
    dpm
+   dpm_artifacts
+   dpm_artifacts_publish
+   dpm_artifacts_publish_component
    dpm_bootstrap
    dpm_component
    dpm_component_init
