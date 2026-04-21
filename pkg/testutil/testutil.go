@@ -43,7 +43,7 @@ func TestdataPath(t *testing.T, path ...string) string {
 func PushComponentUri(registry *httptest.Server, name, repo, tag, pathToComponent string, extraTags ...string) (args []string) {
 	uri := fmt.Sprintf("%s/%s", GetRemote(registry).Registry, repo)
 
-	args = []string{"repo", "push-component", name, tag, "--registry", uri, "-p", "generic=" + pathToComponent}
+	args = []string{"artifacts", "publish", "component", name, tag, "--registry", uri, "-p", "generic=" + pathToComponent}
 
 	if strings.HasPrefix(registry.URL, "http://") {
 		args = append(args, "--insecure")

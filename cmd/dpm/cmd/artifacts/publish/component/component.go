@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package pushcomponent
+package publishcomponent
 
 import (
 	"fmt"
@@ -20,10 +20,10 @@ func Cmd() *cobra.Command {
 
 	// TODO stop publishing a tag for every platform
 	cmd := &cobra.Command{
-		Use:     "push-component <name> <version>",
+		Use:     "component <name> <version>",
 		Short:   "Publish a component to an OCI registry",
 		Long:    "Will publish the component (OCI index) to <registry>/<name>:<version>",
-		Example: "  dpm repo push-component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin --registry 'example.com/some/path'",
+		Example: "dpm artifacts publish component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin --registry 'oci://whatever.dev/bar/test'",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]

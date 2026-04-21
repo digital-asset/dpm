@@ -411,7 +411,7 @@ func (suite *MainSuite) TestComponentPublishDryRun() {
 	})
 
 	t.Run("third party", func(t *testing.T) {
-		doTest(t, "foo.example.com/a/b/meep", []string{"repo", "push-component"})
+		doTest(t, "foo.example.com/a/b/meep", []string{"artifacts", "publish", "component"})
 	})
 }
 
