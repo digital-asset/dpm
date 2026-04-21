@@ -64,6 +64,11 @@ An example is given below:
 ``packages``: an optional list of directories containing Daml packages, and by extension, ``daml.yaml`` config files. These allow Daml Multi-Build to
 find the source code for dependency DARs and build them in topological order.
 
+
+.. note::
+
+    This functionality is available in DPM version 1.0.12 or later (or bundled with SDK 3.5 or later)
+
 You can also specify the `sdk-version:` field in ``multi-package.yaml``. This SDK version applies to all packages in the multi-package, unless a package's individual ``daml.yaml`` specifies its own `sdk-version`, which takes precedence over the one in ``multi-package.yaml``.
 
 .. code-block:: yaml
@@ -109,8 +114,14 @@ The following example showcases this:
 Escape syntax uses the ``\`` prefix: ``\${NOT_INTERPOLATED}``.
 
 
+.. note::
+
+    This functionality is available in DPM version 1.0.12 or later (or bundled with SDK 3.5 or later)
+
 Additionally, if you specify the `sdk-version` in the `multi-package.yaml` that references your project `daml.yaml`, you can exclude
 repeating the `sdk-version:` field in your `daml.yaml`, and the value specified in your `multi-package.yaml` will be used.
+
+Additionally, you can avoid specifying an sdk-version entirely and only opt-in to particular components, as outlined in the examples below.
 
 .. _dpm-override-components:
 
