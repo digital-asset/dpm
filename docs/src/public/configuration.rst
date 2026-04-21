@@ -148,7 +148,7 @@ You can use the same ``components`` yaml object in a ``multi-package.yaml`` too.
      - name: codegen-java
        path: ../path/to/component/directory
 
-When both ``multi-package.yaml`` and one of its packages' ``daml.yaml`` simultaneously define `components` field, ``dpm`` overlays ``daml.yaml``'s components on top of ``multi-package.yaml``'s:
+When both ``multi-package.yaml`` and one of its packages' ``daml.yaml`` simultaneously define `components` field, ``dpm`` gives precedence to ``daml.yaml`` components over the values specified in ``multi-package.yaml``:
 
 - Starting with the components of the package’s SDK, which is specified in its ``daml.yaml``
 - Overlay ``components`` of ``multi-project.yaml``
