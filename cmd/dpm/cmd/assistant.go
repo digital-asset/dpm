@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	"daml.com/x/assistant/cmd/dpm/cmd/artifacts"
 	"daml.com/x/assistant/cmd/dpm/cmd/uninstall"
 	"daml.com/x/assistant/cmd/dpm/cmd/update"
 
@@ -79,6 +80,7 @@ func RootCmd(ctx context.Context, da *assistant.DamlAssistant) (*cobra.Command, 
 		setCmdMetaGroup(repo.Cmd(config)),
 		setCmdMetaGroup(resolve.Cmd(config)),
 		setCmdMetaGroup(update.Cmd(config)),
+		setCmdMetaGroup(artifacts.Cmd(config)),
 		componentCmd.Cmd(config),
 	)
 

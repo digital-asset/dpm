@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package pushcomponent
+package publishcomponent
 
 import (
 	"fmt"
@@ -20,14 +20,13 @@ func Cmd() *cobra.Command {
 
 	// TODO stop publishing a tag for every platform
 	cmd := &cobra.Command{
-		Use:     "push-component <name> <version>",
+		Use:     "component",
 		Short:   "Publish a component to an OCI registry",
 		Long:    "Will publish the component (OCI index) to <registry>/<name>:<version>",
-		Example: "  dpm repo push-component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin --registry 'example.com/some/path'",
-		Args:    cobra.ExactArgs(2),
+		Example: "dpm artifacts publish component --name foo --version 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin --registry 'oci://whatever.dev/bar/test'",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name := args[0]
-			version, err := semver.StrictNewVersion(args[1])
+			name := c.Name
+			version, err := semver.StrictNewVersion(c.Version)
 			if err != nil {
 				return fmt.Errorf("invalid version argument: %w", err)
 			}
@@ -36,7 +35,11 @@ func Cmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
+			if strings.HasPrefix(c.Registry, "oci://") {
+				c.Registry = strings.TrimPrefix(c.Registry, "oci://")
+			} else {
+				return fmt.Errorf("invalid registry argument, must be formatted as oci uri ie. oci://whatever.dev")
+			}
 			ref, err := registry.ParseReference(fmt.Sprintf("%s/%s", strings.TrimRight(c.Registry, "/"), name))
 			if err != nil {
 				return err
@@ -64,6 +67,10 @@ func Cmd() *cobra.Command {
 			return publish.New(publishConfig, cmd).Publish(cmd.Context())
 		},
 	}
+	cmd.Flags().StringVarP(&c.Name, publishcmd.ComponentNameFlagName, "n", "", "name of component to be pushed")
+	cmd.MarkFlagRequired(publishcmd.ComponentNameFlagName)
+	cmd.Flags().StringVarP(&c.Version, publishcmd.VersionFlagName, "v", "", "version of component to be pushed")
+	cmd.MarkFlagRequired(publishcmd.VersionFlagName)
 
 	cmd.Flags().BoolVarP(&c.DryRun, "dry-run", "d", false, "don't actually push to the registry")
 	cmd.Flags().BoolVarP(&c.IncludeGitInfo, "include-git-info", "g", false, "include git info as annotations on the published manifest")

@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package dar
+package publishdar
 
 import (
 	"fmt"
@@ -17,21 +17,19 @@ import (
 func Cmd() *cobra.Command {
 	c := publishcmd.PublishDarCmd{}
 	cmd := &cobra.Command{
-		Use:     "publish-dar <name> <version>",
+		Use:     "dar",
 		Short:   "Publish a dar to an OCI registry",
-		Example: "  dpm repo publish-dar foo 1.2.3-alpha -f path/to/foo.dar",
+		Example: "dpm artifacts publish dar --name foo --version 1.2.3-alpha -f path/to/foo.dar",
 		Hidden:  !assistantconfig.DpmLockfileEnabled(), // Use single feature flag to represent features in current release
-		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name := args[0]
-			version, err := semver.StrictNewVersion(args[1])
+			version, err := semver.StrictNewVersion(c.Version)
 			if err != nil {
 				return fmt.Errorf("invalid version argument: %w", err)
 			}
 			cmd.SilenceUsage = true
 			publishDarConfig := &publishdar.DarConfig{
 				File:           c.File,
-				Name:           name,
+				Name:           c.Name,
 				Version:        version,
 				DryRun:         c.DryRun,
 				IncludeGitInfo: c.IncludeGitInfo,
@@ -44,6 +42,12 @@ func Cmd() *cobra.Command {
 			return publishdar.New(publishDarConfig, cmd).PublishDar(cmd.Context())
 		},
 	}
+
+	cmd.Flags().StringVarP(&c.Name, publishcmd.DarNameFlagName, "n", "", "name of dar to be pushed")
+	cmd.MarkFlagRequired(publishcmd.DarNameFlagName)
+	cmd.Flags().StringVarP(&c.Version, publishcmd.VersionFlagName, "v", "", "version of dar to be pushed")
+	cmd.MarkFlagRequired(publishcmd.VersionFlagName)
+
 	cmd.Flags().BoolVarP(&c.DryRun, "dry-run", "d", false, "don't actually push to the registry")
 	cmd.Flags().BoolVarP(&c.IncludeGitInfo, "include-git-info", "g", false, "include git info as annotations on the published manifest")
 	cmd.Flags().StringToStringVarP(&c.Annotations, "annotations", "a", map[string]string{}, "annotations to include in the published OCI artifact")
