@@ -58,10 +58,11 @@ func (r ExpectedResolution) WithExtraComponents(components ...string) ExpectedRe
 		imports = 2
 	}
 	return ExpectedResolution{
-		ExpectedPackages:          r.ExpectedPackages,
+		//ExpectedPackages:          r.ExpectedPackages,
 		ExpectedDefaultSdkVersion: r.ExpectedDefaultSdkVersion,
 		ExpectedComponents:        append(components, r.ExpectedComponents...),
 		ExpectedImports:           imports,
+		ExpectedSdkVersion:        r.ExpectedSdkVersion,
 	}
 }
 

@@ -163,7 +163,7 @@ func makeTestCases(additionalPackageComponent, additionalMultiPackageComponent s
 	for _, tc := range vanillaSdkVersionTestCases {
 		name := tc.Name
 		var extraComps []string
-		if additionalPackageComponent != "" && tc.WorkingDir != PackageWorkingDir {
+		if additionalPackageComponent != "" {
 			extraComps = append(extraComps, additionalPackageComponent)
 			name += " extra:pkg"
 		}
@@ -176,18 +176,18 @@ func makeTestCases(additionalPackageComponent, additionalMultiPackageComponent s
 			MultiPackageSdkVersion:          tc.MultiPackageSdkVersion,
 			PackageSdkVersion:               tc.PackageSdkVersion,
 			WorkingDir:                      tc.WorkingDir,
-			ExpectedVersion:                 tc.ExpectedVersion,
 			ExpectedResolution:              tc.ExpectedResolution.WithExtraComponents(extraComps...),
 			MultiPackageAdditionalComponent: additionalMultiPackageComponent,
 			PackageAdditionalComponent:      additionalPackageComponent,
 		}
+
 		result = append(result, testCase)
 	}
 	return
 }
 
 var sdkVersionTestCases = lo.Flatten([][]SdkVersionTestCase{
-	//makeTestCases("", ""),
+	makeTestCases("", ""),
 	makeTestCases("", AdditionalMultiPackageComponent),
 	makeTestCases(AdditionalPackageComponent, ""),
 	makeTestCases(AdditionalPackageComponent, AdditionalMultiPackageComponent),
@@ -240,8 +240,7 @@ func (suite *MainSuite) TestActiveSdkVersionExhaustive() {
 func installComponent(t *testing.T, componentName, componentVersion string) {
 	contents := fmt.Sprintf(`
 components:
-  %s: 
-    version: %s
+  - %s:%s
 `, componentName, componentVersion)
 
 	t.Run("install component "+componentName, func(t *testing.T) {
@@ -283,7 +282,7 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 		}
 
 		if tc.MultiPackageAdditionalComponent != "" {
-			multiPackage.Components = map[string]*sdkmanifest.Component{
+			multiPackage.DeprecatedOverrideComponents = map[string]*sdkmanifest.Component{
 				AdditionalMultiPackageComponent: {
 					Name:    AdditionalMultiPackageComponent,
 					Version: sdkmanifest.AssemblySemVer(v),
@@ -299,7 +298,7 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 			SdkVersion: asSdkVersion(tc.PackageSdkVersion),
 		}
 		if tc.PackageAdditionalComponent != "" {
-			damlPackage.Components = map[string]*sdkmanifest.Component{
+			damlPackage.DeprecatedOverrideComponents = map[string]*sdkmanifest.Component{
 				AdditionalPackageComponent: {
 					Name:    AdditionalPackageComponent,
 					Version: sdkmanifest.AssemblySemVer(v),
@@ -320,17 +319,12 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 		}
 		t.Chdir(dirs.WorkingDir)
 
-		assert.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
+		require.NoError(t, createStdTestRootCmd(t, "install", "package", "--skip-sdk").Execute())
 
 		return
 	}
 
 	for _, tc := range sdkVersionTestCases {
-
-		if !strings.HasPrefix(tc.Name, "10") {
-			continue
-		}
-
 		t.Run(tc.Name, func(t *testing.T) {
 			dirs := setupTestCase(tc)
 
