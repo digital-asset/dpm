@@ -37,7 +37,7 @@ type TestCaseDirs struct {
 	WorkingDir, DamlPackageDir, MultiPackageDir string
 }
 
-type SdkVersionTestCase struct {
+type FieldOverrideTestCase struct {
 	Name                                      string
 	MultiPackageSdkVersion, PackageSdkVersion string
 	WorkingDir                                WorkingDir
@@ -63,7 +63,7 @@ var expectedResolution = ExpectedResolution{
 	2,
 	""}
 
-var vanillaSdkVersionTestCases = []SdkVersionTestCase{
+var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 	{
 		Name:                   "1 multi:some pkg: some wd:multi",
 		MultiPackageSdkVersion: someSdkVersion,
@@ -159,7 +159,7 @@ var vanillaSdkVersionTestCases = []SdkVersionTestCase{
 	},
 }
 
-func makeTestCases(additionalPackageComponent, additionalMultiPackageComponent string) (result []SdkVersionTestCase) {
+func makeTestCases(additionalPackageComponent, additionalMultiPackageComponent string) (result []FieldOverrideTestCase) {
 	for _, tc := range vanillaSdkVersionTestCases {
 		name := tc.Name
 		var extraComps []string
@@ -171,7 +171,7 @@ func makeTestCases(additionalPackageComponent, additionalMultiPackageComponent s
 			extraComps = append(extraComps, additionalMultiPackageComponent)
 			name += " extra:multi"
 		}
-		testCase := SdkVersionTestCase{
+		testCase := FieldOverrideTestCase{
 			Name:                            name,
 			MultiPackageSdkVersion:          tc.MultiPackageSdkVersion,
 			PackageSdkVersion:               tc.PackageSdkVersion,
@@ -186,7 +186,7 @@ func makeTestCases(additionalPackageComponent, additionalMultiPackageComponent s
 	return
 }
 
-var sdkVersionTestCases = lo.Flatten([][]SdkVersionTestCase{
+var fieldOverrideTestCases = lo.Flatten([][]FieldOverrideTestCase{
 	makeTestCases("", ""),
 	makeTestCases("", AdditionalMultiPackageComponent),
 	makeTestCases(AdditionalPackageComponent, ""),
@@ -232,9 +232,9 @@ func pushGenericComponentWithCommand(t *testing.T, reg *httptest.Server, compone
 	testutil.PushComponent(t, ctx, reg, componentName, componentVersion, compDir)
 }
 
-func (suite *MainSuite) TestActiveSdkVersionExhaustive() {
+func (suite *MainSuite) TestFieldOverrideExhaustive() {
 	t := suite.T()
-	testActiveSdkVersionExhaustive(t, func(t *testing.T, testCase SdkVersionTestCase, dirs TestCaseDirs) {})
+	testFieldOverrideExhaustive(t, func(t *testing.T, testCase FieldOverrideTestCase, dirs TestCaseDirs) {})
 }
 
 func installComponent(t *testing.T, componentName, componentVersion string) {
@@ -252,7 +252,7 @@ components:
 
 }
 
-func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCase SdkVersionTestCase, dirs TestCaseDirs)) {
+func testFieldOverrideExhaustive(t *testing.T, hook func(t *testing.T, testCase FieldOverrideTestCase, dirs TestCaseDirs)) {
 	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
@@ -269,7 +269,7 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 	installComponent(t, AdditionalPackageComponent, v.String())
 	installComponent(t, AdditionalMultiPackageComponent, v.String())
 
-	setupTestCase := func(tc SdkVersionTestCase) (dirs TestCaseDirs) {
+	setupTestCase := func(tc FieldOverrideTestCase) (dirs TestCaseDirs) {
 		tmpDir := t.TempDir()
 		dirs.MultiPackageDir = filepath.Join(tmpDir, "multi-package")
 		dirs.DamlPackageDir = filepath.Join(dirs.MultiPackageDir, "daml-package")
@@ -326,7 +326,7 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 		return
 	}
 
-	for _, tc := range sdkVersionTestCases {
+	for _, tc := range fieldOverrideTestCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			dirs := setupTestCase(tc)
 

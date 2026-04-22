@@ -119,12 +119,12 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	})
 }
 
-func (suite *MainSuite) TestLockfileSdkVersion() {
+func (suite *MainSuite) TestLockfileFieldOverridesExhaustive() {
 	t := suite.T()
 	t.Skip()
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 
-	testActiveSdkVersionExhaustive(t, func(t *testing.T, tc SdkVersionTestCase, dirs TestCaseDirs) {
+	testFieldOverrideExhaustive(t, func(t *testing.T, tc FieldOverrideTestCase, dirs TestCaseDirs) {
 		// TODO: Implement writing global sdk into lockfile and enforce test
 		if t.Name() == "TestSuite/TestLockfileSdkVersion/7_multi:null_pkg:some_wd:multi" ||
 			t.Name() == "TestSuite/TestLockfileSdkVersion/9_multi:null_pkg:null_wd:multi" ||

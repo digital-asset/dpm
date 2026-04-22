@@ -52,13 +52,14 @@ func (r ExpectedResolution) WithSdkVersion(v string) ExpectedResolution {
 	}
 }
 
+// WithExtraComponents returns a copy with any additional components accounted for.
+// This assumes all the components have the same number of Exports, specifically 2 Exports
 func (r ExpectedResolution) WithExtraComponents(components ...string) ExpectedResolution {
 	imports := r.ExpectedImports
 	if r.ExpectedImports == 0 && len(components) > 0 {
 		imports = 2
 	}
 	return ExpectedResolution{
-		//ExpectedPackages:          r.ExpectedPackages,
 		ExpectedDefaultSdkVersion: r.ExpectedDefaultSdkVersion,
 		ExpectedComponents:        append(components, r.ExpectedComponents...),
 		ExpectedImports:           imports,
