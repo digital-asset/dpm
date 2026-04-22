@@ -37,7 +37,9 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 
 			customRemote, err := assistantremote.New(ref.Registry, config.RegistryAuthPath, config.Insecure)
 			repoName := c.Name
-			tags, found, err := ocilister.ListTags(cmd.Context(), customRemote, ref.Repository+repoName)
+
+			// registry flag should be full path to component not including the component and the forward slash
+			tags, found, err := ocilister.ListTags(cmd.Context(), customRemote, ref.Repository+"/"+repoName)
 			if err != nil {
 				return err
 			}

@@ -62,6 +62,30 @@ func (suite *RepoSuite) TestPublishThirdPartyComponents() {
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 }
 
+func (suite *RepoSuite) TestListTags() {
+	t := suite.T()
+	_, reg := testutil.StartRegistry(t)
+
+	args := testutil.PushComponentUri(reg, "meep", "bar/foo", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+	args = testutil.PushComponentUri(reg, "meep", "foo/bar", "1.2.4", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+	t.Run("test tags for arbitrary repo", func(t *testing.T) {
+		res := listComponentTags(t, "meep", "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/foo/bar")
+		expected := []string{"1.2.4", "1.2.4.generic"}
+		assert.Equal(t, expected, res)
+	})
+
+	t.Run("test tags for arbitrary repo", func(t *testing.T) {
+		res := listComponentTags(t, "meep", "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/bar/foo")
+		expected := []string{"1.2.3", "1.2.3.generic"}
+		assert.Equal(t, expected, res)
+	})
+
+}
+
 func publishDar(t *testing.T) {
 	t.Run("publish dar", func(t *testing.T) {
 		cmd := createStdTestRootCmd(t)
