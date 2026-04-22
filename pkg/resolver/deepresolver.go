@@ -161,7 +161,9 @@ func (d *DeepResolver) resolveDefaultSdk(ctx context.Context) resolution.Default
 			Errors: []*resolutionerrors.ResolutionError{resolutionerrors.Standardize(err)},
 		}
 	} else {
-		defaultSdk[installedSdk.Version.String()] = result.ShallowResolution
+		v := installedSdk.Version.String()
+		defaultSdk[v] = result.ShallowResolution
+		defaultSdk[v].SdkVersion = v
 	}
 	return defaultSdk
 }

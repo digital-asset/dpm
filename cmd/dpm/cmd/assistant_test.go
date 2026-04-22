@@ -249,14 +249,14 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 	})
 }
 
-func testResolution(t *testing.T, expectedPackages ExpectedResolution) {
+func testResolution(t *testing.T, expectedResolution ExpectedResolution) {
 	deepResolution := runResolveCommand(t)
 	assert.Len(t, deepResolution.Packages, 1)
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, len(expectedPackages.ExpectedComponents))
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, expectedPackages.ExpectedImports)
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, len(expectedResolution.ExpectedComponents))
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, expectedResolution.ExpectedImports)
 	assert.Equal(t, resolution.Kind, deepResolution.Kind)
 	assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
-	assert.ElementsMatch(t, lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2), expectedPackages.ExpectedComponents)
+	assert.ElementsMatch(t, lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2), expectedResolution.ExpectedComponents)
 
 	t.Run("correct package paths", func(t *testing.T) {
 		for pkgPath := range deepResolution.Packages {
@@ -268,8 +268,9 @@ func testResolution(t *testing.T, expectedPackages ExpectedResolution) {
 
 	t.Run("default sdk", func(t *testing.T) {
 		assert.Len(t, deepResolution.DefaultSDK, 1)
-		assert.Len(t, deepResolution.DefaultSDK[expectedPackages.ExpectedDefaultSdkVersion].Components, 1)
-		assert.Len(t, deepResolution.DefaultSDK[expectedPackages.ExpectedDefaultSdkVersion].Imports, 2)
+		assert.Equal(t, expectedResolution.ExpectedDefaultSdkVersion, deepResolution.DefaultSDK[expectedResolution.ExpectedDefaultSdkVersion].SdkVersion)
+		assert.Len(t, deepResolution.DefaultSDK[expectedResolution.ExpectedDefaultSdkVersion].Components, 1)
+		assert.Len(t, deepResolution.DefaultSDK[expectedResolution.ExpectedDefaultSdkVersion].Imports, 2)
 		assert.True(t, true)
 	})
 
