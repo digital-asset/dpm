@@ -298,6 +298,8 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 			SdkVersion: asSdkVersion(tc.PackageSdkVersion),
 		}
 		if tc.PackageAdditionalComponent != "" {
+			// TODO DeprecatedOverrideComponents is being used here because
+			// the Components field is being ignored (`yaml:"-"`) in the YAML marshaling
 			damlPackage.DeprecatedOverrideComponents = map[string]*sdkmanifest.Component{
 				AdditionalPackageComponent: {
 					Name:    AdditionalPackageComponent,
