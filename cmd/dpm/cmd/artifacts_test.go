@@ -2,11 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,4 +74,19 @@ func publishDar(t *testing.T) {
 		require.NoError(t, cmd.Execute())
 	})
 
+}
+
+func listComponentTags(t *testing.T, component, registry string) []string {
+	t.Setenv(assistantconfig.OciRegistryEnvVar, registry)
+
+	cmd, r, w := createTestRootCmd(t)
+	cmd.SetArgs([]string{
+		"artifacts", "list", "component", "--name", component, "--registry", registry,
+	})
+	require.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+
+	output, err := io.ReadAll(r)
+	assert.NoError(t, err)
+	return strings.Split(strings.TrimSpace(string(output)), "\n")
 }

@@ -37,7 +37,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 
 			customRemote, err := assistantremote.New(ref.Registry, config.RegistryAuthPath, config.Insecure)
 			repoName := c.Name
-			tags, found, err := ocilister.ListTags(cmd.Context(), customRemote, repoName)
+			tags, found, err := ocilister.ListTags(cmd.Context(), customRemote, ref.Repository+repoName)
 			if err != nil {
 				return err
 			}
