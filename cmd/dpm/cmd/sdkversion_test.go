@@ -282,6 +282,8 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 		}
 
 		if tc.MultiPackageAdditionalComponent != "" {
+			// TODO DeprecatedOverrideComponents is being used here because
+			// the Components field is being ignored (`yaml:"-"`) in the YAML marshaling
 			multiPackage.DeprecatedOverrideComponents = map[string]*sdkmanifest.Component{
 				AdditionalMultiPackageComponent: {
 					Name:    AdditionalMultiPackageComponent,
@@ -298,8 +300,6 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 			SdkVersion: asSdkVersion(tc.PackageSdkVersion),
 		}
 		if tc.PackageAdditionalComponent != "" {
-			// TODO DeprecatedOverrideComponents is being used here because
-			// the Components field is being ignored (`yaml:"-"`) in the YAML marshaling
 			damlPackage.DeprecatedOverrideComponents = map[string]*sdkmanifest.Component{
 				AdditionalPackageComponent: {
 					Name:    AdditionalPackageComponent,
@@ -335,12 +335,16 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 			if tc.ExpectedResolution.ExpectedSdkVersion == "null" {
 				t.Run("assert no active sdk version", func(t *testing.T) {
 					assertNoActiveSdkVersion(t)
+				})
+				t.Run("test resolution", func(t *testing.T) {
 					testResolution(t, tc.ExpectedResolution)
 				})
 
 			} else {
 				t.Run("assert active sdk version", func(t *testing.T) {
 					assertActiveSdkVersion(t, tc.ExpectedResolution.ExpectedSdkVersion)
+				})
+				t.Run("test resolution", func(t *testing.T) {
 					testResolution(t, tc.ExpectedResolution)
 				})
 			}

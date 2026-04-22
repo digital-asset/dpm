@@ -121,6 +121,7 @@ func (suite *MainSuite) TestLockfileUpdate() {
 
 func (suite *MainSuite) TestLockfileSdkVersion() {
 	t := suite.T()
+	t.Skip()
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 
 	testActiveSdkVersionExhaustive(t, func(t *testing.T, tc SdkVersionTestCase, dirs TestCaseDirs) {

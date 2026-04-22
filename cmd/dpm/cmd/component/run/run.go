@@ -52,7 +52,6 @@ The registry to pull from is the one configured via $%s $%s/%s`, assistantconfig
 					},
 				},
 			}
-			config.AutoInstall = true
 			componentCommands, err := da.ComputeSdkCommandsFromAssemblyManifest(cmd.Context(), config, dummyAssembly)
 			if err != nil {
 				return err
