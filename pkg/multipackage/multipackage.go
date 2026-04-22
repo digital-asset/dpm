@@ -21,11 +21,11 @@ type MultiPackage struct {
 	AbsolutePath string   `yaml:"-"`
 	Packages     []string `yaml:"packages"`
 
-	ComponentsList componentlist.ComponentList       `yaml:"components"`
+	ComponentsList componentlist.ComponentList       `yaml:"components,omitempty"`
 	Components     map[string]*sdkmanifest.Component `yaml:"-"`
 
 	// deprecated in favor of Components
-	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components"`
+	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components,omitempty"`
 }
 
 func (m *MultiPackage) AbsolutePackages() []string {

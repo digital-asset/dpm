@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,7 +11,15 @@ import (
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/component"
+	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/multipackage"
+	"daml.com/x/assistant/pkg/schema"
+	"daml.com/x/assistant/pkg/sdkmanifest"
+	"daml.com/x/assistant/pkg/testutil"
 	"daml.com/x/assistant/pkg/utils"
+	"github.com/Masterminds/semver/v3"
+	"github.com/goccy/go-yaml"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
@@ -28,11 +37,13 @@ type TestCaseDirs struct {
 	WorkingDir, DamlPackageDir, MultiPackageDir string
 }
 
-type SdkVersionTestCase struct {
+type FieldOverrideTestCase struct {
 	Name                                      string
 	MultiPackageSdkVersion, PackageSdkVersion string
 	WorkingDir                                WorkingDir
 	ExpectedResolution                        ExpectedResolution
+	MultiPackageAdditionalComponent           string
+	PackageAdditionalComponent                string
 }
 
 const (
@@ -42,6 +53,8 @@ const (
 	someSdkComponent      = "meep"  // contained in the someSdkVersion sdk
 	someOtherSdkComponent = "sheep" // contained in the someOtherSdkVersion sdk
 
+	AdditionalMultiPackageComponent = "multi-package-comp"
+	AdditionalPackageComponent      = "daml-package-comp"
 )
 
 var expectedResolution = ExpectedResolution{
@@ -50,9 +63,9 @@ var expectedResolution = ExpectedResolution{
 	2,
 	""}
 
-var sdkVersionTestCases = []SdkVersionTestCase{
+var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 	{
-		Name:                   "1 multi:some pkg: some, wd:multi",
+		Name:                   "1 multi:some pkg: some wd:multi",
 		MultiPackageSdkVersion: someSdkVersion,
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             MultiPackageWorkingDir,
@@ -146,12 +159,100 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 	},
 }
 
-func (suite *MainSuite) TestActiveSdkVersionExhaustive() {
-	t := suite.T()
-	testActiveSdkVersionExhaustive(t, func(t *testing.T, testCase SdkVersionTestCase, dirs TestCaseDirs) {})
+func makeTestCases(additionalPackageComponent, additionalMultiPackageComponent string) (result []FieldOverrideTestCase) {
+	for _, tc := range vanillaSdkVersionTestCases {
+		name := tc.Name
+		var extraComps []string
+		if additionalPackageComponent != "" {
+			extraComps = append(extraComps, additionalPackageComponent)
+			name += " extra:pkg"
+		}
+		if additionalMultiPackageComponent != "" {
+			extraComps = append(extraComps, additionalMultiPackageComponent)
+			name += " extra:multi"
+		}
+		testCase := FieldOverrideTestCase{
+			Name:                            name,
+			MultiPackageSdkVersion:          tc.MultiPackageSdkVersion,
+			PackageSdkVersion:               tc.PackageSdkVersion,
+			WorkingDir:                      tc.WorkingDir,
+			ExpectedResolution:              tc.ExpectedResolution.WithExtraComponents(extraComps...),
+			MultiPackageAdditionalComponent: additionalMultiPackageComponent,
+			PackageAdditionalComponent:      additionalPackageComponent,
+		}
+
+		result = append(result, testCase)
+	}
+	return
 }
 
-func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCase SdkVersionTestCase, dirs TestCaseDirs)) {
+var fieldOverrideTestCases = lo.Flatten([][]FieldOverrideTestCase{
+	makeTestCases("", ""),
+	makeTestCases("", AdditionalMultiPackageComponent),
+	makeTestCases(AdditionalPackageComponent, ""),
+	makeTestCases(AdditionalPackageComponent, AdditionalMultiPackageComponent),
+})
+
+func pushGenericComponentWithCommand(t *testing.T, reg *httptest.Server, componentName, componentVersion, command string) {
+	comp := component.Component{
+		ManifestMeta: schema.ManifestMeta{
+			Kind:       component.ComponentKind,
+			APIVersion: component.ComponentAPIVersion,
+		},
+		Spec: &component.Spec{
+			JarCommands: []component.JarCommand{
+				{
+					Name: command,
+					Path: "./dummy",
+					Desc: &command,
+				},
+			},
+			Exports: component.Exports{
+				"MEEP_EXTERNAL_DAR": &component.Export{
+					Paths:            []string{"./component.yaml", "./"},
+					ConflictStrategy: "extend",
+				},
+
+				"SHEEP_EXTERNAL_DAR": &component.Export{
+					Paths:            []string{"./component.yaml", "./"},
+					ConflictStrategy: "extend",
+				},
+			},
+		},
+	}
+
+	compBytes, err := yaml.Marshal(comp)
+	require.NoError(t, err)
+
+	ctx := testutil.Context(t)
+
+	compDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(compDir, "component.yaml"), compBytes, 0666))
+	require.NoError(t, os.WriteFile(filepath.Join(compDir, "dummy"), []byte{}, 0666))
+	testutil.PushComponent(t, ctx, reg, componentName, componentVersion, compDir)
+}
+
+func (suite *MainSuite) TestFieldOverrideExhaustive() {
+	t := suite.T()
+	testFieldOverrideExhaustive(t, func(t *testing.T, testCase FieldOverrideTestCase, dirs TestCaseDirs) {})
+}
+
+func installComponent(t *testing.T, componentName, componentVersion string) {
+	contents := fmt.Sprintf(`
+components:
+  - %s:%s
+`, componentName, componentVersion)
+
+	t.Run("install component "+componentName, func(t *testing.T) {
+		tmpDir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(contents), 0666))
+		t.Chdir(tmpDir)
+		require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
+	})
+
+}
+
+func testFieldOverrideExhaustive(t *testing.T, hook func(t *testing.T, testCase FieldOverrideTestCase, dirs TestCaseDirs)) {
 	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
@@ -159,23 +260,55 @@ func testActiveSdkVersionExhaustive(t *testing.T, hook func(t *testing.T, testCa
 	installSdkForComponent(t, someSdkVersion, someSdkComponent, "1.2.3")
 	installSdkForComponent(t, someOtherSdkVersion, someOtherSdkComponent, "4.5.6")
 
-	setupTestCase := func(tc SdkVersionTestCase) (dirs TestCaseDirs) {
+	t.Setenv("PATH", testutil.TestdataPath(t, "fake-java", testutil.OS)+string(os.PathListSeparator)+os.Getenv("PATH"))
+	v, _ := semver.StrictNewVersion("1.2.3")
+
+	_, reg := testutil.StartRegistry(t)
+	pushGenericComponentWithCommand(t, reg, AdditionalMultiPackageComponent, v.String(), AdditionalMultiPackageComponent)
+	pushGenericComponentWithCommand(t, reg, AdditionalPackageComponent, v.String(), AdditionalPackageComponent)
+	installComponent(t, AdditionalPackageComponent, v.String())
+	installComponent(t, AdditionalMultiPackageComponent, v.String())
+
+	setupTestCase := func(tc FieldOverrideTestCase) (dirs TestCaseDirs) {
 		tmpDir := t.TempDir()
 		dirs.MultiPackageDir = filepath.Join(tmpDir, "multi-package")
 		dirs.DamlPackageDir = filepath.Join(dirs.MultiPackageDir, "daml-package")
 		require.NoError(t, utils.EnsureDirs(dirs.MultiPackageDir, dirs.DamlPackageDir))
 
 		// create multi-package.yaml
-		multiPackageContents := fmt.Sprintf(`
-sdk-version: %s
-packages:
- - ./daml-package`, tc.MultiPackageSdkVersion)
+		multiPackage := multipackage.MultiPackage{
+			SdkVersion: asSdkVersion(tc.MultiPackageSdkVersion),
+			Packages:   []string{"./daml-package"},
+		}
+
+		if tc.MultiPackageAdditionalComponent != "" {
+			// TODO DeprecatedOverrideComponents is being used here because
+			// the Components field is being ignored (`yaml:"-"`) in the YAML marshaling
+			multiPackage.DeprecatedOverrideComponents = map[string]*sdkmanifest.Component{
+				AdditionalMultiPackageComponent: {
+					Name:    AdditionalMultiPackageComponent,
+					Version: sdkmanifest.AssemblySemVer(v),
+				},
+			}
+		}
 		require.NoError(t,
-			os.WriteFile(filepath.Join(dirs.MultiPackageDir, "multi-package.yaml"), []byte(multiPackageContents), 0666),
+			os.WriteFile(filepath.Join(dirs.MultiPackageDir, "multi-package.yaml"), testutil.MustMarshal(t, multiPackage), 0666),
 		)
+
 		// create daml.yaml
+		damlPackage := damlpackage.DamlPackage{
+			SdkVersion: asSdkVersion(tc.PackageSdkVersion),
+		}
+		if tc.PackageAdditionalComponent != "" {
+			damlPackage.DeprecatedOverrideComponents = map[string]*sdkmanifest.Component{
+				AdditionalPackageComponent: {
+					Name:    AdditionalPackageComponent,
+					Version: sdkmanifest.AssemblySemVer(v),
+				},
+			}
+		}
 		require.NoError(t,
-			os.WriteFile(filepath.Join(dirs.DamlPackageDir, "daml.yaml"), []byte(`sdk-version: `+tc.PackageSdkVersion), 0666),
+			os.WriteFile(filepath.Join(dirs.DamlPackageDir, "daml.yaml"), testutil.MustMarshal(t, damlPackage), 0666),
 		)
 
 		// chdir
@@ -188,10 +321,12 @@ packages:
 		}
 		t.Chdir(dirs.WorkingDir)
 
+		require.NoError(t, createStdTestRootCmd(t, "install", "package", "--skip-sdk").Execute())
+
 		return
 	}
 
-	for _, tc := range sdkVersionTestCases {
+	for _, tc := range fieldOverrideTestCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			dirs := setupTestCase(tc)
 
@@ -200,12 +335,16 @@ packages:
 			if tc.ExpectedResolution.ExpectedSdkVersion == "null" {
 				t.Run("assert no active sdk version", func(t *testing.T) {
 					assertNoActiveSdkVersion(t)
+				})
+				t.Run("test resolution", func(t *testing.T) {
 					testResolution(t, tc.ExpectedResolution)
 				})
 
 			} else {
 				t.Run("assert active sdk version", func(t *testing.T) {
 					assertActiveSdkVersion(t, tc.ExpectedResolution.ExpectedSdkVersion)
+				})
+				t.Run("test resolution", func(t *testing.T) {
 					testResolution(t, tc.ExpectedResolution)
 				})
 			}
@@ -250,4 +389,11 @@ packages:
 
 		})
 	}
+}
+
+func asSdkVersion(s string) string {
+	if s == "null" {
+		return ""
+	}
+	return s
 }

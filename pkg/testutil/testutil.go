@@ -22,6 +22,7 @@ import (
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/Masterminds/semver/v3"
+	"github.com/goccy/go-yaml"
 	"github.com/google/go-containerregistry/pkg/registry"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/samber/lo"
@@ -204,3 +205,14 @@ var OS = func() string {
 	}
 	return "unix"
 }()
+
+func MustMarshal(t *testing.T, v any) []byte {
+	t.Helper()
+
+	b, err := yaml.Marshal(v)
+	if err != nil {
+		t.Fatalf("failed to marshal YAML: %v", err)
+	}
+
+	return b
+}

@@ -17,14 +17,14 @@ import (
 type DamlPackage struct {
 	SdkVersion string `yaml:"sdk-version"`
 
-	ComponentsList componentlist.ComponentList       `yaml:"components"`
+	ComponentsList componentlist.ComponentList       `yaml:"components,omitempty"`
 	Components     map[string]*sdkmanifest.Component `yaml:"-"`
 
 	// deprecated in favor of Components
-	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components"`
+	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components,omitempty"`
 
-	Dependencies         []string                       `yaml:"dependencies"`
-	ArtifactLocations    ArtifactLocations              `yaml:"artifact-locations"`
+	Dependencies         []string                       `yaml:"dependencies,omitempty"`
+	ArtifactLocations    ArtifactLocations              `yaml:"artifact-locations,omitempty"`
 	ResolvedDependencies map[string]*ResolvedDependency `yaml:"-"`
 }
 
