@@ -21,8 +21,9 @@ func (suite *RepoSuite) TestPublishDar() {
 	tmpDamlHome, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
-
-	publishDar(t)
+	//args := testutil.PushDarUri(reg, "meep", "1.2.3", "", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	//require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+	//publishDar(t, "1.2.3", reg.URL, "")
 	testutil.StartRegistry(t)
 	destinationRegistry := os.Getenv(assistantconfig.OciRegistryEnvVar)
 	tmpDamlHome, err = os.MkdirTemp("", "")
@@ -62,7 +63,7 @@ func (suite *RepoSuite) TestPublishThirdPartyComponents() {
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 }
 
-func (suite *RepoSuite) TestListTags() {
+func (suite *RepoSuite) TestComponentList() {
 	t := suite.T()
 	_, reg := testutil.StartRegistry(t)
 
@@ -83,29 +84,49 @@ func (suite *RepoSuite) TestListTags() {
 		expected := []string{"1.2.3", "1.2.3.generic"}
 		assert.Equal(t, expected, res)
 	})
-
 }
+func (suite *RepoSuite) TestDarList() {
+	t := suite.T()
+	_, reg := testutil.StartRegistry(t)
 
-func publishDar(t *testing.T) {
-	t.Run("publish dar", func(t *testing.T) {
-		cmd := createStdTestRootCmd(t)
+	args := testutil.PushDarUri(reg, "meep", "foo/bar", "1.2.3", testutil.TestdataPath(t, "test-dar"))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 
-		args := []string{"artifacts", "publish", "dar", "--name", "meep", "--version", "1.2.3",
-			"-f", testutil.TestdataPath(t, "test-dar"), "--dry-run",
-		}
+	args = testutil.PushDarUri(reg, "meep", "bar/foo", "1.2.4", testutil.TestdataPath(t, "test-dar"))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 
-		cmd.SetArgs(appendRegistryArgsFromEnv(args))
-		require.NoError(t, cmd.Execute())
+	t.Run("test tags for arbitrary repo", func(t *testing.T) {
+		res := listDarTags(t, "meep", "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/foo/bar")
+		expected := []string{"1.2.3"}
+		assert.Equal(t, expected, res)
 	})
 
+	t.Run("test tags for arbitrary repo", func(t *testing.T) {
+		res := listDarTags(t, "meep", "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/bar/foo")
+		expected := []string{"1.2.4"}
+		assert.Equal(t, expected, res)
+	})
 }
 
 func listComponentTags(t *testing.T, component, registry string) []string {
-	t.Setenv(assistantconfig.OciRegistryEnvVar, registry)
 
 	cmd, r, w := createTestRootCmd(t)
 	cmd.SetArgs([]string{
 		"artifacts", "list", "component", "--name", component, "--registry", registry,
+	})
+	require.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+
+	output, err := io.ReadAll(r)
+	assert.NoError(t, err)
+	return strings.Split(strings.TrimSpace(string(output)), "\n")
+}
+
+func listDarTags(t *testing.T, dar, registry string) []string {
+
+	cmd, r, w := createTestRootCmd(t)
+	cmd.SetArgs([]string{
+		"artifacts", "list", "dar", "--name", dar, "--registry", registry,
 	})
 	require.NoError(t, cmd.Execute())
 	assert.NoError(t, w.Close())

@@ -56,6 +56,18 @@ func PushComponentUri(registry *httptest.Server, name, repo, tag, pathToComponen
 	return args
 }
 
+func PushDarUri(registry *httptest.Server, name, repo, tag, pathToComponent string) (args []string) {
+	uri := fmt.Sprintf("%s/%s", GetRemote(registry).Registry, repo)
+	args = []string{"artifacts", "publish", "dar", "--name", name, "--version", tag,
+		"-f", pathToComponent, "--registry", "oci://" + uri,
+	}
+	if strings.HasPrefix(registry.URL, "http://") {
+		args = append(args, "--insecure")
+	}
+
+	return args
+}
+
 func PushComponent(t *testing.T, ctx context.Context, registry *httptest.Server, componentName, tag, pathToComponent string, extraTags ...string) {
 	r := GetRemote(registry)
 	v, err := semver.NewVersion(tag)

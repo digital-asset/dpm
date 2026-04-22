@@ -4,7 +4,8 @@
 package list
 
 import (
-	"daml.com/x/assistant/cmd/dpm/cmd/artifacts/list/tags"
+	"daml.com/x/assistant/cmd/dpm/cmd/artifacts/list/component"
+	dartags "daml.com/x/assistant/cmd/dpm/cmd/artifacts/list/dar"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"github.com/spf13/cobra"
 )
@@ -17,6 +18,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	}
 
 	cmd.AddCommand(componenttags.Cmd(config))
+	cmd.AddCommand(dartags.Cmd(config))
 
 	return cmd
 }
