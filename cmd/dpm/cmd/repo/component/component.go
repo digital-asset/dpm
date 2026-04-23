@@ -19,10 +19,11 @@ func Cmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "publish-component <name> <version>",
-		Short:   "Publish a component to an OCI registry",
-		Example: "  dpm repo publish-component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin",
+		Short:   "DEPRECTAED: Publish a component to an OCI registry",
+		Example: "dpm repo publish-component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Println("DEPRECATED: Dommand in favor of new dpm artifacts publish component command, please see documentation for further info")
 			name := args[0]
 			version, err := semver.StrictNewVersion(args[1])
 			if err != nil {

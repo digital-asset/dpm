@@ -17,9 +17,10 @@ import (
 func Cmd(config *assistantconfig.Config) *cobra.Command {
 	return &cobra.Command{
 		Use:   "tags <repo or component name>",
-		Short: "list published tags of a component",
+		Short: "DEPRECATED: list published tags of a component",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Println("DEPRECATED: Command deprecating in favor of dpm artifacts list, please follow documentation for usage information")
 			client, err := assistantremote.NewFromConfig(config)
 			if err != nil {
 				return err

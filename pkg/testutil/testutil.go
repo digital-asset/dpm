@@ -114,7 +114,7 @@ func PushDar(t *testing.T, ctx context.Context, registry *httptest.Server, darNa
 		Version: v,
 	}
 	opts := ocipusher.Opts{
-		Artifact:            &ociconsts.DarArtifact{DarName: darName},
+		Artifact:            &ociconsts.DarArtifact{DarRepo: darName},
 		RawTag:              tag,
 		Dir:                 pathToComponent,
 		RequiredAnnotations: requiredAnnotations,
@@ -127,7 +127,7 @@ func PushDar(t *testing.T, ctx context.Context, registry *httptest.Server, darNa
 	require.NoError(t, err)
 
 	indexOpts := ociindex.Opts{
-		Artifact:            &ociconsts.DarArtifact{DarName: darName},
+		Artifact:            &ociconsts.DarArtifact{DarRepo: darName},
 		Tag:                 tag,
 		Manifests:           []v1.Descriptor{*desc},
 		ExtraAnnotations:    map[string]string{},

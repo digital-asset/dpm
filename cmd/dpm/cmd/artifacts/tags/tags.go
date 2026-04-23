@@ -1,7 +1,7 @@
 // Copyright (c) 2017-2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package dartags
+package tags
 
 import (
 	"fmt"
@@ -19,10 +19,10 @@ import (
 func Cmd(config *assistantconfig.Config) *cobra.Command {
 	c := listcmd.ListCmd{}
 	cmd := &cobra.Command{
-		Use:     "dar",
-		Short:   "list published tags of a dar",
-		Long:    "Will list all tags associated with a dar at an arbitrary OCI registry",
-		Example: "dpm artifacts list dar --name foo --registry 'oci://whatever.dev/bar/test'",
+		Use:     "tags",
+		Short:   "list published tags of an artifact",
+		Long:    "Will list all tags associated with an artifact (dar/component) at an arbitrary OCI registry",
+		Example: "dpm artifacts list --name foo --registry 'oci://whatever.dev/bar/test'",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if strings.HasPrefix(c.Registry, "oci://") {
 				c.Registry = strings.TrimPrefix(c.Registry, "oci://")

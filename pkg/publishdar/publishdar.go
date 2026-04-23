@@ -85,7 +85,7 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 		if p.config.ExtraTags != nil && len(p.config.ExtraTags) > 0 {
 			p.printer.Println("pushing extra tags...")
 			// Function below is not specifically for a generated index, can be utilized to setting tags to artifacts in general
-			err := ociindex.Tag(ctx, client, &ociconsts.DarArtifact{DarName: p.config.Name}, p.config.Version, p.config.ExtraTags)
+			err := ociindex.Tag(ctx, client, &ociconsts.DarArtifact{DarRepo: p.config.Name}, p.config.Version, p.config.ExtraTags)
 			if err != nil {
 				return err
 			}
@@ -118,7 +118,7 @@ func (p *DarPublisher) prepare(ctx context.Context, dir string) (*darpusher.DarP
 		maps.Copy(annotations, gitAnnotations)
 	}
 	var artifact ociconsts.Artifact
-	artifact = &ociconsts.DarArtifact{DarName: p.config.Name}
+	artifact = &ociconsts.DarArtifact{DarRepo: p.config.Name}
 
 	opts := darpusher.DarOpts{
 		Artifact: artifact,
@@ -172,7 +172,7 @@ func checkHasLicense(dir string) error {
 func (p *DarPublisher) checkVersionExists(ctx context.Context, op *darpusher.DarPushOperation, client *assistantremote.Remote) (bool, error) {
 	var tags []string
 
-	tags, found, err := ocilister.ListTags(ctx, client, ociconsts.DarRepoPrefix+p.config.Name)
+	tags, found, err := ocilister.ListTags(ctx, client, p.config.Name)
 	if err != nil {
 		return false, err
 	}
