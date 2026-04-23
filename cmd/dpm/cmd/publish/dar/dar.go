@@ -26,6 +26,13 @@ func Cmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("invalid version argument: %w", err)
 			}
+
+			if strings.HasPrefix(c.Registry, "oci://") {
+				c.Registry = strings.TrimPrefix(c.Registry, "oci://")
+			} else {
+				return fmt.Errorf("invalid registry argument, must be formatted as oci uri ie. oci://whatever.dev")
+			}
+
 			cmd.SilenceUsage = true
 			publishDarConfig := &publishdar.DarConfig{
 				File:           c.File,

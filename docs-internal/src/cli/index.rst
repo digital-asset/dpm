@@ -3,24 +3,22 @@
    :caption: CLI Reference:
 
    dpm
-   dpm_artifacts
-   dpm_artifacts_publish
-   dpm_artifacts_publish_component
    dpm_bootstrap
    dpm_component
    dpm_component_init
    dpm_component_run
    dpm_install
    dpm_login
+   dpm_publish
+   dpm_publish_component
    dpm_repo
    dpm_repo_create-tarball
    dpm_repo_promote-components
-   dpm_repo_publish-component
    dpm_repo_publish-dpm
    dpm_repo_publish-sdk-manifest
    dpm_repo_resolve-tags
-   dpm_repo_tags
    dpm_resolve
+   dpm_tags
    dpm_uninstall
    dpm_update
    dpm_version

@@ -44,13 +44,25 @@ func TestdataPath(t *testing.T, path ...string) string {
 func PushComponentUri(registry *httptest.Server, name, repo, tag, pathToComponent string, extraTags ...string) (args []string) {
 	uri := fmt.Sprintf("%s/%s", GetRemote(registry).Registry, repo)
 
-	args = []string{"artifacts", "publish", "component", "--name", name, "--version", tag, "--registry", "oci://" + uri, "-p", "generic=" + pathToComponent}
+	args = []string{"publish", "component", "--name", name, "--version", tag, "--registry", "oci://" + uri, "-p", "generic=" + pathToComponent}
 
 	if strings.HasPrefix(registry.URL, "http://") {
 		args = append(args, "--insecure")
 	}
 	for _, t := range extraTags {
 		args = append(args, "--extra-tags", t)
+	}
+
+	return args
+}
+
+func PushDarUri(registry *httptest.Server, name, repo, tag, pathToComponent string) (args []string) {
+	uri := fmt.Sprintf("%s/%s", GetRemote(registry).Registry, repo)
+	args = []string{"publish", "dar", "--name", name, "--version", tag,
+		"-f", pathToComponent, "--registry", "oci://" + uri,
+	}
+	if strings.HasPrefix(registry.URL, "http://") {
+		args = append(args, "--insecure")
 	}
 
 	return args
@@ -102,7 +114,7 @@ func PushDar(t *testing.T, ctx context.Context, registry *httptest.Server, darNa
 		Version: v,
 	}
 	opts := ocipusher.Opts{
-		Artifact:            &ociconsts.DarArtifact{DarName: darName},
+		Artifact:            &ociconsts.DarArtifact{DarRepo: darName},
 		RawTag:              tag,
 		Dir:                 pathToComponent,
 		RequiredAnnotations: requiredAnnotations,
@@ -115,7 +127,7 @@ func PushDar(t *testing.T, ctx context.Context, registry *httptest.Server, darNa
 	require.NoError(t, err)
 
 	indexOpts := ociindex.Opts{
-		Artifact:            &ociconsts.DarArtifact{DarName: darName},
+		Artifact:            &ociconsts.DarArtifact{DarRepo: darName},
 		Tag:                 tag,
 		Manifests:           []v1.Descriptor{*desc},
 		ExtraAnnotations:    map[string]string{},

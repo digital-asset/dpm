@@ -20,10 +20,11 @@ const (
 	Resolve   BuiltinCommand = "resolve"
 	Login     BuiltinCommand = "login"
 	Update    BuiltinCommand = "update"
-	Artifacts BuiltinCommand = "artifacts"
+	Publish   BuiltinCommand = "publish"
+	Tags      BuiltinCommand = "tags"
 )
 
-var BuiltinCommands = []BuiltinCommand{Versions, Version, Update, Bootstrap, Install, UnInstall, Component, Repo, Resolve, Login, Artifacts}
+var BuiltinCommands = []BuiltinCommand{Versions, Version, Update, Bootstrap, Install, UnInstall, Component, Repo, Resolve, Login, Publish, Tags}
 
 func IsBuiltinCommand(args []string) bool {
 	if len(args) > 1 {

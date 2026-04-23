@@ -21,27 +21,25 @@ type ComponentArtifact struct {
 	ComponentRepo string
 }
 
+type DarArtifact struct {
+	DarRepo string
+}
+
 func (a *ComponentArtifact) RepoName() string {
 	return a.ComponentRepo
 }
 func (a *ComponentArtifact) ArtifactType() string  { return ComponentArtifactType }
 func (a *ComponentArtifact) FileMediaType() string { return ComponentFileMediaType }
 
-type DarArtifact struct {
-	DarName string
-}
-
 func (a *FirstPartyComponentArtifact) RepoName() string {
 	return ComponentRepoPrefix + a.ComponentName
 }
-
-func (a *DarArtifact) RepoName() string {
-	return DarRepoPrefix + a.DarName
-}
-
 func (a *FirstPartyComponentArtifact) ArtifactType() string  { return ComponentArtifactType }
 func (a *FirstPartyComponentArtifact) FileMediaType() string { return ComponentFileMediaType }
 
+func (a *DarArtifact) RepoName() string {
+	return a.DarRepo
+}
 func (a *DarArtifact) ArtifactType() string  { return DarArtifactType }
 func (a *DarArtifact) FileMediaType() string { return DarFileMediaType }
 

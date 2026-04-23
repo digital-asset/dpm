@@ -19,10 +19,11 @@ func Cmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "publish-component <name> <version>",
-		Short:   "Publish a component to an OCI registry",
-		Example: "  dpm repo publish-component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin",
+		Short:   "DEPRECATED: Publish a component to an OCI registry",
+		Example: "dpm repo publish-component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin",
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Println("DEPRECATED: Command in favor of new dpm artifacts publish component command, please see documentation for further info")
 			name := args[0]
 			version, err := semver.StrictNewVersion(args[1])
 			if err != nil {
@@ -70,6 +71,6 @@ func Cmd() *cobra.Command {
 	cmd.Flags().StringVar(&c.Registry, "registry", "", "OCI registry to use for pushing")
 	cmd.Flags().BoolVar(&c.Insecure, "insecure", false, "use http instead of https for OCI registry")
 	cmd.Flags().StringVar(&c.RegistryAuth, "auth", "", "path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json")
-
+	cmd.Deprecated = "new command dpm artifacts publish component provides this functionality, please see documentation for further info"
 	return cmd
 }

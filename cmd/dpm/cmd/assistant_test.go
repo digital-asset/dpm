@@ -426,7 +426,7 @@ func (suite *MainSuite) TestComponentPublishDryRun() {
 
 	t.Run("third party", func(t *testing.T) {
 		args := []string{"--dry-run", "--registry", "oci://foo.example.com/a/b", "--name", "meep", "--version", "1.2.3-meep", "-p", "generic=" + testutil.TestdataPath(t, "meepy-component", testutil.OS)}
-		doTest(t, "foo.example.com/a/b/meep", []string{"artifacts", "publish", "component"}, args)
+		doTest(t, "foo.example.com/a/b/meep", []string{"publish", "component"}, args)
 	})
 }
 

@@ -1,10 +1,10 @@
-Dpm Artifacts Publish Component
-===============================
+Dpm Publish Component
+=====================
 
-.. _dpm_artifacts_publish_component:
+.. _dpm_publish_component:
 
-dpm artifacts publish component
--------------------------------
+dpm publish component
+---------------------
 
 Publish a component to an OCI registry
 
@@ -16,7 +16,7 @@ Will publish the component (OCI index) to <registry>/<name>:<version>
 
 ::
 
-  dpm artifacts publish component [flags]
+  dpm publish component [flags]
 
 Examples
 ~~~~~~~~
@@ -45,5 +45,5 @@ Options
 SEE ALSO
 ~~~~~~~~
 
-* :ref:`dpm artifacts publish <dpm_artifacts_publish>` 	 - Commands for publishing artifacts
+* :ref:`dpm publish <dpm_publish>` 	 - Commands for publishing artifacts
 
