@@ -28,7 +28,7 @@ func (suite *RepoSuite) TestPublishDar() {
 
 	cmd := createStdTestRootCmd(t)
 	args := []string{
-		"artifacts", "publish", "dar", "--name", "meep", "--version", "1.2.3",
+		"publish", "dar", "--name", "meep", "--version", "1.2.3",
 		"-f", testutil.TestdataPath(t, "test-dar"),
 		"--registry", "oci://" + destinationRegistry,
 	}
@@ -44,7 +44,7 @@ func (suite *RepoSuite) TestPublishThirdPartyComponents() {
 	_, _ = testutil.StartRegistry(t)
 	uri := fmt.Sprintf("%s/x/y/z", os.Getenv(assistantconfig.OciRegistryEnvVar))
 
-	args := []string{"artifacts", "publish", "component", "--name", "meep", "--version", "1.2.3",
+	args := []string{"publish", "component", "--name", "meep", "--version", "1.2.3",
 		"-p", "windows/amd64=" + testutil.TestdataPath(t, "meepy-component", "windows"),
 		"-p", "linux/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
 		"-p", "darwin/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
@@ -109,7 +109,7 @@ func listArtifactTags(t *testing.T, pathToArtifact string) []string {
 
 	cmd, r, w := createTestRootCmd(t)
 	cmd.SetArgs([]string{
-		"artifacts", "tags", pathToArtifact,
+		"tags", pathToArtifact,
 	})
 	require.NoError(t, cmd.Execute())
 	assert.NoError(t, w.Close())

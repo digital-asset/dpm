@@ -4,8 +4,8 @@
 package publish
 
 import (
-	publishcomponent "daml.com/x/assistant/cmd/dpm/cmd/artifacts/publish/component"
-	publishdar "daml.com/x/assistant/cmd/dpm/cmd/artifacts/publish/dar"
+	publishcomponent "daml.com/x/assistant/cmd/dpm/cmd/publish/component"
+	publishdar "daml.com/x/assistant/cmd/dpm/cmd/publish/dar"
 	"github.com/spf13/cobra"
 )
 
