@@ -16,11 +16,9 @@
    dpm_repo
    dpm_repo_create-tarball
    dpm_repo_promote-components
-   dpm_repo_publish-component
    dpm_repo_publish-dpm
    dpm_repo_publish-sdk-manifest
    dpm_repo_resolve-tags
-   dpm_repo_tags
    dpm_resolve
    dpm_uninstall
    dpm_update

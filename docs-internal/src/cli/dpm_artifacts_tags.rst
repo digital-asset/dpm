@@ -12,7 +12,7 @@ Synopsis
 ~~~~~~~~
 
 
-Will list all tags associated with an artifact (dar/component) at an arbitrary OCI registry
+List all tags associated with an artifact (dar/component) at an arbitrary OCI registry
 
 ::
 
@@ -23,16 +23,16 @@ Examples
 
 ::
 
-  dpm artifacts list --name foo --registry 'oci://whatever.dev/bar/test'
+  dpm artifacts list --artifact 'oci://whatever.dev/bar/test'
 
 Options
 ~~~~~~~
 
 ::
 
-  -h, --help              help for tags
-  -n, --name string       name of component to search for
-      --registry string   OCI registry to search in
+      --auth string   path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json
+  -h, --help          help for tags
+  -n, --name string   full uri of artifact to search for
 
 SEE ALSO
 ~~~~~~~~
