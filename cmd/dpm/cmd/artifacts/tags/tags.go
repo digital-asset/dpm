@@ -16,7 +16,8 @@ import (
 )
 
 type ListCmd struct {
-	Name string
+	Name         string
+	RegistryAuth string
 }
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
@@ -24,8 +25,8 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "tags",
 		Short:   "list published tags of an artifact",
-		Long:    "Will list all tags associated with an artifact (dar/component) at an arbitrary OCI registry",
-		Example: "dpm artifacts list --name 'oci://whatever.dev/bar/test:0.0.0'",
+		Long:    "List all tags associated with an artifact (dar/component) at an arbitrary OCI registry",
+		Example: "dpm artifacts list --artifact 'oci://whatever.dev/bar/test'",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if strings.HasPrefix(c.Name, "oci://") {
 				c.Name = strings.TrimPrefix(c.Name, "oci://")
@@ -37,8 +38,13 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			if err != nil {
 				return err
 			}
-
-			customRemote, err := assistantremote.New(ref.Registry, config.RegistryAuthPath, config.Insecure)
+			var auth string
+			if c.RegistryAuth != "" {
+				auth = c.RegistryAuth
+			} else {
+				auth = config.RegistryAuthPath
+			}
+			customRemote, err := assistantremote.New(ref.Registry, auth, config.Insecure)
 			repoName, _ := lo.Last(strings.Split(ref.Repository, "/"))
 			if err != nil {
 				return fmt.Errorf("invalid registry argument, must be formatted as oci uri ie. oci://whatever.dev/test")
@@ -67,6 +73,8 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&c.Name, "name", "n", "", "full uri of artifact to search for")
 	cmd.MarkFlagRequired("name")
+
+	cmd.Flags().StringVar(&c.RegistryAuth, "auth", "", "path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json")
 
 	return cmd
 }
