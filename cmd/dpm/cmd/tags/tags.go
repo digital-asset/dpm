@@ -26,7 +26,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 		Short:   "list published tags of an artifact",
 		Long:    "List all tags associated with an artifact (dar/component) at an arbitrary OCI registry",
 		Example: "dpm tags oci://whatever.dev/bar/test",
-		Args:    cobra.MinimumNArgs(1),
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			artifact := args[0]
 			if strings.HasPrefix(artifact, "oci://") {
@@ -46,7 +46,6 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				auth = config.RegistryAuthPath
 			}
 			customRemote, err := assistantremote.New(ref.Registry, auth, config.Insecure)
-			repoName, _ := lo.Last(strings.Split(ref.Repository, "/"))
 			if err != nil {
 				return fmt.Errorf("invalid registry argument, must be formatted as oci uri ie. oci://whatever.dev/test")
 			}
@@ -58,11 +57,11 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			}
 
 			if !found {
-				return fmt.Errorf("repo %q doesn't exist in the OCI registry", repoName)
+				return fmt.Errorf("repo %q doesn't exist in the OCI registry", ref.Repository)
 			}
 
 			if len(tags) == 0 {
-				cmd.Printf("No tags found under %q\n", repoName)
+				cmd.Printf("No tags found under %q\n", ref.Repository)
 				return nil
 			}
 
@@ -73,7 +72,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&c.RegistryAuth, "auth", "", "path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json")
+	cmd.Flags().StringVar(&c.RegistryAuth, "registry-auth", "", "path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json")
 
 	return cmd
 }

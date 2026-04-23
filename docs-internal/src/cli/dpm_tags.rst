@@ -30,8 +30,8 @@ Options
 
 ::
 
-      --auth string   path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json
-  -h, --help          help for tags
+  -h, --help                   help for tags
+      --registry-auth string   path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json
 
 SEE ALSO
 ~~~~~~~~
