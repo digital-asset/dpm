@@ -6,13 +6,13 @@ Dpm Repo Tags
 dpm repo tags
 -------------
 
-list published tags of a component
+DEPRECATED: list published tags of a component
 
 Synopsis
 ~~~~~~~~
 
 
-list published tags of a component
+DEPRECATED: list published tags of a component
 
 ::
 

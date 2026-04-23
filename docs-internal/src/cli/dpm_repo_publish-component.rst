@@ -6,13 +6,13 @@ Dpm Repo Publish-Component
 dpm repo publish-component
 --------------------------
 
-Publish a component to an OCI registry
+DEPRECTAED: Publish a component to an OCI registry
 
 Synopsis
 ~~~~~~~~
 
 
-Publish a component to an OCI registry
+DEPRECTAED: Publish a component to an OCI registry
 
 ::
 
@@ -23,7 +23,7 @@ Examples
 
 ::
 
-    dpm repo publish-component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin
+  dpm repo publish-component foo 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin
 
 Options
 ~~~~~~~
