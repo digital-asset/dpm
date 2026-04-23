@@ -1,10 +1,10 @@
-Dpm Artifacts Tags
-==================
+Dpm Tags
+========
 
-.. _dpm_artifacts_tags:
+.. _dpm_tags:
 
-dpm artifacts tags
-------------------
+dpm tags
+--------
 
 list published tags of an artifact
 
@@ -16,7 +16,7 @@ List all tags associated with an artifact (dar/component) at an arbitrary OCI re
 
 ::
 
-  dpm artifacts tags [flags]
+  dpm tags [flags]
 
 Examples
 ~~~~~~~~
@@ -36,5 +36,5 @@ Options
 SEE ALSO
 ~~~~~~~~
 
-* :ref:`dpm artifacts <dpm_artifacts>` 	 - Commands for managing artifacts
+* :ref:`dpm <dpm>` 	 - 
 
