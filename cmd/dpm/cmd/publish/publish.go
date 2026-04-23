@@ -6,12 +6,13 @@ package publish
 import (
 	publishcomponent "daml.com/x/assistant/cmd/dpm/cmd/publish/component"
 	publishdar "daml.com/x/assistant/cmd/dpm/cmd/publish/dar"
+	"daml.com/x/assistant/pkg/builtincommand"
 	"github.com/spf13/cobra"
 )
 
 func Cmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "publish",
+		Use:   string(builtincommand.Publish),
 		Short: "Commands for publishing artifacts",
 		Long:  "Commands for publishing artifacts",
 	}

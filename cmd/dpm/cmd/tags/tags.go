@@ -9,6 +9,7 @@ import (
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
+	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/ocilister"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -22,7 +23,7 @@ type ListCmd struct {
 func Cmd(config *assistantconfig.Config) *cobra.Command {
 	c := ListCmd{}
 	cmd := &cobra.Command{
-		Use:     "tags",
+		Use:     string(builtincommand.Tags),
 		Short:   "list published tags of an artifact",
 		Long:    "List all tags associated with an artifact (dar/component) at an arbitrary OCI registry",
 		Example: "dpm tags oci://whatever.dev/bar/test",
