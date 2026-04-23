@@ -16,7 +16,6 @@ import (
 )
 
 type ListCmd struct {
-	Name         string
 	RegistryAuth string
 }
 
@@ -26,15 +25,17 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 		Use:     "tags",
 		Short:   "list published tags of an artifact",
 		Long:    "List all tags associated with an artifact (dar/component) at an arbitrary OCI registry",
-		Example: "dpm artifacts list --artifact 'oci://whatever.dev/bar/test'",
+		Example: "dpm tags oci://whatever.dev/bar/test",
+		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if strings.HasPrefix(c.Name, "oci://") {
-				c.Name = strings.TrimPrefix(c.Name, "oci://")
+			artifact := args[0]
+			if strings.HasPrefix(artifact, "oci://") {
+				artifact = strings.TrimPrefix(artifact, "oci://")
 			} else {
 				return fmt.Errorf("invalid registry argument, must be formatted as oci uri ie. oci://whatever.dev/test")
 			}
 
-			ref, err := registry.ParseReference(c.Name)
+			ref, err := registry.ParseReference(artifact)
 			if err != nil {
 				return err
 			}
@@ -71,8 +72,6 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&c.Name, "name", "n", "", "full uri of artifact to search for")
-	cmd.MarkFlagRequired("name")
 
 	cmd.Flags().StringVar(&c.RegistryAuth, "auth", "", "path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json")
 

@@ -105,11 +105,11 @@ func (suite *RepoSuite) TestDarTags() {
 	})
 }
 
-func listArtifactTags(t *testing.T, name string) []string {
+func listArtifactTags(t *testing.T, pathToArtifact string) []string {
 
 	cmd, r, w := createTestRootCmd(t)
 	cmd.SetArgs([]string{
-		"artifacts", "tags", "--name", name,
+		"artifacts", "tags", pathToArtifact,
 	})
 	require.NoError(t, cmd.Execute())
 	assert.NoError(t, w.Close())

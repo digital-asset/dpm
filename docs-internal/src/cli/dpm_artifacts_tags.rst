@@ -23,7 +23,7 @@ Examples
 
 ::
 
-  dpm artifacts list --artifact 'oci://whatever.dev/bar/test'
+  dpm tags oci://whatever.dev/bar/test
 
 Options
 ~~~~~~~
@@ -32,7 +32,6 @@ Options
 
       --auth string   path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json
   -h, --help          help for tags
-  -n, --name string   full uri of artifact to search for
 
 SEE ALSO
 ~~~~~~~~
