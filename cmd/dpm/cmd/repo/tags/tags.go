@@ -15,7 +15,7 @@ import (
 )
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "tags <repo or component name>",
 		Short: "DEPRECATED: list published tags of a component",
 		Args:  cobra.ExactArgs(1),
@@ -47,4 +47,6 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Deprecated = "new command dpm artifacts list provides this functionality, please follow documentation for usage information"
+	return cmd
 }

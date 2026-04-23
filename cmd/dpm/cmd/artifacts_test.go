@@ -70,13 +70,13 @@ func (suite *RepoSuite) TestComponentTags() {
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 
 	t.Run("test tags for arbitrary repo", func(t *testing.T) {
-		res := listArtifactTags(t, "meep", "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/foo/bar")
+		res := listArtifactTags(t, "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/foo/bar/meep")
 		expected := []string{"1.2.4", "1.2.4.generic"}
 		assert.Equal(t, expected, res)
 	})
 
 	t.Run("test tags for arbitrary repo", func(t *testing.T) {
-		res := listArtifactTags(t, "meep", "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/bar/foo")
+		res := listArtifactTags(t, "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/bar/foo/meep")
 		expected := []string{"1.2.3", "1.2.3.generic"}
 		assert.Equal(t, expected, res)
 	})
@@ -93,23 +93,23 @@ func (suite *RepoSuite) TestDarTags() {
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 
 	t.Run("test tags for arbitrary repo", func(t *testing.T) {
-		res := listArtifactTags(t, "meep", "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/foo/bar")
+		res := listArtifactTags(t, "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/foo/bar/meep")
 		expected := []string{"1.2.3"}
 		assert.Equal(t, expected, res)
 	})
 
 	t.Run("test tags for arbitrary repo", func(t *testing.T) {
-		res := listArtifactTags(t, "meep", "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/bar/foo")
+		res := listArtifactTags(t, "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/bar/foo/meep")
 		expected := []string{"1.2.4"}
 		assert.Equal(t, expected, res)
 	})
 }
 
-func listArtifactTags(t *testing.T, artifact, registry string) []string {
+func listArtifactTags(t *testing.T, name string) []string {
 
 	cmd, r, w := createTestRootCmd(t)
 	cmd.SetArgs([]string{
-		"artifacts", "tags", "--name", artifact, "--registry", registry,
+		"artifacts", "tags", "--name", name,
 	})
 	require.NoError(t, cmd.Execute())
 	assert.NoError(t, w.Close())

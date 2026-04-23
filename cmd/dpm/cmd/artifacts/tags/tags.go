@@ -9,37 +9,43 @@ import (
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
-	"daml.com/x/assistant/pkg/listcmd"
 	"daml.com/x/assistant/pkg/ocilister"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"oras.land/oras-go/v2/registry"
 )
 
+type ListCmd struct {
+	Name string
+}
+
 func Cmd(config *assistantconfig.Config) *cobra.Command {
-	c := listcmd.ListCmd{}
+	c := ListCmd{}
 	cmd := &cobra.Command{
 		Use:     "tags",
 		Short:   "list published tags of an artifact",
 		Long:    "Will list all tags associated with an artifact (dar/component) at an arbitrary OCI registry",
-		Example: "dpm artifacts list --name foo --registry 'oci://whatever.dev/bar/test'",
+		Example: "dpm artifacts list --name 'oci://whatever.dev/bar/test:0.0.0'",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if strings.HasPrefix(c.Registry, "oci://") {
-				c.Registry = strings.TrimPrefix(c.Registry, "oci://")
+			if strings.HasPrefix(c.Name, "oci://") {
+				c.Name = strings.TrimPrefix(c.Name, "oci://")
 			} else {
-				return fmt.Errorf("invalid registry argument, must be formatted as oci uri ie. oci://whatever.dev")
+				return fmt.Errorf("invalid registry argument, must be formatted as oci uri ie. oci://whatever.dev/test")
 			}
 
-			ref, err := registry.ParseReference(c.Registry)
+			ref, err := registry.ParseReference(c.Name)
 			if err != nil {
 				return err
 			}
 
 			customRemote, err := assistantremote.New(ref.Registry, config.RegistryAuthPath, config.Insecure)
-			repoName := c.Name
+			repoName, _ := lo.Last(strings.Split(ref.Repository, "/"))
+			if err != nil {
+				return fmt.Errorf("invalid registry argument, must be formatted as oci uri ie. oci://whatever.dev/test")
+			}
 
 			// registry flag should be full path to component not including the component and the forward slash
-			tags, found, err := ocilister.ListTags(cmd.Context(), customRemote, ref.Repository+"/"+repoName)
+			tags, found, err := ocilister.ListTags(cmd.Context(), customRemote, ref.Repository)
 			if err != nil {
 				return err
 			}
@@ -59,10 +65,8 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&c.Name, "name", "n", "", "name of component to search for")
+	cmd.Flags().StringVarP(&c.Name, "name", "n", "", "full uri of artifact to search for")
 	cmd.MarkFlagRequired("name")
 
-	cmd.Flags().StringVar(&c.Registry, "registry", "", "OCI registry to search in")
-	cmd.MarkFlagRequired("registry")
 	return cmd
 }
