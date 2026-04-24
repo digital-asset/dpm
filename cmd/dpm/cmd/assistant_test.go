@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -425,7 +426,7 @@ func (suite *MainSuite) TestComponentPublishDryRun() {
 	})
 
 	t.Run("third party", func(t *testing.T) {
-		args := []string{"--dry-run", "--registry", "oci://foo.example.com/a/b", "--name", "meep", "--version", "1.2.3-meep", "-p", "generic=" + testutil.TestdataPath(t, "meepy-component", testutil.OS)}
+		args := []string{"--dry-run", "oci://foo.example.com/a/b/meep:1.2.3-meep", "-p", "generic=" + testutil.TestdataPath(t, "meepy-component", testutil.OS)}
 		doTest(t, "foo.example.com/a/b/meep", []string{"publish", "component"}, args)
 	})
 }
@@ -939,11 +940,9 @@ func (suite *MainSuite) TestInstallPackageMultipleRegistries() {
 	require.NoError(t, err)
 
 	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-
-	args := testutil.PushComponentUri(reg, "meep", "foo/bar", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "meepy-component", testutil.OS))
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
-
-	args = testutil.PushComponentUri(altReg, "rando", "bar/foo", "1.2.4", testutil.TestdataPath(t, "components", "rando"))
+	args = testutil.PushComponentUri(altReg, fmt.Sprintf("%s/%s:%s", "bar/foo", "rando", "1.2.4"), testutil.TestdataPath(t, "components", "rando"))
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 
 	// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent

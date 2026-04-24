@@ -28,10 +28,10 @@ func (suite *RepoSuite) TestPublishDar() {
 
 	cmd := createStdTestRootCmd(t)
 	args := []string{
-		"publish", "dar", "--name", "meep", "--version", "1.2.3",
+		"publish", "dar", fmt.Sprintf("oci://%s/meep:1.2.3", destinationRegistry),
 		"-f", testutil.TestdataPath(t, "test-dar"),
-		"--registry", "oci://" + destinationRegistry,
 	}
+
 	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
 		args = append(args, "--insecure")
 	}
@@ -44,12 +44,11 @@ func (suite *RepoSuite) TestPublishThirdPartyComponents() {
 	_, _ = testutil.StartRegistry(t)
 	uri := fmt.Sprintf("%s/x/y/z", os.Getenv(assistantconfig.OciRegistryEnvVar))
 
-	args := []string{"publish", "component", "--name", "meep", "--version", "1.2.3",
+	args := []string{"publish", "component", fmt.Sprintf("oci://%s/meep:1.2.3", uri),
 		"-p", "windows/amd64=" + testutil.TestdataPath(t, "meepy-component", "windows"),
 		"-p", "linux/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
 		"-p", "darwin/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
 		"-p", "darwin/arm64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
-		"--registry", "oci://" + uri,
 	}
 
 	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
@@ -74,33 +73,34 @@ func (suite *RepoSuite) TestComponentTags() {
 	t := suite.T()
 	_, reg := testutil.StartRegistry(t)
 
-	args := testutil.PushComponentUri(reg, "meep", "bar/foo", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "meepy-component", testutil.OS))
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 
-	args = testutil.PushComponentUri(reg, "meep", "foo/bar", "1.2.4", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	args = testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "bar/foo", "meep", "1.2.4"), testutil.TestdataPath(t, "meepy-component", testutil.OS))
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 
 	t.Run("test tags for arbitrary repo", func(t *testing.T) {
 		res := listArtifactTags(t, "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/foo/bar/meep")
-		expected := []string{"1.2.4", "1.2.4.generic"}
+		expected := []string{"1.2.3", "1.2.3.generic"}
 		assert.Equal(t, expected, res)
 	})
 
 	t.Run("test tags for arbitrary repo", func(t *testing.T) {
 		res := listArtifactTags(t, "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/bar/foo/meep")
-		expected := []string{"1.2.3", "1.2.3.generic"}
+		expected := []string{"1.2.4", "1.2.4.generic"}
 		assert.Equal(t, expected, res)
 	})
 }
+
 func (suite *RepoSuite) TestDarTags() {
 	t := suite.T()
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 	_, reg := testutil.StartRegistry(t)
 
-	args := testutil.PushDarUri(reg, "meep", "foo/bar", "1.2.3", testutil.TestdataPath(t, "test-dar"))
+	args := testutil.PushDarUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "test-dar"))
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 
-	args = testutil.PushDarUri(reg, "meep", "bar/foo", "1.2.4", testutil.TestdataPath(t, "test-dar"))
+	args = testutil.PushDarUri(reg, fmt.Sprintf("%s/%s:%s", "bar/foo", "meep", "1.2.4"), testutil.TestdataPath(t, "test-dar"))
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 
 	t.Run("test tags for arbitrary repo", func(t *testing.T) {
