@@ -24,6 +24,10 @@ func TestUrlToFilePath(t *testing.T) {
 			expected: "localhost_5000/foo_bar/baz",
 		},
 		{
+			in:       `127.0.0.1:5000/foo bar/baz`,
+			expected: "127.0.0.1_5000/foo_bar/baz",
+		},
+		{
 			in:       "ghcr.io/foo./bar",
 			expected: "ghcr.io/foo/bar",
 		},
