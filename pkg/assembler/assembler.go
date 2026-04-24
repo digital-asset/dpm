@@ -371,7 +371,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", ref.Reference, *comp.Uri, err)
 	}
 
-	destPath := a.ociComponentPath(comp.Name, version.String())
+	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), version.String())
 
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
@@ -434,8 +434,8 @@ func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
 	return comp.Version.Value().String()
 }
 
-func (a *Assembler) ociComponentPath(componentName string, tag string) string {
-	return filepath.Join(a.config.CachePath, "components", componentName, tag)
+func (a *Assembler) ociComponentPath(componentUri string, tag string) string {
+	return filepath.Join(a.config.CachePath, "components", utils.UrlToFilePath(componentUri), tag)
 }
 
 // computeImports merges all components' component.Exports, taking into account their conflict strategy,

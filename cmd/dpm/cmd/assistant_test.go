@@ -964,7 +964,7 @@ func (suite *MainSuite) TestInstallPackageMultipleRegistries() {
 	checkComponent := func(name, version string) {
 		// Test that the cache and dpm resolve use the full URI for `oci://` based components
 		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2[name]
-		assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", name, comp["version"]))
+		assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", utils.UrlToFilePath(name), comp["version"]))
 		assert.Equal(t, version, comp["version"])
 	}
 
