@@ -918,9 +918,12 @@ func (suite *MainSuite) TestMultiPackageSkip() {
 
 }
 
-func (suite *MainSuite) TestInstallPackageMultiRegistry() {
+func (suite *MainSuite) TestInstallPackageMultipleRegistries() {
 
 	t := suite.T()
+
+	dpmHome := t.TempDir()
+	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
 
 	ctx := testutil.Context(t)
 	_, reg := testutil.StartRegistry(t)
@@ -944,7 +947,7 @@ func (suite *MainSuite) TestInstallPackageMultiRegistry() {
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 
 	// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
-	testutil.PushComponent(t, ctx, altReg, "needy", "1.2.5", testutil.TestdataPath(t, "components", "needy", testutil.OS))
+	testutil.PushComponent(t, ctx, altReg, "javabro", "6.7.8", testutil.TestdataPath(t, "javabro-component"))
 
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-registry", testutil.OS)))
 	cmd := createStdTestRootCmd(t, "install", "package")
@@ -955,8 +958,20 @@ func (suite *MainSuite) TestInstallPackageMultiRegistry() {
 
 	deepResolution := runResolveCommand(t)
 	assert.Len(t, deepResolution.Packages, 1)
+
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 3)
 
+	checkComponent := func(name, version string) {
+		// Test that the cache and dpm resolve use the full URI for `oci://` based components
+		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2[name]
+		assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", name, comp["version"]))
+		assert.Equal(t, version, comp["version"])
+	}
+
+	// Test that the cache and dpm resolve use the full URI for `oci://` based components
+	checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
+	// and use the shorthand for non `oci://` components
+	checkComponent("javabro", "6.7.8")
 }
 
 func (suite *MainSuite) TestSdkVersionCommand() {

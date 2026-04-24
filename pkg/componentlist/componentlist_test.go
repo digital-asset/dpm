@@ -31,5 +31,5 @@ func TestComponentList(t *testing.T) {
 	assert.Equal(t, &sdkmanifest.Component{Name: "damlc", Version: sdkmanifest.AssemblySemVer(version)}, cs["damlc"])
 
 	uri := "oci://example.com/a/b/foo:1.2.3"
-	assert.Equal(t, &sdkmanifest.Component{Name: "foo", Uri: &uri}, cs["foo"])
+	assert.Equal(t, &sdkmanifest.Component{Name: "example.com/a/b/foo", Uri: &uri}, cs["example.com/a/b/foo"])
 }
