@@ -105,7 +105,7 @@ func (p *Publisher) Publish(ctx context.Context) (err error) {
 	}
 
 	// skip pushing both index and platforms' images if index already exists
-	existingVersions, err := ocilister.ListComponentVersions(ctx, p.config.Destination.Registry, client)
+	existingVersions, err := ocilister.ListComponentVersions(ctx, p.config.Destination.Artifact.RepoName(), client)
 	if err != nil {
 		return err
 	}
