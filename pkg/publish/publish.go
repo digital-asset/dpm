@@ -74,7 +74,7 @@ func New(config *Config, printer utils.RawPrinter) *Publisher {
 
 func (p *Publisher) Publish(ctx context.Context) (err error) {
 	p.printer.Println("destination is " + p.config.Destination.String())
-	
+
 	var pushOps []*ocipusher.PushOperation
 	if p.config.Name != sdkmanifest.AssistantName {
 		pushOps, err = p.prepareComponents(ctx)
@@ -105,7 +105,7 @@ func (p *Publisher) Publish(ctx context.Context) (err error) {
 	}
 
 	// skip pushing both index and platforms' images if index already exists
-	existingVersions, err := ocilister.ListComponentVersions(ctx, p.config.Name, client)
+	existingVersions, err := ocilister.ListComponentVersions(ctx, p.config.Destination.Artifact.RepoName(), client)
 	if err != nil {
 		return err
 	}

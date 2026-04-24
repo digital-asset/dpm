@@ -54,8 +54,19 @@ func (suite *RepoSuite) TestPublishThirdPartyComponents() {
 	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
 		args = append(args, "--insecure")
 	}
+	cmd := createStdTestRootCmd(t)
+	cmd.SetArgs(args)
+	require.NoError(t, cmd.Execute())
 
-	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+	t.Run("exit if publishing existing tag", func(t *testing.T) {
+		cmd, r, w := createTestRootCmd(t, args...)
+		assert.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		assert.NoError(t, err)
+		assert.Contains(t, string(output), "skipped pushing because component")
+	})
 }
 
 func (suite *RepoSuite) TestComponentTags() {
