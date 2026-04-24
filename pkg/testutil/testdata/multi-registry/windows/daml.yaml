@@ -2,3 +2,5 @@ components:
   - ${TEST_DPM_REGISTRY}/foo/bar/meep:1.2.3
   - ${TEST_ALT_DPM_REGISTRY}/bar/foo/rando:1.2.4
   - javabro:6.7.8
+  - name: my-local-component
+    path: ../../another-generic-component
