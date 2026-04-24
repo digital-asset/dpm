@@ -11,6 +11,7 @@ import (
 	"maps"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 
 	"daml.com/x/assistant/pkg/assembler"
@@ -233,7 +234,14 @@ func (da *DamlAssistant) execSdkCommand(ctx context.Context, path string, args [
 		da.CmdPreRunHook(cmd)
 	}
 
-	if err := cmd.Run(); err != nil {
+	if err := cmd.Start(); err != nil {
+		return 0, fmt.Errorf("failed to spawn command subprocess. %w", err)
+	}
+
+	cancel := forwardSignals(cmd)
+	defer cancel()
+
+	if err := cmd.Wait(); err != nil {
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) {
 			return exitError.ExitCode(), nil
@@ -242,4 +250,21 @@ func (da *DamlAssistant) execSdkCommand(ctx context.Context, path string, args [
 		}
 	}
 	return 0, nil
+}
+
+func forwardSignals(cmd *exec.Cmd) (cancel func()) {
+	sigCh := make(chan os.Signal)
+	signal.Notify(sigCh)
+
+	go func() {
+		for sig := range sigCh {
+			if cmd.Process != nil {
+				_ = cmd.Process.Signal(sig)
+			}
+		}
+	}()
+
+	return func() {
+		signal.Stop(sigCh)
+	}
 }
