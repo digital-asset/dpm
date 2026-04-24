@@ -16,7 +16,7 @@ Will publish the component (OCI index) to <registry>/<name>:<version>
 
 ::
 
-  dpm publish component registry [flags]
+  dpm publish component <registry> [flags]
 
 Examples
 ~~~~~~~~
