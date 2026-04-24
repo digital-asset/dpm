@@ -1,33 +1,33 @@
-.. _dpm-custom-components:
+.. _dpm-custom-dars:
 
-Publishing Components
+Publishing Dars
 *********************
 
 .. note::
 
-    This functionality is available in DPM version 1.0.12 or later (or bundled with SDK 3.5 or later) 
+    This functionality is available in DPM version 1.0.12 or later (or bundled with SDK 3.5 or later)
 
-To share or use your Component in various projects, you can publish it to a repository.
+To share or use your Dars in various projects, you can publish it to an OCI repository.
 
 .. code:: shell
 
-    dpm publish component  \
-        --name=<component name> \
-        --version=<component strict semantic version> \
-        --platform generic="/path/to/component/directory" \
+    dpm publish dar  \
+        --name=<dar name> \
+        --version=<dar strict semantic version> \
+        --file=<path to dar file> \
         --registry oci://<location to publish to>
 
 for example:
 
 .. code:: shell
 
-    dpm publish component \
+    dpm publish dar \
         --name=foo \
         --version=1.0.0 \
-        --platform generic="~/component-foo" \
-        --registry oci://example.com/my/components
+        --file=bar/foo.dar \
+        --registry oci://example.com/my/dars
 
-This will publish version ``1.0.0`` of ``foo`` as OCI to ``example.com/my/components/foo:1.0.0``
+This will publish version ``1.0.0`` of ``foo`` as OCI to ``example.com/my/components/foo:1.0.0`` using the dar located at ``bar/foo.dar```
 
 For multi-platform components, you can instead provide a directory for each platform.
 For example:
