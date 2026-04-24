@@ -5,6 +5,7 @@ package testutil
 
 import (
 	"context"
+	"fmt"
 	"net/http/httptest"
 	"path/filepath"
 	"runtime"
@@ -40,8 +41,8 @@ func TestdataPath(t *testing.T, path ...string) string {
 	return filepath.Join(p...)
 }
 
-func PushComponentUri(registry *httptest.Server, uri, pathToComponent string, extraTags ...string) (args []string) {
-	//uri := fmt.Sprintf("%s/%s", GetRemote(registry).Registry, repo)
+func PushComponentUri(registry *httptest.Server, repo, pathToComponent string, extraTags ...string) (args []string) {
+	uri := fmt.Sprintf("oci://%s/%s", GetRemote(registry).Registry, repo)
 
 	args = []string{"publish", "component", uri, "-p", "generic=" + pathToComponent}
 
@@ -55,8 +56,8 @@ func PushComponentUri(registry *httptest.Server, uri, pathToComponent string, ex
 	return args
 }
 
-func PushDarUri(registry *httptest.Server, uri, pathToComponent string) (args []string) {
-	//uri := fmt.Sprintf("%s/%s", GetRemote(registry).Registry, repo)
+func PushDarUri(registry *httptest.Server, repo, pathToComponent string) (args []string) {
+	uri := fmt.Sprintf("oci://%s/%s", GetRemote(registry).Registry, repo)
 	args = []string{"publish", "dar", uri,
 		"-f", pathToComponent,
 	}

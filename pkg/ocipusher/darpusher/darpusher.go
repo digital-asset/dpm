@@ -36,7 +36,7 @@ func (op *DarPushOperation) Tag() string {
 }
 
 func (op *DarPushOperation) DarDestination(registry string) string {
-	return fmt.Sprintf("%s/%s:%s", registry, op.repoName, op.Tag())
+	return fmt.Sprintf("%s:%s", registry, op.Tag())
 }
 
 func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {

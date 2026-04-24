@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
+	ociconsts "daml.com/x/assistant/pkg/oci"
+	"daml.com/x/assistant/pkg/publish"
 	"daml.com/x/assistant/pkg/publishcmd"
 	"daml.com/x/assistant/pkg/publishdar"
 	"github.com/Masterminds/semver/v3"
@@ -28,7 +30,9 @@ func Cmd() *cobra.Command {
 
 			oci := args[0]
 
-			if !strings.HasPrefix(oci, "oci://") {
+			if strings.HasPrefix(oci, "oci://") {
+				oci = strings.TrimPrefix(oci, "oci://")
+			} else {
 				return fmt.Errorf("invalid oci registry argument, must be formatted as oci uri ie. oci://whatever.dev/bar/test/foo:1.2.3-alpha")
 			}
 
@@ -40,16 +44,12 @@ func Cmd() *cobra.Command {
 			version, err := semver.StrictNewVersion(ref.Reference)
 			name, _ := lo.Last(strings.Split(ref.Repository, "/"))
 
-			//version, err := semver.StrictNewVersion(c.Version)
-			//if err != nil {
-			//	return fmt.Errorf("invalid version argument: %w", err)
-			//}
-			//
-			//if strings.HasPrefix(c.Registry, "oci://") {
-			//	c.Registry = strings.TrimPrefix(c.Registry, "oci://")
-			//} else {
-			//	return fmt.Errorf("invalid registry argument, must be formatted as oci uri ie. oci://whatever.dev")
-			//}
+			destination := &publish.Destination{
+				Registry: ref.Registry,
+				Artifact: &ociconsts.DarArtifact{
+					DarRepo: ref.Repository,
+				},
+			}
 
 			cmd.SilenceUsage = true
 			publishDarConfig := &publishdar.DarConfig{
@@ -59,7 +59,7 @@ func Cmd() *cobra.Command {
 				DryRun:         c.DryRun,
 				IncludeGitInfo: c.IncludeGitInfo,
 				Annotations:    c.Annotations,
-				Registry:       fmt.Sprintf("%s/%s", ref.Registry, ref.Repository),
+				Destination:    destination,
 				AuthFilePath:   c.RegistryAuth,
 				Insecure:       c.Insecure,
 				ExtraTags:      c.ExtraTags,

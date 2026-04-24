@@ -30,7 +30,9 @@ func Cmd() *cobra.Command {
 
 			oci := args[0]
 
-			if !strings.HasPrefix(oci, "oci://") {
+			if strings.HasPrefix(oci, "oci://") {
+				oci = strings.TrimPrefix(oci, "oci://")
+			} else {
 				return fmt.Errorf("invalid oci registry argument, must be formatted as oci uri ie. oci://whatever.dev/bar/test/foo:1.2.3-alpha")
 			}
 
