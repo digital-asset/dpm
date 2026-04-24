@@ -8,7 +8,6 @@ import (
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"github.com/Masterminds/semver/v3"
 	"github.com/goccy/go-yaml"
-	"github.com/samber/lo"
 	"oras.land/oras-go/v2/registry"
 )
 
@@ -91,7 +90,7 @@ func fromStringBasedComponent(c string) (string, *sdkmanifest.Component, error) 
 		if err != nil {
 			return "", nil, fmt.Errorf("couldn't parse component url %q: %w", c, err)
 		}
-		name, _ := lo.Last(strings.Split(u.Repository, "/"))
+		name := fmt.Sprintf("%s/%s", u.Registry, u.Repository)
 
 		return name, &sdkmanifest.Component{Name: name, Uri: &c}, nil
 	} else if strings.Contains(c, ":") && !strings.Contains(c, "/") {

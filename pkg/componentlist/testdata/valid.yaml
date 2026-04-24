@@ -3,3 +3,4 @@ components:
   - "oci://example.com/a/b/foo:1.2.3"
   - name: meep
     path: ./meep
+  - "oci://127.0.0.1:8080/foo/baz:1.2.3"

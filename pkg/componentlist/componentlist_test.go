@@ -22,7 +22,7 @@ func TestComponentList(t *testing.T) {
 	cs, err := m.Components.ToMap()
 	require.NoError(t, err)
 
-	assert.Len(t, cs, 3)
+	assert.Len(t, cs, 4)
 
 	path := "./meep"
 	assert.Equal(t, &sdkmanifest.Component{Name: "meep", LocalPath: &path}, cs["meep"])
@@ -31,5 +31,8 @@ func TestComponentList(t *testing.T) {
 	assert.Equal(t, &sdkmanifest.Component{Name: "damlc", Version: sdkmanifest.AssemblySemVer(version)}, cs["damlc"])
 
 	uri := "oci://example.com/a/b/foo:1.2.3"
-	assert.Equal(t, &sdkmanifest.Component{Name: "foo", Uri: &uri}, cs["foo"])
+	assert.Equal(t, &sdkmanifest.Component{Name: "example.com/a/b/foo", Uri: &uri}, cs["example.com/a/b/foo"])
+
+	uri = "oci://127.0.0.1:8080/foo/baz:1.2.3"
+	assert.Equal(t, &sdkmanifest.Component{Name: "127.0.0.1:8080/foo/baz", Uri: &uri}, cs["127.0.0.1:8080/foo/baz"])
 }

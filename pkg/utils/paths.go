@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 // ResolvePath
@@ -71,4 +73,35 @@ func MkdirTemp(dir, pattern string) (string, func() error, error) {
 		return os.RemoveAll(d)
 	}
 	return d, fn, err
+}
+
+var unsafeSegmentChars = regexp.MustCompile(`[^A-Za-z0-9._-]+`)
+
+func safeSegment(s string) string {
+	out := unsafeSegmentChars.ReplaceAllString(s, "_")
+
+	// avoid Windows path normalization quirks: trailing dots/spaces in a path
+	// segment may be rejected or treated the same as if they were not present
+	out = strings.TrimRight(out, " .")
+
+	if out == "" {
+		return "_"
+	}
+
+	return out
+}
+
+// UrlToFilePath converts given url (without the scheme) to string usable as filepath.
+// It escapes unsafe chars like ":".
+// example:
+//
+//	foo.com:8080/a-b/b:c --> foo.com_8080/a-b/c_d
+func UrlToFilePath(u string) string {
+	parts := strings.Split(u, "/")
+
+	for i, part := range parts {
+		parts[i] = safeSegment(part)
+	}
+
+	return strings.Join(parts, "/")
 }
