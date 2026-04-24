@@ -1,0 +1,8 @@
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  jar-commands:
+    - path: ./jars/fake.jar
+      name: another-generic-component-command
+      jar-args:
+      desc: another-generic-component's command
