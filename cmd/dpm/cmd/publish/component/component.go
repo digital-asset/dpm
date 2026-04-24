@@ -82,7 +82,7 @@ func Cmd() *cobra.Command {
 	cmd.Flags().StringSliceVarP(&c.ExtraTags, "extra-tags", "t", []string{}, "publish extra tags besides the semver")
 
 	cmd.Flags().StringVar(&c.Registry, "registry", "", "OCI registry to use for pushing")
-	cmd.MarkFlagRequired(publishcmd.RegistryFlagName)
+	
 	cmd.Flags().BoolVar(&c.Insecure, "insecure", false, "use http instead of https for OCI registry")
 	cmd.Flags().StringVar(&c.RegistryAuth, "auth", "", "path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json")
 
