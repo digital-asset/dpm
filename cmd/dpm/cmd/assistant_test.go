@@ -959,7 +959,7 @@ func (suite *MainSuite) TestInstallPackageMultipleRegistries() {
 	deepResolution := runResolveCommand(t)
 	assert.Len(t, deepResolution.Packages, 1)
 
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 3)
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 4)
 
 	checkComponent := func(name, version string) {
 		// Test that the cache and dpm resolve use the full URI for `oci://` based components
@@ -972,6 +972,8 @@ func (suite *MainSuite) TestInstallPackageMultipleRegistries() {
 	checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
 	// and use the shorthand for non `oci://` components
 	checkComponent("javabro", "6.7.8")
+
+	assert.Equal(t, testutil.TestdataPath(t, "another-generic-component"), lo.Values(deepResolution.Packages)[0].ComponentsV2["my-local-component"]["path"])
 }
 
 func (suite *MainSuite) TestSdkVersionCommand() {
