@@ -16,14 +16,14 @@ Will publish the component (OCI index) to <registry>/<name>:<version>
 
 ::
 
-  dpm publish component [flags]
+  dpm publish component registry [flags]
 
 Examples
 ~~~~~~~~
 
 ::
 
-  dpm artifacts publish component --name foo --version 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin --registry 'oci://whatever.dev/bar/test'
+  dpm artifacts publish component 'oci://whatever.dev/bar/test/foo:1.2.3-alpha' -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin 
 
 Options
 ~~~~~~~
@@ -37,10 +37,7 @@ Options
   -h, --help                         help for component
   -g, --include-git-info             include git info as annotations on the published manifest
       --insecure                     use http instead of https for OCI registry
-  -n, --name string                  name of component to be pushed
   -p, --platform stringToString      REQUIRED <os>/<arch>=<path-to-component> or generic=<path-to-component> (default [])
-      --registry string              OCI registry to use for pushing
-  -v, --version string               version of component to be pushed
 
 SEE ALSO
 ~~~~~~~~
