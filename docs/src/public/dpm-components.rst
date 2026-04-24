@@ -11,21 +11,16 @@ To share or use your Component in various projects, you can publish it to a repo
 
 .. code:: shell
 
-    dpm publish component  \
-        --name=<component name> \
-        --version=<component strict semantic version> \
-        --platform generic="/path/to/component/directory" \
-        --registry oci://<location to publish to>
+    dpm publish component oci://<destination>:<strict semantic version> \
+        --platform generic="/path/to/component/directory"
+
 
 for example:
 
 .. code:: shell
 
-    dpm publish component \
-        --name=foo \
-        --version=1.0.0 \
-        --platform generic="~/component-foo" \
-        --registry oci://example.com/my/components
+    dpm publish component oci://example.com/my/components/foo:1.0.0 \
+        --platform generic="~/component-foo"
 
 This will publish version ``1.0.0`` of ``foo`` as OCI to ``example.com/my/components/foo:1.0.0``
 
@@ -34,12 +29,9 @@ For example:
 
 .. code:: shell
 
-    dpm publish component \
-        --name=foo \
-        --version=1.0.0 \
+    dpm publish component oci://example.com/my/components/foo:1.0.0 \
         --platform linux/arm64="/some/directory" \
-        --platform windows/amd64="/another/directory" \
-        --registry oci://example.com/my/components
+        --platform windows/amd64="/another/directory"
 
 See the ``dpm publish component --help`` command for more available options.
 
