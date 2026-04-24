@@ -18,6 +18,7 @@ import (
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/ocipusher/darpusher"
+	"daml.com/x/assistant/pkg/publish"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
@@ -36,7 +37,7 @@ type DarConfig struct {
 	Annotations            map[string]string
 	ExtraTags              []string
 
-	Registry     string
+	Destination  *publish.Destination
 	AuthFilePath string
 	Insecure     bool
 }
@@ -60,11 +61,11 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 			return nil
 		}
 
-		if p.config.Registry == "" {
+		if p.config.Destination.Registry == "" {
 			return fmt.Errorf("--registy must be provided when not in dry-run mode")
 		}
 
-		client, err := assistantremote.New(p.config.Registry, p.config.AuthFilePath, p.config.Insecure)
+		client, err := assistantremote.New(p.config.Destination.Registry, p.config.AuthFilePath, p.config.Insecure)
 		if err != nil {
 			return err
 		}
@@ -85,7 +86,7 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 		if p.config.ExtraTags != nil && len(p.config.ExtraTags) > 0 {
 			p.printer.Println("pushing extra tags...")
 			// Function below is not specifically for a generated index, can be utilized to setting tags to artifacts in general
-			err := ociindex.Tag(ctx, client, &ociconsts.DarArtifact{DarRepo: p.config.Name}, p.config.Version, p.config.ExtraTags)
+			err := ociindex.Tag(ctx, client, &ociconsts.DarArtifact{DarRepo: p.config.Destination.Artifact.RepoName()}, p.config.Version, p.config.ExtraTags)
 			if err != nil {
 				return err
 			}
@@ -118,7 +119,7 @@ func (p *DarPublisher) prepare(ctx context.Context, dir string) (*darpusher.DarP
 		maps.Copy(annotations, gitAnnotations)
 	}
 	var artifact ociconsts.Artifact
-	artifact = &ociconsts.DarArtifact{DarRepo: p.config.Name}
+	artifact = &ociconsts.DarArtifact{DarRepo: p.config.Destination.Artifact.RepoName()}
 
 	opts := darpusher.DarOpts{
 		Artifact: artifact,
@@ -172,7 +173,7 @@ func checkHasLicense(dir string) error {
 func (p *DarPublisher) checkVersionExists(ctx context.Context, op *darpusher.DarPushOperation, client *assistantremote.Remote) (bool, error) {
 	var tags []string
 
-	tags, found, err := ocilister.ListTags(ctx, client, p.config.Name)
+	tags, found, err := ocilister.ListTags(ctx, client, p.config.Destination.Artifact.RepoName())
 	if err != nil {
 		return false, err
 	}

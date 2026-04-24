@@ -11,10 +11,6 @@ import (
 
 const PlatformFlagName = "platform"
 const FileFlagName = "file"
-const RegistryFlagName = "registry"
-const ComponentNameFlagName = "name"
-const DarNameFlagName = "name"
-const VersionFlagName = "version"
 
 type PublishCmd struct {
 	DryRun, IncludeGitInfo bool
