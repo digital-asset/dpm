@@ -21,7 +21,7 @@ import (
 func Cmd() *cobra.Command {
 	c := publishcmd.PublishDarCmd{}
 	cmd := &cobra.Command{
-		Use:     "dar registry",
+		Use:     "dar <registry>",
 		Short:   "Publish a dar to an OCI registry",
 		Example: "dpm artifacts publish dar 'oci://whatever.dev/bar/test/foo:1.2.3-alpha' -f path/to/foo.dar",
 		Hidden:  !assistantconfig.DpmLockfileEnabled(), // Use single feature flag to represent features in current release

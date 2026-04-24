@@ -21,7 +21,7 @@ func Cmd() *cobra.Command {
 
 	// TODO stop publishing a tag for every platform
 	cmd := &cobra.Command{
-		Use:     "component registry",
+		Use:     "component <registry>",
 		Short:   "Publish a component to an OCI registry",
 		Long:    "Will publish the component (OCI index) to <registry>/<name>:<version>",
 		Example: "dpm artifacts publish component 'oci://whatever.dev/bar/test/foo:1.2.3-alpha' -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin ",
