@@ -11,6 +11,7 @@ import (
 	"daml.com/x/assistant/pkg/publish"
 	"daml.com/x/assistant/pkg/publishcmd"
 	"github.com/Masterminds/semver/v3"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"oras.land/oras-go/v2/registry"
 )
@@ -20,13 +21,27 @@ func Cmd() *cobra.Command {
 
 	// TODO stop publishing a tag for every platform
 	cmd := &cobra.Command{
-		Use:     "component",
+		Use:     "component registry",
 		Short:   "Publish a component to an OCI registry",
 		Long:    "Will publish the component (OCI index) to <registry>/<name>:<version>",
-		Example: "dpm artifacts publish component --name foo --version 1.2.3-alpha -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin --registry 'oci://whatever.dev/bar/test'",
+		Example: "dpm artifacts publish component 'oci://whatever.dev/bar/test/foo:1.2.3-alpha' -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin ",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name := c.Name
-			version, err := semver.StrictNewVersion(c.Version)
+
+			oci := args[0]
+
+			if !strings.HasPrefix(oci, "oci://") {
+				return fmt.Errorf("invalid oci registry argument, must be formatted as oci uri ie. oci://whatever.dev/bar/test/foo:1.2.3-alpha")
+			}
+
+			ref, err := registry.ParseReference(oci)
+			if err != nil {
+				return fmt.Errorf("invalid registry formatting: %s", oci)
+			}
+
+			version, err := semver.StrictNewVersion(ref.Reference)
+			name, _ := lo.Last(strings.Split(ref.Repository, "/"))
+
 			if err != nil {
 				return fmt.Errorf("invalid version argument: %w", err)
 			}
@@ -35,12 +50,7 @@ func Cmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if strings.HasPrefix(c.Registry, "oci://") {
-				c.Registry = strings.TrimPrefix(c.Registry, "oci://")
-			} else {
-				return fmt.Errorf("invalid registry argument, must be formatted as oci uri ie. oci://whatever.dev")
-			}
-			ref, err := registry.ParseReference(fmt.Sprintf("%s/%s", strings.TrimRight(c.Registry, "/"), name))
+
 			if err != nil {
 				return err
 			}
@@ -67,10 +77,10 @@ func Cmd() *cobra.Command {
 			return publish.New(publishConfig, cmd).Publish(cmd.Context())
 		},
 	}
-	cmd.Flags().StringVarP(&c.Name, publishcmd.ComponentNameFlagName, "n", "", "name of component to be pushed")
-	cmd.MarkFlagRequired(publishcmd.ComponentNameFlagName)
-	cmd.Flags().StringVarP(&c.Version, publishcmd.VersionFlagName, "v", "", "version of component to be pushed")
-	cmd.MarkFlagRequired(publishcmd.VersionFlagName)
+	//cmd.Flags().StringVarP(&c.Name, publishcmd.ComponentNameFlagName, "n", "", "name of component to be pushed")
+	//cmd.MarkFlagRequired(publishcmd.ComponentNameFlagName)
+	//cmd.Flags().StringVarP(&c.Version, publishcmd.VersionFlagName, "v", "", "version of component to be pushed")
+	//cmd.MarkFlagRequired(publishcmd.VersionFlagName)
 
 	cmd.Flags().BoolVarP(&c.DryRun, "dry-run", "d", false, "don't actually push to the registry")
 	cmd.Flags().BoolVarP(&c.IncludeGitInfo, "include-git-info", "g", false, "include git info as annotations on the published manifest")
@@ -81,8 +91,8 @@ func Cmd() *cobra.Command {
 
 	cmd.Flags().StringSliceVarP(&c.ExtraTags, "extra-tags", "t", []string{}, "publish extra tags besides the semver")
 
-	cmd.Flags().StringVar(&c.Registry, "registry", "", "OCI registry to use for pushing")
-	
+	//cmd.Flags().StringVar(&c.Registry, "registry", "", "OCI registry to use for pushing")
+
 	cmd.Flags().BoolVar(&c.Insecure, "insecure", false, "use http instead of https for OCI registry")
 	cmd.Flags().StringVar(&c.RegistryAuth, "auth", "", "path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json")
 
