@@ -45,8 +45,8 @@ func ListTags(ctx context.Context, client *assistantremote.Remote, repoName stri
 	return result, true, nil
 }
 
-func ListComponentVersions(ctx context.Context, name string, client *assistantremote.Remote) (map[*semver.Version][]string, error) {
-	return listTags(ctx, ociconsts.ComponentRepoPrefix+name, client)
+func ListComponentVersions(ctx context.Context, registry string, client *assistantremote.Remote) (map[*semver.Version][]string, error) {
+	return listTags(ctx, registry, client)
 }
 
 func ListSDKVersions(ctx context.Context, edition sdkmanifest.Edition, client *assistantremote.Remote) (map[*semver.Version][]string, error) {
