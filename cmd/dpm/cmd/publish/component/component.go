@@ -25,42 +25,17 @@ func Cmd() *cobra.Command {
 		Short:   "Publish a component to an OCI registry",
 		Long:    "Will publish the component (OCI index) to <registry>/<name>:<version>",
 		Example: "dpm artifacts publish component 'oci://whatever.dev/bar/test/foo:1.2.3-alpha' -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin ",
-		Args:    cobra.ExactArgs(1),
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-
-			oci := args[0]
-
-			if strings.HasPrefix(oci, "oci://") {
-				oci = strings.TrimPrefix(oci, "oci://")
-			} else {
-				return fmt.Errorf("invalid oci registry argument, must be formatted as oci uri ie. oci://whatever.dev/bar/test/foo:1.2.3-alpha")
+			if c.DryRun && len(args) == 0 {
+				return fmt.Errorf("<registry> positional argument required when not in dry-run mode")
 			}
 
-			ref, err := registry.ParseReference(oci)
-			if err != nil {
-				return fmt.Errorf("invalid registry formatting: %s", oci)
-			}
-
-			version, err := semver.StrictNewVersion(ref.Reference)
-			name, _ := lo.Last(strings.Split(ref.Repository, "/"))
-
-			if err != nil {
-				return fmt.Errorf("invalid version argument: %w", err)
-			}
+			oci := "example.com"
 
 			platforms, err := c.ParsePlatforms()
 			if err != nil {
 				return err
-			}
-
-			if err != nil {
-				return err
-			}
-			destination := &publish.Destination{
-				Registry: ref.Registry,
-				Artifact: &ociconsts.ComponentArtifact{
-					ComponentRepo: ref.Repository,
-				},
 			}
 
 			cmd.SilenceUsage = true
@@ -93,4 +68,36 @@ func Cmd() *cobra.Command {
 	cmd.Flags().StringVar(&c.RegistryAuth, "auth", "", "path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json")
 
 	return cmd
+}
+
+func getDestination(ociUri string) error {
+
+	if strings.HasPrefix(ociUri, "oci://") {
+		ociUri = strings.TrimPrefix(ociUri, "oci://")
+	} else {
+		return fmt.Errorf("invalid oci registry argument, must be formatted as oci uri ie. oci://whatever.dev/bar/test/foo:1.2.3-alpha")
+	}
+
+	ref, err := registry.ParseReference(ociUri)
+	if err != nil {
+		return fmt.Errorf("invalid registry formatting: %s", ociUri)
+	}
+
+	version, err := semver.StrictNewVersion(ref.Reference)
+	name, _ := lo.Last(strings.Split(ref.Repository, "/"))
+
+	if err != nil {
+		return fmt.Errorf("invalid version argument: %w", err)
+	}
+
+	if err != nil {
+		return err
+	}
+	destination := &publish.Destination{
+		Registry: ref.Registry,
+		Artifact: &ociconsts.ComponentArtifact{
+			ComponentRepo: ref.Repository,
+		},
+	}
+
 }

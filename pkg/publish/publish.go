@@ -73,7 +73,9 @@ func New(config *Config, printer utils.RawPrinter) *Publisher {
 }
 
 func (p *Publisher) Publish(ctx context.Context) (err error) {
-	p.printer.Println("destination is " + p.config.Destination.String())
+	if !p.config.DryRun {
+		p.printer.Println("destination is " + p.config.Destination.String())
+	}
 
 	var pushOps []*ocipusher.PushOperation
 	if p.config.Name != sdkmanifest.AssistantName {
