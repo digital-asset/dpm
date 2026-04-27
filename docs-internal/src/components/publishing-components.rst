@@ -44,7 +44,7 @@ We can publish it like this:
 ::
 
    dpm publish component \
-     <destination OCI registry>/<component name>:<version>
+     oci://<full destination URI>:<version>
      --platform darwin/arm64=./darwin-arm64 \
      --platform linux/amd64=./linux-amd64 \
      --extra-tags latest    # also pushing a 'latest' tag for this version of the component
