@@ -67,7 +67,7 @@ find the source code for dependency DARs and build them in topological order.
 
 .. note::
 
-    This functionality is available in DPM version 1.0.12 or later (or bundled with SDK 3.5 or later)
+    This functionality is available in DPM version 1.0.13 or later (or bundled with SDK 3.5 or later)
 
 You can also specify the `sdk-version:` field in ``multi-package.yaml``. This SDK version applies to all packages in the multi-package, unless a package's individual ``daml.yaml`` specifies its own `sdk-version`, which takes precedence over the one in ``multi-package.yaml``.
 
@@ -116,7 +116,7 @@ Escape syntax uses the ``\`` prefix: ``\${NOT_INTERPOLATED}``.
 
 .. note::
 
-    This functionality is available in DPM version 1.0.12 or later (or bundled with SDK 3.5 or later)
+    This functionality is available in DPM version 1.0.13 or later (or bundled with SDK 3.5 or later)
 
 Additionally, if you specify the `sdk-version` in the `multi-package.yaml` that references your project `daml.yaml`, you can exclude
 repeating the `sdk-version:` field in your `daml.yaml`, and the value specified in your `multi-package.yaml` will be used.
