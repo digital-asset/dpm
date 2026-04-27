@@ -35,4 +35,10 @@ For example:
 
 See the ``dpm publish component --help`` command for more available options.
 
-For information on how to use this in your project, see the section on :ref:`using components <dpm-override-components>`
+Also, you can view the published versions (and tags) of a component
+
+.. code:: shell
+
+    dpm tags oci://example.com/my/components/foo
+
+For information on how to use the published component in your project, see the section on :ref:`using components <dpm-override-components>`
