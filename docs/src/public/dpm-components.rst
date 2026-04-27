@@ -5,7 +5,7 @@ Publishing Components
 
 .. note::
 
-    This functionality is available in DPM version 1.0.12 or later (or bundled with SDK 3.5 or later) 
+    This functionality is available in DPM version 1.0.13 or later (or bundled with SDK 3.5 or later)
 
 To share or use your Component in various projects, you can publish it to a repository.
 
