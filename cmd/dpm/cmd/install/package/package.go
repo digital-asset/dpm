@@ -124,7 +124,7 @@ func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistant
 		cmd.Println("No overrides to install")
 		return nil
 	}
-	cmd.Println("Installing overrides...")
+	cmd.Println("Installing components...")
 	err = utils.WithInstallLock(ctx, config.InstallLocalFilePath, func() error {
 		_, err := assemblyPlan.Assemble(ctx)
 		return err
