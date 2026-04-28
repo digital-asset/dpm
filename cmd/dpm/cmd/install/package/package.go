@@ -26,7 +26,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	var skipSDK bool
 	cmd := &cobra.Command{
 		Use:    "package",
-		Short:  "install the SDK and all overrides (if any) for a package",
+		Short:  "install the SDK and all opt-in components (if any) for a package",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
@@ -121,7 +121,7 @@ func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistant
 		assemblyPlan.MultiPackage = nil
 	}
 	if !assemblyPlan.HasOverrides() {
-		cmd.Println("No overrides to install")
+		cmd.Println("No opt-in components to install")
 		return nil
 	}
 	cmd.Println("Installing components...")
@@ -132,7 +132,7 @@ func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistant
 	if err != nil {
 		return err
 	}
-	cmd.Println("Successfully installed overrides")
+	cmd.Println("Successfully installed opt-in components")
 	return nil
 }
 

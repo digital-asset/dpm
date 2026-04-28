@@ -887,7 +887,7 @@ func (suite *MainSuite) TestMultiPackageInstall() {
 		output, err := io.ReadAll(r)
 		require.NoError(t, err)
 		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
-		assert.Contains(t, string(output), "No overrides to install")
+		assert.Contains(t, string(output), "No opt-in components to install")
 	})
 }
 
