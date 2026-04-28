@@ -1238,6 +1238,17 @@ func (suite *MainSuite) TestComponentInitFail() {
 
 }
 
+func (suite *MainSuite) TestSdklessHelp() {
+	t := suite.T()
+	t.Chdir(testutil.TestdataPath(t, "multi-package-no-sdk", testutil.OS))
+
+	output := runHelpCommand(t)
+	assert.Contains(t, output, "meep")
+
+	testMeepyComponent(t)
+
+}
+
 func assertSdkVersion(t *testing.T, sdkVersion string) {
 	cmd, r, w := createTestRootCmd(t, "versions")
 	assert.NoError(t, cmd.Execute())
