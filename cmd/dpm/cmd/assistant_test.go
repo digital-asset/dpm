@@ -1242,8 +1242,9 @@ func (suite *MainSuite) TestSdklessHelp() {
 	t := suite.T()
 	t.Chdir(testutil.TestdataPath(t, "multi-package-no-sdk", testutil.OS))
 
-	cmd := createStdTestRootCmd(t, "--help")
-	require.NoError(t, cmd.Execute())
+	output := runHelpCommand(t)
+	assert.Contains(t, output, "meep")
+
 	testMeepyComponent(t)
 
 }
