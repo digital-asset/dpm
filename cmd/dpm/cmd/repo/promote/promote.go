@@ -5,6 +5,7 @@ package promote
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -55,6 +56,10 @@ func Cmd() *cobra.Command {
 
 			publishConfig, err := sdkbundle.ReadPublishConfig(publishConfigPath)
 			if err != nil {
+				return err
+			}
+
+			if err := validateVersionField(publishConfig); err != nil {
 				return err
 			}
 
@@ -138,4 +143,14 @@ func copyComponent(ctx context.Context, sourceClient, destinationClient *assista
 	fmt.Printf("promoting %s:%s index...\n", repoName, tag)
 	_, err = oras.TagBytes(ctx, dest, v1.MediaTypeImageIndex, indexBytes, tag)
 	return err
+}
+
+func validateVersionField(c *sdkbundle.PublishConfig) error {
+	var errs []error
+	for _, comp := range c.Components {
+		if comp.Component.Version == nil {
+			errs = append(errs, fmt.Errorf("component %q in the PublishConfig manifest doesn't have the 'version' field set", comp.Name))
+		}
+	}
+	return errors.Join(errs...)
 }
