@@ -10,6 +10,9 @@ endif
 # Controls for assistant execution:
 export DPM_LOG_LEVEL ?= debug
 ASSISTANT_ARGS ?=
+DOCS_VENV ?= .venv-docs
+DOCS_PYTHON := $(DOCS_VENV)/bin/python
+DOCS_REQUIREMENTS := requirements-docs.txt
 
 # Build locally in one go:
 local-build:
@@ -48,10 +51,19 @@ check-stale-docs:
 	)
 	@echo "✅ CLI docs are up to date."
 
+.PHONY: install-docs-deps
+install-docs-deps: $(DOCS_VENV)/.installed
+
+$(DOCS_VENV)/.installed: $(DOCS_REQUIREMENTS)
+	python3 -m venv $(DOCS_VENV)
+	$(DOCS_PYTHON) -m pip install --upgrade pip
+	$(DOCS_PYTHON) -m pip install -r $(DOCS_REQUIREMENTS)
+	touch $(DOCS_VENV)/.installed
+
 .PHONY: generate-sphinx
-generate-sphinx:
+generate-sphinx: $(DOCS_VENV)/.installed
 	rm -rf docs-internal/generated
-	sphinx-build -vvv -b html docs-internal/src/ docs-internal/generated/html
+	$(DOCS_PYTHON) -m sphinx -vvv -b html docs-internal/src/ docs-internal/generated/html
 
 .PHONY: run-internal-docs
 run-internal-docs: generate-cli-ref generate-sphinx
@@ -60,5 +72,5 @@ run-internal-docs: generate-cli-ref generate-sphinx
 .PHONY: run-docs
 run-docs: run-internal-docs
 	rm -rf docs/generated
-	sphinx-build -vvv -b html docs/src/ docs/generated/html
+	$(DOCS_PYTHON) -m sphinx -vvv -b html docs/src/ docs/generated/html
 	open docs/generated/html/index.html
