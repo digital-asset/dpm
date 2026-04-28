@@ -380,7 +380,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 	}
 	if !ok {
 		if _, isRemote := a.puller.(*remotepuller.RemoteOciPuller); isRemote && !a.config.AutoInstall {
-			return "", fmt.Errorf("sdk component %q won't be downloaded because auto-install is disabled", comp.String())
+			return "", fmt.Errorf("component %q is currently not installed.  Run `dpm install package` to install", comp.String())
 		}
 		platform := simpleplatform.CurrentPlatform()
 		if a.overridePlatform != nil {
@@ -414,7 +414,7 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 	}
 	if !ok {
 		if _, isRemote := a.puller.(*remotepuller.RemoteOciPuller); isRemote && !a.config.AutoInstall {
-			return "", fmt.Errorf("sdk component %q won't be downloaded because auto-install is disabled", comp.String())
+			return "", fmt.Errorf("component %q is currently not installed.  Run `dpm install package` to install", comp.String())
 		}
 		platform := simpleplatform.CurrentPlatform()
 		if a.overridePlatform != nil {
