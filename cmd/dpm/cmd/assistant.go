@@ -95,7 +95,7 @@ func RootCmd(ctx context.Context, da *assistant.DamlAssistant) (*cobra.Command, 
 	if shouldAddSdkCommands(da.OsArgs) {
 		sdkCommands, err := da.ComputeSdkCommandsFromAssemblyPlan(ctx, config, resolutionType)
 		if errors.Is(err, assistantconfig.ErrNoSdkInstalled) {
-			cmd.PrintErrf("You currently do not have an SDK installed.\nYou may opt in to specific components by installing a specific SDK version or by using `multi-package.yaml` or `daml.yaml`, or see the docs for more info.\n")
+			cmd.PrintErr("You currently do not have an SDK installed.\nYou may opt in to specific components by installing a specific SDK version or by using `multi-package.yaml` or `daml.yaml`, or see the docs for more info.\n")
 		} else if err != nil {
 			return nil, err
 		} else {
