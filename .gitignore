@@ -31,6 +31,7 @@ target
 dist/
 
 .direnv
+.venv-docs/
 
 !pkg/testutil/testdata/assistant-binary/windows/dpm.exe
 
