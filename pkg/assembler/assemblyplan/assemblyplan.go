@@ -77,6 +77,7 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 	var installedSdk *assistantconfig.InstalledSdkVersion
 
 	if damlPackagePath != "" {
+
 		damlPackage, err := damlpackage.Read(damlPackagePath)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -114,21 +115,32 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 			}
 		}
 	} else {
-		installedSdk, err = assistantconfig.GetInstalledSdkVersion(config, sdkVersion)
-		if err != nil {
+		if sdkVersion == nil {
+			plan.Base = sdkmanifest.SdkManifest{
+				AbsolutePath: "",
+				Spec: &sdkmanifest.Spec{
+					Components: map[string]*sdkmanifest.Component{},
+				},
+			}
+		} else {
+			installedSdk, err = assistantconfig.GetInstalledSdkVersion(config, sdkVersion)
+			if err != nil {
+				return nil, err
+			}
+			base, err := sdkmanifest.ReadSdkManifest(installedSdk.ManifestPath)
+			if err != nil {
+				return nil, err
+			}
+			plan.Base = *base
+		}
+		if err := configureMultiPackage(plan); err != nil {
 			return nil, err
 		}
-
-		base, err := sdkmanifest.ReadSdkManifest(installedSdk.ManifestPath)
-		if err != nil {
-			return nil, err
-		}
-		plan.Base = *base
 	}
-
 	if err := configureMultiPackage(plan); err != nil {
 		return nil, err
 	}
+
 	return plan, nil
 }
 

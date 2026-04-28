@@ -4,6 +4,7 @@
 package versions
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"slices"
@@ -157,6 +158,9 @@ returns nil
 */
 func GetActiveVersion(config *assistantconfig.Config, damlPackagePath string) (*semver.Version, error) {
 	v, err := GetFloatyActiveVersion(config, damlPackagePath)
+	if errors.Is(err, assistantconfig.ErrNoSdkInstalled) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
