@@ -7,8 +7,8 @@ The assistant fully handles packaging and publishing
 mainly `the public-unstable OCI registry <https://console.cloud.google.com/artifacts/docker/da-images/europe/public-unstable?invt=Abt4Ag&project=da-images>`__.
 
 As a component developer, you can use the
-``dpm repo publish-component``
-:doc:`command <../cli/dpm_repo_publish-component>` to publish a
+``dpm publish component``
+:doc:`command <../cli/dpm_publish-component>` to publish a
 component. This is platform aware, and the command requires the target
 platform(s) be specified:
 
@@ -43,13 +43,11 @@ We can publish it like this:
 
 ::
 
-   dpm repo component-publish \
-     foo \                  # name of the component 
-     1.2.3-pre-alpha \      # version (semantic version)
+   dpm publish component \
+     oci://<full destination URI>:<version>
      --platform darwin/arm64=./darwin-arm64 \
      --platform linux/amd64=./linux-amd64 \
-     --registry <destination OCI registry> \
-     --extra-tags latest    # also pushing a 'latest' tag for this version of the component  
+     --extra-tags latest    # also pushing a 'latest' tag for this version of the component
 
 This will run some validations, then publish two `OCI
 images <https://specs.opencontainers.org/image-spec/manifest/#image-manifest>`__
