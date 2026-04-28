@@ -7,7 +7,7 @@ This page gives a high-level overview of how to contribute to the development of
 
 ## Development documentation
 
-Developers working on the internals of `dpm`, or are working on developing components can run `make run-internal-docs` to view more documentation. Note that this documentation is intended for contributors to `dpm`, and is _not_ part of the public API of `dpm`.
+Developers working on the internals of `dpm`, or are working on developing components can run `make run-internal-docs` to view more documentation. This will bootstrap a local docs virtual environment in `.venv-docs` from `requirements-docs.txt` if needed. You can also run `make install-docs-deps` explicitly to prepare the docs environment ahead of time. Note that this documentation is intended for contributors to `dpm`, and is _not_ part of the public API of `dpm`.
 
 ## Issues
 
