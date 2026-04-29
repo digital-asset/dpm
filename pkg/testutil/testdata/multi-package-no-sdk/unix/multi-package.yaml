@@ -1,0 +1,6 @@
+packages:
+  - ../../daml-package/unix
+
+override-components:
+  meep:
+    local-path: ../../meepy-component/unix

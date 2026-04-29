@@ -1,0 +1,6 @@
+packages:
+  - ../../daml-package/windows
+
+override-components:
+  meep:
+    local-path: ../../meepy-component/windows
