@@ -526,7 +526,7 @@ func installFloatySdk(t *testing.T, version string, floatyTag string) {
 
 	// verify
 	testMeepyComponent(t)
-	t.Run("link assistant", verifyLink)
+	t.Run("SETUP:add dpm bin to PATH", verifyLink)
 }
 
 func installSdk(t *testing.T, versions []string) {
@@ -549,7 +549,7 @@ func installSdk(t *testing.T, versions []string) {
 	for _, version := range versions {
 		version := version // capture
 
-		t.Run("install_"+version, func(t *testing.T) {
+		t.Run("SETUP: install sdk "+version, func(t *testing.T) {
 			cmd, r, w := createTestRootCmd(t, "install", version)
 
 			require.NoError(t, cmd.Execute())
@@ -567,7 +567,7 @@ func installSdk(t *testing.T, versions []string) {
 
 	// verify
 	testMeepyComponent(t)
-	t.Run("link assistant", verifyLink)
+	t.Run("SETUP:add dpm bin to PATH", verifyLink)
 }
 
 func installSdkForComponent(t *testing.T, sdkVersion, componentName, componentVersion string) {
@@ -617,7 +617,7 @@ func installSdkForComponent(t *testing.T, sdkVersion, componentName, componentVe
 	testutil.PushComponent(t, ctx, reg, componentName, componentVersion, testutil.TestdataPath(t, "meepy-component", testutil.OS))
 	testutil.PushComponent(t, ctx, reg, sdkmanifest.AssistantName, "4.5.6", testutil.TestdataPath(t, "assistant-binary", testutil.OS))
 
-	t.Run("install_"+sdkVersion, func(t *testing.T) {
+	t.Run("SETUP: install sdk "+sdkVersion, func(t *testing.T) {
 		cmd, r, w := createTestRootCmd(t, "install", sdkVersion)
 
 		require.NoError(t, cmd.Execute())
@@ -634,7 +634,7 @@ func installSdkForComponent(t *testing.T, sdkVersion, componentName, componentVe
 
 	// verify
 	testMeepyComponent(t)
-	t.Run("link assistant", verifyLink)
+	t.Run("SETUP:add dpm bin to PATH", verifyLink)
 }
 
 func (suite *MainSuite) TestAutoInstallDefaultDisabled() {
