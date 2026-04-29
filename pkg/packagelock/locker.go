@@ -226,7 +226,7 @@ func (l *Locker) computeMultiExpectedLockfile(multiPackageDirAbsPath string) (*P
 }
 
 func (l *Locker) getSdkVersion(packageDirAbsPath string) (SdkVersion, error) {
-	sdkVersion, err := versions.GetFloatyActiveVersion(l.config, packageDirAbsPath)
+	sdkVersion, _, err := versions.GetFloatyActiveVersion(l.config, packageDirAbsPath)
 	if err != nil {
 		return SdkVersion{}, err
 	}

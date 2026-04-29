@@ -225,7 +225,7 @@ func (suite *MainSuite) TestComponentOverlay() {
 		}
 		t.Chdir(dirs.WorkingDir)
 
-		require.NoError(t, createStdTestRootCmd(t, "install", "package", "--skip-sdk").Execute())
+		require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
 
 		return
 	}

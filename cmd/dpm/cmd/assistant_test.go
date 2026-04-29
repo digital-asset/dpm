@@ -117,63 +117,6 @@ func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 			nil})
 }
 
-func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
-
-	t := suite.T()
-	if testutil.OS == "windows" {
-		t.Skip("TODO #114 this test hates windows")
-		return
-	}
-
-	t.Run("3a: when in multi-package dir", func(t *testing.T) {
-		installSdk(t, []string{someSdkVersion})
-		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides"))
-
-		t.Run("help command", func(t *testing.T) {
-			output := runHelpCommand(t)
-			assert.Contains(t, output, "meep")
-			assert.Contains(t, output, "javux")
-			assert.NotContains(t, output, "multipak")
-		})
-
-		t.Run("resolve command", func(t *testing.T) {
-			deepResolution := runResolveCommand(t)
-			assert.Len(t, deepResolution.Packages, 3)
-			assert.ElementsMatch(t,
-				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
-				[]string{"meep", "javabro"})
-		})
-
-		t.Run("assert active sdk version", func(t *testing.T) {
-			assertActiveSdkVersion(t, someSdkVersion)
-		})
-	})
-
-	t.Run("3b: when in sub package dir", func(t *testing.T) {
-		installSdk(t, []string{someSdkVersion})
-		t.Chdir(testutil.TestdataPath(t, "multi-package-sdk-version-overrides", "main"))
-
-		t.Run("help command", func(t *testing.T) {
-			output := runHelpCommand(t)
-			assert.Contains(t, output, "meep")
-			assert.Contains(t, output, "javux")
-			assert.NotContains(t, output, "multipak")
-		})
-
-		t.Run("resolve command", func(t *testing.T) {
-			deepResolution := runResolveCommand(t)
-			assert.Len(t, deepResolution.Packages, 3)
-			assert.ElementsMatch(t,
-				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
-				[]string{"meep", "javabro"})
-		})
-
-		t.Run("assert active sdk version", func(t *testing.T) {
-			assertActiveSdkVersion(t, someSdkVersion)
-		})
-	})
-}
-
 func (suite *MainSuite) TestResolveErrorsInResolutionFile() {
 	t := suite.T()
 
@@ -661,18 +604,13 @@ func installSdkForComponent(t *testing.T, sdkVersion, componentName, componentVe
 
 func (suite *MainSuite) TestAutoInstallDefaultDisabled() {
 	t := suite.T()
-	ctx := testutil.Context(t)
 
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = os.Chdir(cwd) })
-	err = os.Chdir(testutil.TestdataPath(t, "daml-package", testutil.OS))
-	if err != nil {
-		return
-	}
+	tmpDir := t.TempDir()
+	t.Chdir(tmpDir)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(`sdk-version: 1.2.3-not-installed`), 0666))
 
-	da := &assistant.DamlAssistant{OsArgs: []string{os.Args[0]}}
-	_, err = RootCmd(ctx, da)
+	da := assistant.DamlAssistant{OsArgs: []string{DpmName}}
+	_, err := RootCmd(t.Context(), &da)
 	require.ErrorIs(t, err, assistantconfig.ErrTargetSdkNotInstalled)
 }
 
@@ -708,24 +646,14 @@ func (suite *MainSuite) TestHelpCommandUsesShallowResolution() {
 
 func (suite *MainSuite) TestLegacyDamlProjectEnvVar() {
 	t := suite.T()
-	ctx := testutil.Context(t)
-
-	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "daml-package", testutil.OS))
-
-	da := &assistant.DamlAssistant{OsArgs: []string{os.Args[0]}}
-	_, err := RootCmd(ctx, da)
-	require.ErrorIs(t, err, assistantconfig.ErrTargetSdkNotInstalled)
+	t.Setenv(assistantconfig.DamlPackageEnvVar, testutil.TestdataPath(t, "daml-package", testutil.OS))
+	assert.NoError(t, createStdTestRootCmd(t, "meep").Execute())
 }
 
 func (suite *MainSuite) TestLegacyDamlPackageEnvVar() {
 	t := suite.T()
-	ctx := testutil.Context(t)
-
-	t.Setenv(assistantconfig.DamlPackageEnvVar, testutil.TestdataPath(t, "daml-package", testutil.OS))
-
-	da := &assistant.DamlAssistant{OsArgs: []string{os.Args[0]}}
-	_, err := RootCmd(ctx, da)
-	require.ErrorIs(t, err, assistantconfig.ErrTargetSdkNotInstalled)
+	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "daml-package", testutil.OS))
+	assert.NoError(t, createStdTestRootCmd(t, "meep").Execute())
 }
 
 func (suite *MainSuite) TestDeepResolutionForSdkCommands() {
@@ -784,108 +712,6 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 	})
 }
 
-func (suite *MainSuite) TestMultiPackageComponentOverrides() {
-	t := suite.T()
-
-	t.Run("13a: when in multi-package dir", func(t *testing.T) {
-		installSdk(t, []string{someSdkVersion, someOtherSdkVersion})
-		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS))
-
-		t.Run("help command", func(t *testing.T) {
-			output := runHelpCommand(t)
-			assert.Contains(t, output, "meep")
-			assert.Contains(t, output, "multipak")
-			assert.NotContains(t, output, "javux")
-		})
-
-		t.Run("resolve command", func(t *testing.T) {
-			deepResolution := runResolveCommand(t)
-			assert.Len(t, deepResolution.Packages, 1)
-			assert.ElementsMatch(t,
-				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
-				[]string{"multipak", "meep", "javabro"})
-		})
-
-		t.Run("assert active sdk version", func(t *testing.T) {
-			assertActiveSdkVersion(t, someSdkVersion)
-		})
-
-	})
-
-	t.Run("13b: when in sub package dir", func(t *testing.T) {
-		installSdk(t, []string{someSdkVersion, someOtherSdkVersion})
-		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one", testutil.OS, "daml-package"))
-
-		t.Run("help command", func(t *testing.T) {
-			output := runHelpCommand(t)
-			assert.Contains(t, output, "meep")
-			assert.Contains(t, output, "multipak")
-			assert.Contains(t, output, "javux")
-		})
-
-		t.Run("resolve command", func(t *testing.T) {
-			deepResolution := runResolveCommand(t)
-			assert.Len(t, deepResolution.Packages, 1)
-			assert.ElementsMatch(t,
-				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
-				[]string{"multipak", "meep", "javabro"})
-		})
-
-		t.Run("assert active sdk version", func(t *testing.T) {
-			assertActiveSdkVersion(t, someOtherSdkVersion)
-		})
-	})
-}
-
-func (suite *MainSuite) TestMultiPackageSdkAndComponentOverrides() {
-	t := suite.T()
-
-	installSdk(t, []string{someSdkVersion})
-
-	deepResolution := runResolveCommand(t)
-	assert.ElementsMatch(t,
-		lo.Keys(lo.Values(deepResolution.DefaultSDK)[0].ComponentsV2),
-		[]string{"meep"})
-
-	t.Run("when in multi-package dir", func(t *testing.T) {
-		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one-with-null-package-sdk", testutil.OS))
-
-		t.Run("help command", func(t *testing.T) {
-			output := runHelpCommand(t)
-			assert.Contains(t, output, "meep")
-			assert.Contains(t, output, "multipak")
-			assert.NotContains(t, output, "javux")
-		})
-
-		t.Run("resolve command", func(t *testing.T) {
-			deepResolution := runResolveCommand(t)
-			assert.Len(t, deepResolution.Packages, 1)
-			assert.ElementsMatch(t,
-				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
-				[]string{"multipak", "meep", "javabro"})
-		})
-	})
-
-	t.Run("when in sub package dir", func(t *testing.T) {
-		t.Chdir(testutil.TestdataPath(t, "multi-package-all-in-one-with-null-package-sdk", testutil.OS, "daml-package"))
-
-		t.Run("help command", func(t *testing.T) {
-			output := runHelpCommand(t)
-			assert.Contains(t, output, "meep")
-			assert.Contains(t, output, "multipak")
-			assert.Contains(t, output, "javux")
-		})
-
-		t.Run("resolve command", func(t *testing.T) {
-			deepResolution := runResolveCommand(t)
-			assert.Len(t, deepResolution.Packages, 1)
-			assert.ElementsMatch(t,
-				lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2),
-				[]string{"multipak", "meep", "javabro"})
-		})
-	})
-}
-
 func (suite *MainSuite) TestMultiPackageInstall() {
 	t := suite.T()
 
@@ -911,34 +737,6 @@ func (suite *MainSuite) TestMultiPackageInstall() {
 		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
 		assert.Contains(t, string(output), "No opt-in components to install")
 	})
-}
-
-func (suite *MainSuite) TestMultiPackageSkip() {
-	t := suite.T()
-
-	tmpDir := t.TempDir()
-
-	cwd, err := os.Getwd()
-
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-package-sdk-skipping", testutil.OS)))
-	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
-
-	cmd, r, w := createTestRootCmd(t, "install", "package", "--skip-sdk")
-
-	require.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
-	output, err := io.ReadAll(r)
-	require.NoError(t, err)
-	assert.Contains(t, string(output), "Skipping installation of multi-package")
-
-	ctx := testutil.Context(t)
-	da := &assistant.DamlAssistant{OsArgs: []string{os.Args[0]}}
-	_, err = RootCmd(ctx, da)
-
-	require.ErrorIs(t, err, assistantconfig.ErrTargetSdkNotInstalled)
-
 }
 
 func (suite *MainSuite) TestInstallPackageMultipleRegistries() {

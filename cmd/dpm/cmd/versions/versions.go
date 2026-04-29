@@ -139,7 +139,7 @@ func getActiveVersion(config *assistantconfig.Config) (*semver.Version, error) {
 		return nil, err
 	}
 
-	v, err := versions.GetActiveVersion(config, damlPackagePath)
+	v, _, err := versions.GetActiveVersion(config, damlPackagePath)
 	if errors.Is(err, assistantconfig.ErrNoSdkInstalled) || errors.Is(err, assistantconfig.ErrTargetSdkNotInstalled) {
 		return nil, nil
 	} else if err != nil {

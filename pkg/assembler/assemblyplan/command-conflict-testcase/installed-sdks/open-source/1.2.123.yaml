@@ -6,3 +6,6 @@ spec:
   components:
     foo:
       local-path: ../../foo-component
+
+    bar:
+      local-path: ../../bar-component

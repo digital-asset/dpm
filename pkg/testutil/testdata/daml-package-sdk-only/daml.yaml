@@ -1,0 +1,4 @@
+sdk-version: 9.9.9
+
+dependencies:
+  - daml-script
