@@ -130,6 +130,9 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			0, nil},
 	},
+
+	// TODO BH: disabling these tests for now because the error assertions are still not fully correct
+	// WIll wire these in as fast follow-on
 	//{
 	//	Name:                   "referenced sdk version that is not installed (multi dir)",
 	//	MultiPackageSdkVersion: "0.0.1-not-installed",
