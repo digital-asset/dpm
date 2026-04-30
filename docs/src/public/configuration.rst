@@ -182,7 +182,7 @@ in a directory containing the ``daml.yaml`` or ``multi-package.yaml``
 
 .. warning::
 
-    When using this component opt-in feature, you not specify ``sdk-version`` field in neither your ``multi-package.yaml`` nor ``daml.yaml`` files. Otherwise, you might get unintended results.
+    When using this component opt-in feature, you should not specify ``sdk-version`` field in either your ``multi-package.yaml`` or ``daml.yaml`` files.  Otherwise, you might get unintended results.
 
 .. note::
 
