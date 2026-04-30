@@ -105,7 +105,9 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{},
 			0,
-			globalSdkVersion, 1, versions.ErrNoActiveSdk},
+			globalSdkVersion,
+			1,
+			versions.ErrNoActiveSdk},
 	},
 	{
 		Name:                   "no sdk version at multi or package (package dir)",
@@ -130,31 +132,6 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			0, nil},
 	},
-
-	// TODO BH: disabling these tests for now because the error assertions are still not fully correct
-	// WIll wire these in as fast follow-on
-	//{
-	//	Name:                   "referenced sdk version that is not installed (multi dir)",
-	//	MultiPackageSdkVersion: "0.0.1-not-installed",
-	//	PackageSdkVersion:      "null",
-	//	WorkingDir:             MultiPackageWorkingDir,
-	//	ExpectedResolution: ExpectedResolution{
-	//		globalSdkVersion,
-	//		[]string{},
-	//		0,
-	//		"0.0.1-not-installed", 1, assistantconfig.ErrTargetSdkNotInstalled},
-	//},
-	//{
-	//	Name:                   "referenced sdk version that is not installed (package dir)",
-	//	MultiPackageSdkVersion: "0.0.1-not-installed",
-	//	PackageSdkVersion:      "null",
-	//	WorkingDir:             PackageWorkingDir,
-	//	ExpectedResolution: ExpectedResolution{
-	//		globalSdkVersion,
-	//		[]string{},
-	//		0,
-	//		"0.0.1-not-installed", 1, assistantconfig.ErrTargetSdkNotInstalled},
-	//},
 }
 
 func (suite *MainSuite) TestActiveSdkVersionExhaustive() {
@@ -224,7 +201,7 @@ packages:
 			}
 
 			// tests DPM_SDK_VERSION and DPM_RESOLUTION_FILE env vars that dpm injects when exec'ing commands
-			t.Run("dynamically injected env vars", func(t *testing.T) {
+			t.Run("expected DPM_SDK_VERSION and DPM_RESOLUTION_FILE", func(t *testing.T) {
 				wasCalled := atomic.Bool{}
 				assertEnv := func(cmd *exec.Cmd) {
 					wasCalled.Store(true)
