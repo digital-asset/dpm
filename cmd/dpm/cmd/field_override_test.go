@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"daml.com/x/assistant/cmd/dpm/cmd/versions"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/component"
 	"daml.com/x/assistant/pkg/damlpackage"
@@ -108,7 +109,7 @@ var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 			[]string{},
 			0,
 			globalSdkVersion,
-			1, nil},
+			1, versions.ErrNoActiveSdk},
 	},
 	{
 		Name:                   "18 multi:null pkg:null wd:pkg",
@@ -120,7 +121,7 @@ var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 			[]string{},
 			0,
 			"null",
-			1, nil},
+			1, versions.ErrNoActiveSdk},
 	},
 	{
 		Name:                   "10 multi:some pkg:some wd:pkg",
