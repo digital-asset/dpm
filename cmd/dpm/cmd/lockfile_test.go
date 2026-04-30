@@ -124,24 +124,6 @@ func (suite *MainSuite) TestLockfileFieldOverridesExhaustive() {
 	t.Skip()
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 
-	testFieldOverrideExhaustive(t, func(t *testing.T, tc FieldOverrideTestCase, dirs TestCaseDirs) {
-		// TODO: Implement writing global sdk into lockfile and enforce test
-		if t.Name() == "TestSuite/TestLockfileSdkVersion/7_multi:null_pkg:some_wd:multi" ||
-			t.Name() == "TestSuite/TestLockfileSdkVersion/9_multi:null_pkg:null_wd:multi" ||
-			t.Name() == "TestSuite/TestLockfileSdkVersion/18_multi:null_pkg:null_wd:pkg" {
-			t.Skip()
-		}
-		cmd := createStdTestRootCmd(t, "update")
-		require.NoError(t, cmd.Execute())
+	// TODO: Figure out which testing is to be used with deprecation of field_override_test
 
-		if tc.WorkingDir != PackageWorkingDir { // multi package
-			multiLock, err := packagelock.ReadPackageLock(filepath.Join(dirs.MultiPackageDir, assistantconfig.DpmMultiPackageLockFileName))
-			require.NoError(t, err)
-			assert.Equal(t, tc.ExpectedResolution.ExpectedSdkVersion, multiLock.SdkVersion.Version)
-		} else { //single package
-			lock, err := packagelock.ReadPackageLock(filepath.Join(dirs.DamlPackageDir, assistantconfig.DpmLockFileName))
-			require.NoError(t, err)
-			assert.Equal(t, tc.ExpectedResolution.ExpectedSdkVersion, lock.SdkVersion.Version)
-		}
-	})
 }

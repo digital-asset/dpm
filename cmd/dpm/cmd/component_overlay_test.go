@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +19,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type WorkingDir int
+
+const (
+	MultiPackageWorkingDir = iota
+	PackageWorkingDir
+	OutsideProjectDir
+)
+
+type TestCaseDirs struct {
+	WorkingDir, DamlPackageDir, MultiPackageDir string
+}
+
 type ComponentOverlayTestCase struct {
 	Name                         string
 	WorkingDir                   WorkingDir
@@ -30,7 +43,7 @@ type ComponentOverlayTestCase struct {
 
 var componentOverlayTestCases = []ComponentOverlayTestCase{
 	{
-		Name:                         "1",
+		Name:                         "1: component1 in multi-package only, pwd multi",
 		WorkingDir:                   MultiPackageWorkingDir,
 		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
 		PackageComponents:            nil,
@@ -38,7 +51,7 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 		ExpectedResolutionComponents: map[string]string{"foo": "0.0.1"},
 	},
 	{
-		Name:                         "2",
+		Name:                         "2: component1 in multi-package only, pwd daml",
 		WorkingDir:                   PackageWorkingDir,
 		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
 		PackageComponents:            nil,
@@ -46,7 +59,7 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 		ExpectedResolutionComponents: map[string]string{"foo": "0.0.1"},
 	},
 	{
-		Name:                         "3",
+		Name:                         "3: component1 in multi-package and daml, pwd multi",
 		WorkingDir:                   MultiPackageWorkingDir,
 		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
 		PackageComponents:            map[string]string{"foo": "0.0.2"},
@@ -54,7 +67,7 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 		ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
 	},
 	{
-		Name:                         "4",
+		Name:                         "4: component1 in multi-package and daml, pwd daml",
 		WorkingDir:                   PackageWorkingDir,
 		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
 		PackageComponents:            map[string]string{"foo": "0.0.2"},
@@ -62,7 +75,7 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 		ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
 	},
 	{
-		Name:                         "5",
+		Name:                         "5: component1 in daml only, pwd multi",
 		WorkingDir:                   MultiPackageWorkingDir,
 		MultiPackageComponents:       nil,
 		PackageComponents:            map[string]string{"foo": "0.0.2"},
@@ -70,7 +83,7 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 		ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
 	},
 	{
-		Name:                         "6",
+		Name:                         "6: component1 in daml only, pwd daml",
 		WorkingDir:                   PackageWorkingDir,
 		MultiPackageComponents:       nil,
 		PackageComponents:            map[string]string{"foo": "0.0.2"},
@@ -78,7 +91,7 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 		ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
 	},
 	{
-		Name:                         "7",
+		Name:                         "7: component1/component2 in multi-package only, pwd multi",
 		WorkingDir:                   MultiPackageWorkingDir,
 		MultiPackageComponents:       map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
 		PackageComponents:            nil,
@@ -86,7 +99,7 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 		ExpectedResolutionComponents: map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
 	},
 	{
-		Name:                         "8",
+		Name:                         "8: component1/component2 in multi-package only, pwd daml",
 		WorkingDir:                   PackageWorkingDir,
 		MultiPackageComponents:       map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
 		PackageComponents:            nil,
@@ -94,7 +107,7 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 		ExpectedResolutionComponents: map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
 	},
 	{
-		Name:                         "9",
+		Name:                         "9: component1 in multi-package, component2 in daml, pwd multi",
 		WorkingDir:                   MultiPackageWorkingDir,
 		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
 		PackageComponents:            map[string]string{"meep": "0.0.2"},
@@ -102,7 +115,7 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 		ExpectedResolutionComponents: map[string]string{"foo": "0.0.1", "meep": "0.0.2"},
 	},
 	{
-		Name:                         "10",
+		Name:                         "10: component1 in multi-package, component2 in daml, pwd daml",
 		WorkingDir:                   PackageWorkingDir,
 		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
 		PackageComponents:            map[string]string{"meep": "0.0.2"},
@@ -111,7 +124,7 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 	},
 	{
 		//no multi-pkg structure - in pkg dir
-		Name:                         "11",
+		Name:                         "11: no multi-package, component1 in daml, pwd daml",
 		WorkingDir:                   PackageWorkingDir,
 		MultiPackageComponents:       nil,
 		PackageComponents:            map[string]string{"foo": "0.0.2"},
@@ -121,7 +134,7 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 	},
 	{
 		//no multi-pkg structure - in pkg dir
-		Name:                         "12",
+		Name:                         "12: no multi-package, no component in daml, pwd daml",
 		WorkingDir:                   PackageWorkingDir,
 		MultiPackageComponents:       nil,
 		PackageComponents:            nil,
@@ -141,15 +154,15 @@ func (suite *MainSuite) TestComponentOverlay() {
 
 	_, reg := testutil.StartRegistry(t)
 
-	pushGenericComponentWithCommand(t, reg, "foo", "0.0.1", "foo")
-	pushGenericComponentWithCommand(t, reg, "foo", "0.0.2", "foo")
-	pushGenericComponentWithCommand(t, reg, "meep", "0.0.1", "meep")
-	pushGenericComponentWithCommand(t, reg, "meep", "0.0.2", "meep")
+	testutil.PushGenericComponentWithCommand(t, reg, "foo", "0.0.1", "foo")
+	testutil.PushGenericComponentWithCommand(t, reg, "foo", "0.0.2", "foo")
+	testutil.PushGenericComponentWithCommand(t, reg, "meep", "0.0.1", "meep")
+	testutil.PushGenericComponentWithCommand(t, reg, "meep", "0.0.2", "meep")
 
-	installComponent(t, "foo", "0.0.1")
-	installComponent(t, "foo", "0.0.2")
-	installComponent(t, "meep", "0.0.1")
-	installComponent(t, "meep", "0.0.2")
+	InstallComponent(t, "foo", "0.0.1")
+	InstallComponent(t, "foo", "0.0.2")
+	InstallComponent(t, "meep", "0.0.1")
+	InstallComponent(t, "meep", "0.0.2")
 
 	setupTestCase := func(tc ComponentOverlayTestCase) (dirs TestCaseDirs) {
 		tmpDir := t.TempDir()
@@ -250,4 +263,18 @@ func (suite *MainSuite) TestComponentOverlay() {
 		})
 	}
 
+}
+
+func InstallComponent(t *testing.T, componentName, componentVersion string) {
+	contents := fmt.Sprintf(`
+components:
+ - %s:%s
+`, componentName, componentVersion)
+
+	t.Run("install component "+componentName, func(t *testing.T) {
+		tmpDir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(contents), 0666))
+		t.Chdir(tmpDir)
+		require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
+	})
 }
