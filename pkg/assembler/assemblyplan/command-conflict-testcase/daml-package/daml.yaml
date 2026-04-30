@@ -37,11 +37,11 @@ typecheck-upgrades: true
 upgrades: ..
 version: 0.0.0.1
 #module-prefixes: !java.util.LinkedHashMap
-override-components:
-  foo:
-    local-path: ../foo-component
+components:
+  - name: foo
+    path: ../foo-component
 
-  bar:
-    local-path: ../bar-component
+  - name: bar
+    path: ../bar-component
 
 
