@@ -186,4 +186,4 @@ in a directory containing the ``daml.yaml`` or ``multi-package.yaml``
 
 .. note::
 
-    Beginning SDK version 3.5, the ``override-components`` field has been removed in favor of the ``components`` field.
+    Beginning with SDK version 3.5, the ``override-components`` field has been removed in favor of the ``components`` field.
