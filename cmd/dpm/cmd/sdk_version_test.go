@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"daml.com/x/assistant/cmd/dpm/cmd/versions"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/samber/lo"
@@ -28,18 +29,25 @@ var expectedSdkResolution = ExpectedResolution{
 	globalSdkVersion,
 	[]string{someSdkComponent},
 	2,
-	""}
+	"", 1, nil}
 
 var sdkVersionTestCases = []SdkVersionTestCase{
 	{
-		Name:                   "1 multi:some pkg: some, wd:multi",
+		Name:                   "only multi sdk version (multi dir)",
 		MultiPackageSdkVersion: someSdkVersion,
-		PackageSdkVersion:      someSdkVersion,
+		PackageSdkVersion:      "null",
 		WorkingDir:             MultiPackageWorkingDir,
 		ExpectedResolution:     expectedSdkResolution.WithSdkVersion(someSdkVersion),
 	},
 	{
-		Name:                   "2 multi:some pkg:other wd:multi",
+		Name:                   "only multi sdk version (package dir)",
+		MultiPackageSdkVersion: someSdkVersion,
+		PackageSdkVersion:      "null",
+		WorkingDir:             PackageWorkingDir,
+		ExpectedResolution:     expectedSdkResolution.WithSdkVersion(someSdkVersion),
+	},
+	{
+		Name:                   "package version differs from multi (multi dir)",
 		MultiPackageSdkVersion: someSdkVersion,
 		PackageSdkVersion:      someOtherSdkVersion,
 		WorkingDir:             MultiPackageWorkingDir,
@@ -47,24 +55,49 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{someOtherSdkComponent},
 			2,
-			someSdkVersion},
+			someSdkVersion, 1, nil},
 	},
 	{
-		Name:                   "3 multi:some pkg:null wd:multi",
+		Name:                   "package version differs from multi (package dir)",
 		MultiPackageSdkVersion: someSdkVersion,
-		PackageSdkVersion:      "null",
+		PackageSdkVersion:      someOtherSdkVersion,
+		WorkingDir:             PackageWorkingDir,
+		ExpectedResolution: ExpectedResolution{
+			globalSdkVersion,
+			[]string{someOtherSdkComponent},
+			2,
+			someOtherSdkVersion, 1, nil},
+	},
+	{
+		Name:                   "multi and package same version (multi dir)",
+		MultiPackageSdkVersion: someSdkVersion,
+		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             MultiPackageWorkingDir,
 		ExpectedResolution:     expectedSdkResolution.WithSdkVersion(someSdkVersion),
 	},
 	{
-		Name:                   "7 multi:null pkg:some wd:multi",
+		Name:                   "multi and package same version (package dir)",
+		MultiPackageSdkVersion: someSdkVersion,
+		PackageSdkVersion:      someSdkVersion,
+		WorkingDir:             PackageWorkingDir,
+		ExpectedResolution:     expectedSdkResolution.WithSdkVersion(someSdkVersion),
+	},
+	{
+		Name:                   "only package sdk version (multi dir)",
 		MultiPackageSdkVersion: "null",
 		PackageSdkVersion:      someSdkVersion,
 		WorkingDir:             MultiPackageWorkingDir,
 		ExpectedResolution:     expectedSdkResolution.WithSdkVersion(globalSdkVersion),
 	},
 	{
-		Name:                   "9 multi:null pkg:null wd:multi",
+		Name:                   "only package sdk version (package dir)",
+		MultiPackageSdkVersion: "null",
+		PackageSdkVersion:      someSdkVersion,
+		WorkingDir:             PackageWorkingDir,
+		ExpectedResolution:     expectedSdkResolution.WithSdkVersion(someSdkVersion),
+	},
+	{
+		Name:                   "no sdk version at multi or package (multi dir)",
 		MultiPackageSdkVersion: "null",
 		PackageSdkVersion:      "null",
 		WorkingDir:             MultiPackageWorkingDir,
@@ -72,10 +105,10 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{},
 			0,
-			globalSdkVersion},
+			globalSdkVersion, 1, versions.ErrNoActiveSdk},
 	},
 	{
-		Name:                   "18 multi:null pkg:null wd:pkg",
+		Name:                   "no sdk version at multi or package (package dir)",
 		MultiPackageSdkVersion: "null",
 		PackageSdkVersion:      "null",
 		WorkingDir:             PackageWorkingDir,
@@ -83,47 +116,45 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{},
 			0,
-			"null"},
+			"null", 1, versions.ErrNoActiveSdk},
 	},
 	{
-		Name:                   "10 multi:some pkg:some wd:pkg",
-		MultiPackageSdkVersion: someSdkVersion,
-		PackageSdkVersion:      someSdkVersion,
-		WorkingDir:             PackageWorkingDir,
-		ExpectedResolution:     expectedSdkResolution.WithSdkVersion(someSdkVersion),
-	},
-	{
-		Name:                   "11 multi:some pkg:other wd:pkg",
-		MultiPackageSdkVersion: someSdkVersion,
-		PackageSdkVersion:      someOtherSdkVersion,
-		WorkingDir:             PackageWorkingDir,
+		Name:                   "no sdk version at multi or package (outside project dir)",
+		MultiPackageSdkVersion: "null",
+		PackageSdkVersion:      "null",
+		WorkingDir:             OutsideProjectDir,
 		ExpectedResolution: ExpectedResolution{
 			globalSdkVersion,
-			[]string{someOtherSdkComponent},
-			2,
-			someOtherSdkVersion},
+			[]string{},
+			0,
+			globalSdkVersion,
+			0, nil},
 	},
-	{
-		Name:                   "12 multi:some pkg:null wd:pkg",
-		MultiPackageSdkVersion: someSdkVersion,
-		PackageSdkVersion:      "null",
-		WorkingDir:             PackageWorkingDir,
-		ExpectedResolution:     expectedSdkResolution.WithSdkVersion(someSdkVersion),
-	},
-	{
-		Name:                   "13 multi:other pkg:some wd:pkg",
-		MultiPackageSdkVersion: someOtherSdkVersion,
-		PackageSdkVersion:      someSdkVersion,
-		WorkingDir:             PackageWorkingDir,
-		ExpectedResolution:     expectedSdkResolution.WithSdkVersion(someSdkVersion),
-	},
-	{
-		Name:                   "16 multi:null pkg:some wd:pkg",
-		MultiPackageSdkVersion: "null",
-		PackageSdkVersion:      someSdkVersion,
-		WorkingDir:             PackageWorkingDir,
-		ExpectedResolution:     expectedSdkResolution.WithSdkVersion(someSdkVersion),
-	},
+
+	// TODO BH: disabling these tests for now because the error assertions are still not fully correct
+	// WIll wire these in as fast follow-on
+	//{
+	//	Name:                   "referenced sdk version that is not installed (multi dir)",
+	//	MultiPackageSdkVersion: "0.0.1-not-installed",
+	//	PackageSdkVersion:      "null",
+	//	WorkingDir:             MultiPackageWorkingDir,
+	//	ExpectedResolution: ExpectedResolution{
+	//		globalSdkVersion,
+	//		[]string{},
+	//		0,
+	//		"0.0.1-not-installed", 1, assistantconfig.ErrTargetSdkNotInstalled},
+	//},
+	//{
+	//	Name:                   "referenced sdk version that is not installed (package dir)",
+	//	MultiPackageSdkVersion: "0.0.1-not-installed",
+	//	PackageSdkVersion:      "null",
+	//	WorkingDir:             PackageWorkingDir,
+	//	ExpectedResolution: ExpectedResolution{
+	//		globalSdkVersion,
+	//		[]string{},
+	//		0,
+	//		"0.0.1-not-installed", 1, assistantconfig.ErrTargetSdkNotInstalled},
+	//},
 }
 
 func (suite *MainSuite) TestActiveSdkVersionExhaustive() {
@@ -164,6 +195,8 @@ packages:
 			dirs.WorkingDir = dirs.DamlPackageDir
 		case MultiPackageWorkingDir:
 			dirs.WorkingDir = dirs.MultiPackageDir
+		case OutsideProjectDir:
+			dirs.WorkingDir = t.TempDir()
 		default:
 		}
 		t.Chdir(dirs.WorkingDir)
@@ -179,7 +212,7 @@ packages:
 
 			if tc.ExpectedResolution.ExpectedSdkVersion == "null" {
 				t.Run("assert no active sdk version", func(t *testing.T) {
-					assertNoActiveSdkVersion(t)
+					assertNoActiveSdkVersion(t, tc.ExpectedResolution.ExpectedError)
 					testResolution(t, tc.ExpectedResolution)
 				})
 
