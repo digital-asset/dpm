@@ -42,6 +42,7 @@ type ExpectedResolution struct {
 	ExpectedComponents        []string
 	ExpectedImports           int
 	ExpectedSdkVersion        string // assumes
+	ExpectedPackages          int
 }
 
 func (r ExpectedResolution) WithSdkVersion(v string) ExpectedResolution {
@@ -50,6 +51,7 @@ func (r ExpectedResolution) WithSdkVersion(v string) ExpectedResolution {
 		ExpectedComponents:        append([]string{}, r.ExpectedComponents...),
 		ExpectedImports:           r.ExpectedImports,
 		ExpectedSdkVersion:        v,
+		ExpectedPackages:          r.ExpectedPackages,
 	}
 }
 
@@ -65,6 +67,7 @@ func (r ExpectedResolution) WithExtraComponents(components ...string) ExpectedRe
 		ExpectedComponents:        append(components, r.ExpectedComponents...),
 		ExpectedImports:           imports,
 		ExpectedSdkVersion:        r.ExpectedSdkVersion,
+		ExpectedPackages:          r.ExpectedPackages,
 	}
 }
 
@@ -80,7 +83,7 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 
 	installSdk(t, []string{someSdkVersion})
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
-	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, ""})
+	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, "", 1})
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSubdir() {
@@ -94,7 +97,7 @@ func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 
 	// this will make daml.yaml in the CWD
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-package-with-subdir", "package")))
-	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, ""})
+	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, "", 1})
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
@@ -252,7 +255,7 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 
 func testResolution(t *testing.T, expectedResolution ExpectedResolution) {
 	deepResolution := runResolveCommand(t)
-	assert.Len(t, deepResolution.Packages, 1)
+	assert.Len(t, deepResolution.Packages, expectedResolution.ExpectedPackages)
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, len(expectedResolution.ExpectedComponents))
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, expectedResolution.ExpectedImports)
 	assert.Equal(t, resolution.Kind, deepResolution.Kind)
@@ -587,14 +590,14 @@ func installSdkForComponent(t *testing.T, sdkVersion, componentName, componentVe
 
 	// create an SdkManifest and push it
 	edition := sdkmanifest.OpenSource
-	sdkManifest := sdkmanifest.SdkManifest{
+	var sdkManifest = sdkmanifest.SdkManifest{
 		ManifestMeta: schema.ManifestMeta{
 			APIVersion: sdkmanifest.SdkManifestAPIVersion,
 			Kind:       sdkmanifest.SdkManifestKind,
 		},
 		Spec: &sdkmanifest.Spec{
 			Components: map[string]*sdkmanifest.Component{
-				componentName: &sdkmanifest.Component{
+				componentName: {
 					Name:    componentName,
 					Version: sdkmanifest.AssemblySemVer(componentSemVer),
 				},

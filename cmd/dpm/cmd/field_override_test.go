@@ -31,6 +31,7 @@ type WorkingDir int
 const (
 	MultiPackageWorkingDir = iota
 	PackageWorkingDir
+	TmpDir
 )
 
 type TestCaseDirs struct {
@@ -58,10 +59,10 @@ const (
 )
 
 var expectedResolution = ExpectedResolution{
-	globalSdkVersion,
-	[]string{someSdkComponent},
-	2,
-	""}
+	ExpectedDefaultSdkVersion: globalSdkVersion,
+	ExpectedComponents:        []string{someSdkComponent},
+	ExpectedImports:           2,
+	ExpectedPackages:          1}
 
 var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 	{
@@ -80,7 +81,8 @@ var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 			globalSdkVersion,
 			[]string{someOtherSdkComponent},
 			2,
-			someSdkVersion},
+			someSdkVersion,
+			1},
 	},
 	{
 		Name:                   "3 multi:some pkg:null wd:multi",
@@ -105,7 +107,8 @@ var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 			globalSdkVersion,
 			[]string{},
 			0,
-			globalSdkVersion},
+			globalSdkVersion,
+			1},
 	},
 	{
 		Name:                   "18 multi:null pkg:null wd:pkg",
@@ -116,7 +119,8 @@ var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 			globalSdkVersion,
 			[]string{},
 			0,
-			"null"},
+			"null",
+			1},
 	},
 	{
 		Name:                   "10 multi:some pkg:some wd:pkg",
@@ -134,7 +138,8 @@ var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 			globalSdkVersion,
 			[]string{someOtherSdkComponent},
 			2,
-			someOtherSdkVersion},
+			someOtherSdkVersion,
+			1},
 	},
 	{
 		Name:                   "12 multi:some pkg:null wd:pkg",
@@ -317,6 +322,8 @@ func testFieldOverrideExhaustive(t *testing.T, hook func(t *testing.T, testCase 
 			dirs.WorkingDir = dirs.DamlPackageDir
 		case MultiPackageWorkingDir:
 			dirs.WorkingDir = dirs.MultiPackageDir
+		case TmpDir:
+			dirs.WorkingDir = os.TempDir()
 		default:
 		}
 		t.Chdir(dirs.WorkingDir)

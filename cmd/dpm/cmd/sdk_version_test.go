@@ -28,7 +28,7 @@ var expectedSdkResolution = ExpectedResolution{
 	globalSdkVersion,
 	[]string{someSdkComponent},
 	2,
-	""}
+	"", 1}
 
 var sdkVersionTestCases = []SdkVersionTestCase{
 	{
@@ -54,7 +54,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{someOtherSdkComponent},
 			2,
-			someSdkVersion},
+			someSdkVersion, 1},
 	},
 	{
 		Name:                   "package version differs from multi (package dir)",
@@ -65,7 +65,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{someOtherSdkComponent},
 			2,
-			someOtherSdkVersion},
+			someOtherSdkVersion, 1},
 	},
 	{
 		Name:                   "multi and package same version (multi dir)",
@@ -104,7 +104,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{},
 			0,
-			globalSdkVersion},
+			globalSdkVersion, 1},
 	},
 	{
 		Name:                   "no sdk version at multi or package (package dir)",
@@ -115,7 +115,19 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{},
 			0,
-			"null"},
+			"null", 1},
+	},
+	{
+		Name:                   "no sdk version at multi or package (outside project dir)",
+		MultiPackageSdkVersion: "null",
+		PackageSdkVersion:      "null",
+		WorkingDir:             TmpDir,
+		ExpectedResolution: ExpectedResolution{
+			globalSdkVersion,
+			[]string{},
+			0,
+			globalSdkVersion,
+			0},
 	},
 	//{
 	//	Name:                   "referenced sdk version that is not installed (multi dir)",
@@ -179,6 +191,8 @@ packages:
 			dirs.WorkingDir = dirs.DamlPackageDir
 		case MultiPackageWorkingDir:
 			dirs.WorkingDir = dirs.MultiPackageDir
+		case TmpDir:
+			dirs.WorkingDir = os.TempDir()
 		default:
 		}
 		t.Chdir(dirs.WorkingDir)
@@ -195,7 +209,7 @@ packages:
 			if tc.ExpectedResolution.ExpectedSdkVersion == "null" {
 				t.Run("assert no active sdk version", func(t *testing.T) {
 					assertNoActiveSdkVersion(t)
-					//testResolution(t, tc.ExpectedResolution)
+					testResolution(t, tc.ExpectedResolution)
 				})
 
 			} else {
