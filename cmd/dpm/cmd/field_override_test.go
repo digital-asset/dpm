@@ -32,7 +32,7 @@ type WorkingDir int
 const (
 	MultiPackageWorkingDir = iota
 	PackageWorkingDir
-	TmpDir
+	OutsideProjectDir
 )
 
 type TestCaseDirs struct {
@@ -323,8 +323,8 @@ func testFieldOverrideExhaustive(t *testing.T, hook func(t *testing.T, testCase 
 			dirs.WorkingDir = dirs.DamlPackageDir
 		case MultiPackageWorkingDir:
 			dirs.WorkingDir = dirs.MultiPackageDir
-		case TmpDir:
-			dirs.WorkingDir = os.TempDir()
+		case OutsideProjectDir:
+			dirs.WorkingDir = t.TempDir()
 		default:
 		}
 		t.Chdir(dirs.WorkingDir)

@@ -122,7 +122,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		Name:                   "no sdk version at multi or package (outside project dir)",
 		MultiPackageSdkVersion: "null",
 		PackageSdkVersion:      "null",
-		WorkingDir:             TmpDir,
+		WorkingDir:             OutsideProjectDir,
 		ExpectedResolution: ExpectedResolution{
 			globalSdkVersion,
 			[]string{},
@@ -192,8 +192,8 @@ packages:
 			dirs.WorkingDir = dirs.DamlPackageDir
 		case MultiPackageWorkingDir:
 			dirs.WorkingDir = dirs.MultiPackageDir
-		case TmpDir:
-			dirs.WorkingDir = os.TempDir()
+		case OutsideProjectDir:
+			dirs.WorkingDir = t.TempDir()
 		default:
 		}
 		t.Chdir(dirs.WorkingDir)
