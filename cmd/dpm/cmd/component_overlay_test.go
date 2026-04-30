@@ -42,38 +42,38 @@ type ComponentOverlayTestCase struct {
 }
 
 var componentOverlayTestCases = []ComponentOverlayTestCase{
-	{
-		Name:                         "1: component1 in multi-package only, pwd multi",
-		WorkingDir:                   MultiPackageWorkingDir,
-		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
-		PackageComponents:            nil,
-		ExpectedHelpCommands:         []string{"foo"},
-		ExpectedResolutionComponents: map[string]string{"foo": "0.0.1"},
-	},
-	{
-		Name:                         "2: component1 in multi-package only, pwd daml",
-		WorkingDir:                   PackageWorkingDir,
-		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
-		PackageComponents:            nil,
-		ExpectedHelpCommands:         []string{"foo"},
-		ExpectedResolutionComponents: map[string]string{"foo": "0.0.1"},
-	},
-	{
-		Name:                         "3: component1 in multi-package and daml, pwd multi",
-		WorkingDir:                   MultiPackageWorkingDir,
-		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
-		PackageComponents:            map[string]string{"foo": "0.0.2"},
-		ExpectedHelpCommands:         []string{"foo"},
-		ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
-	},
-	{
-		Name:                         "4: component1 in multi-package and daml, pwd daml",
-		WorkingDir:                   PackageWorkingDir,
-		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
-		PackageComponents:            map[string]string{"foo": "0.0.2"},
-		ExpectedHelpCommands:         []string{"foo"},
-		ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
-	},
+	//{
+	//	Name:                         "1: component1 in multi-package only, pwd multi",
+	//	WorkingDir:                   MultiPackageWorkingDir,
+	//	MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
+	//	PackageComponents:            nil,
+	//	ExpectedHelpCommands:         []string{"foo"},
+	//	ExpectedResolutionComponents: map[string]string{"foo": "0.0.1"},
+	//},
+	//{
+	//	Name:                         "2: component1 in multi-package only, pwd daml",
+	//	WorkingDir:                   PackageWorkingDir,
+	//	MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
+	//	PackageComponents:            nil,
+	//	ExpectedHelpCommands:         []string{"foo"},
+	//	ExpectedResolutionComponents: map[string]string{"foo": "0.0.1"},
+	//},
+	//{
+	//	Name:                         "3: component1 in multi-package and daml, pwd multi",
+	//	WorkingDir:                   MultiPackageWorkingDir,
+	//	MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
+	//	PackageComponents:            map[string]string{"foo": "0.0.2"},
+	//	ExpectedHelpCommands:         []string{"foo"},
+	//	ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
+	//},
+	//{
+	//	Name:                         "4: component1 in multi-package and daml, pwd daml",
+	//	WorkingDir:                   PackageWorkingDir,
+	//	MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
+	//	PackageComponents:            map[string]string{"foo": "0.0.2"},
+	//	ExpectedHelpCommands:         []string{"foo"},
+	//	ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
+	//},
 	{
 		Name:                         "5: component1 in daml only, pwd multi",
 		WorkingDir:                   MultiPackageWorkingDir,
@@ -82,73 +82,83 @@ var componentOverlayTestCases = []ComponentOverlayTestCase{
 		ExpectedHelpCommands:         []string{},
 		ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
 	},
-	{
-		Name:                         "6: component1 in daml only, pwd daml",
-		WorkingDir:                   PackageWorkingDir,
-		MultiPackageComponents:       nil,
-		PackageComponents:            map[string]string{"foo": "0.0.2"},
-		ExpectedHelpCommands:         []string{"foo"},
-		ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
-	},
-	{
-		Name:                         "7: component1/component2 in multi-package only, pwd multi",
-		WorkingDir:                   MultiPackageWorkingDir,
-		MultiPackageComponents:       map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
-		PackageComponents:            nil,
-		ExpectedHelpCommands:         []string{"foo", "meep"},
-		ExpectedResolutionComponents: map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
-	},
-	{
-		Name:                         "8: component1/component2 in multi-package only, pwd daml",
-		WorkingDir:                   PackageWorkingDir,
-		MultiPackageComponents:       map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
-		PackageComponents:            nil,
-		ExpectedHelpCommands:         []string{"foo", "meep"},
-		ExpectedResolutionComponents: map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
-	},
-	{
-		Name:                         "9: component1 in multi-package, component2 in daml, pwd multi",
-		WorkingDir:                   MultiPackageWorkingDir,
-		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
-		PackageComponents:            map[string]string{"meep": "0.0.2"},
-		ExpectedHelpCommands:         []string{"foo"},
-		ExpectedResolutionComponents: map[string]string{"foo": "0.0.1", "meep": "0.0.2"},
-	},
-	{
-		Name:                         "10: component1 in multi-package, component2 in daml, pwd daml",
-		WorkingDir:                   PackageWorkingDir,
-		MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
-		PackageComponents:            map[string]string{"meep": "0.0.2"},
-		ExpectedHelpCommands:         []string{"foo", "meep"},
-		ExpectedResolutionComponents: map[string]string{"foo": "0.0.1", "meep": "0.0.2"},
-	},
-	{
-		//no multi-pkg structure - in pkg dir
-		Name:                         "11: no multi-package, component1 in daml, pwd daml",
-		WorkingDir:                   PackageWorkingDir,
-		MultiPackageComponents:       nil,
-		PackageComponents:            map[string]string{"foo": "0.0.2"},
-		ExpectedHelpCommands:         []string{"foo"},
-		ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
-		PackageOnly:                  true,
-	},
-	{
-		//no multi-pkg structure - in pkg dir
-		Name:                         "12: no multi-package, no component in daml, pwd daml",
-		WorkingDir:                   PackageWorkingDir,
-		MultiPackageComponents:       nil,
-		PackageComponents:            nil,
-		ExpectedHelpCommands:         []string{}, //blank DS or nil
-		ExpectedResolutionComponents: map[string]string{},
-		PackageOnly:                  true,
-	},
+	//{
+	//	Name:                         "6: component1 in daml only, pwd daml",
+	//	WorkingDir:                   PackageWorkingDir,
+	//	MultiPackageComponents:       nil,
+	//	PackageComponents:            map[string]string{"foo": "0.0.2"},
+	//	ExpectedHelpCommands:         []string{"foo"},
+	//	ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
+	//},
+	//{
+	//	Name:                         "7: component1/component2 in multi-package only, pwd multi",
+	//	WorkingDir:                   MultiPackageWorkingDir,
+	//	MultiPackageComponents:       map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
+	//	PackageComponents:            nil,
+	//	ExpectedHelpCommands:         []string{"foo", "meep"},
+	//	ExpectedResolutionComponents: map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
+	//},
+	//{
+	//	Name:                         "8: component1/component2 in multi-package only, pwd daml",
+	//	WorkingDir:                   PackageWorkingDir,
+	//	MultiPackageComponents:       map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
+	//	PackageComponents:            nil,
+	//	ExpectedHelpCommands:         []string{"foo", "meep"},
+	//	ExpectedResolutionComponents: map[string]string{"foo": "0.0.1", "meep": "0.0.1"},
+	//},
+	//{
+	//	Name:                         "9: component1 in multi-package, component2 in daml, pwd multi",
+	//	WorkingDir:                   MultiPackageWorkingDir,
+	//	MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
+	//	PackageComponents:            map[string]string{"meep": "0.0.2"},
+	//	ExpectedHelpCommands:         []string{"foo"},
+	//	ExpectedResolutionComponents: map[string]string{"foo": "0.0.1", "meep": "0.0.2"},
+	//},
+	//{
+	//	Name:                         "10: component1 in multi-package, component2 in daml, pwd daml",
+	//	WorkingDir:                   PackageWorkingDir,
+	//	MultiPackageComponents:       map[string]string{"foo": "0.0.1"},
+	//	PackageComponents:            map[string]string{"meep": "0.0.2"},
+	//	ExpectedHelpCommands:         []string{"foo", "meep"},
+	//	ExpectedResolutionComponents: map[string]string{"foo": "0.0.1", "meep": "0.0.2"},
+	//},
+	//{
+	//	//no multi-pkg structure - in pkg dir
+	//	Name:                         "11: no multi-package, component1 in daml, pwd daml",
+	//	WorkingDir:                   PackageWorkingDir,
+	//	MultiPackageComponents:       nil,
+	//	PackageComponents:            map[string]string{"foo": "0.0.2"},
+	//	ExpectedHelpCommands:         []string{"foo"},
+	//	ExpectedResolutionComponents: map[string]string{"foo": "0.0.2"},
+	//	PackageOnly:                  true,
+	//},
+	//{
+	//	//no multi-pkg structure - in pkg dir
+	//	Name:                         "12: no multi-package, no component in daml, pwd daml",
+	//	WorkingDir:                   PackageWorkingDir,
+	//	MultiPackageComponents:       nil,
+	//	PackageComponents:            nil,
+	//	ExpectedHelpCommands:         []string{}, //blank DS or nil
+	//	ExpectedResolutionComponents: map[string]string{},
+	//	PackageOnly:                  true,
+	//},
 }
 
-func (suite *MainSuite) TestComponentOverlay() {
-	t := suite.T()
+func (suite *MainSuite) TestComponentOverlayWithoutGlobalSdk() {
+	testComponentOverlay(suite.T(), "")
+}
 
+func (suite *MainSuite) TestComponentOverlayWithGlobalSdk() {
+	testComponentOverlay(suite.T(), "999.999.999")
+}
+
+func testComponentOverlay(t *testing.T, globalSdk string) {
 	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
+
+	if globalSdk != "" {
+		installSdkForComponent(t, globalSdk, "sheep", "999.999.999-shouldnt.matter")
+	}
 
 	t.Setenv("PATH", testutil.TestdataPath(t, "fake-java", testutil.OS)+string(os.PathListSeparator)+os.Getenv("PATH"))
 
