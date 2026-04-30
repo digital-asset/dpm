@@ -18,6 +18,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	globalSdkVersion = "999.999.999"
+
+	globalSdkComponent    = "bleep" // contained in the globalSdkVersion sdk
+	someSdkComponent      = "meep"  // contained in the someSdkVersion sdk
+	someOtherSdkComponent = "sheep" // contained in the someOtherSdkVersion sdk
+)
+
 type SdkVersionTestCase struct {
 	Name                                      string
 	MultiPackageSdkVersion, PackageSdkVersion string

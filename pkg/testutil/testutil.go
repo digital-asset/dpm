@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -14,10 +15,12 @@ import (
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
+	"daml.com/x/assistant/pkg/component"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocipusher"
 	"daml.com/x/assistant/pkg/ocipusher/sdkmanifestpusher"
+	"daml.com/x/assistant/pkg/schema"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
@@ -227,4 +230,43 @@ func MustMarshal(t *testing.T, v any) []byte {
 	}
 
 	return b
+}
+
+func PushGenericComponentWithCommand(t *testing.T, reg *httptest.Server, componentName, componentVersion, command string) {
+	comp := component.Component{
+		ManifestMeta: schema.ManifestMeta{
+			Kind:       component.ComponentKind,
+			APIVersion: component.ComponentAPIVersion,
+		},
+		Spec: &component.Spec{
+			JarCommands: []component.JarCommand{
+				{
+					Name: command,
+					Path: "./dummy",
+					Desc: &command,
+				},
+			},
+			Exports: component.Exports{
+				"MEEP_EXTERNAL_DAR": &component.Export{
+					Paths:            []string{"./component.yaml", "./"},
+					ConflictStrategy: "extend",
+				},
+
+				"SHEEP_EXTERNAL_DAR": &component.Export{
+					Paths:            []string{"./component.yaml", "./"},
+					ConflictStrategy: "extend",
+				},
+			},
+		},
+	}
+
+	compBytes, err := yaml.Marshal(comp)
+	require.NoError(t, err)
+
+	ctx := Context(t)
+
+	compDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(compDir, "component.yaml"), compBytes, 0666))
+	require.NoError(t, os.WriteFile(filepath.Join(compDir, "dummy"), []byte{}, 0666))
+	PushComponent(t, ctx, reg, componentName, componentVersion, compDir)
 }
