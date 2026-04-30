@@ -44,6 +44,11 @@ type ExpectedResolution struct {
 	ExpectedSdkVersion        string // assumes
 }
 
+type ExpectedOptin struct {
+	ExpectedCommand    []string
+	ExpectedComponents []string
+}
+
 func (r ExpectedResolution) WithSdkVersion(v string) ExpectedResolution {
 	return ExpectedResolution{
 		ExpectedDefaultSdkVersion: r.ExpectedDefaultSdkVersion,
