@@ -43,6 +43,7 @@ type ExpectedResolution struct {
 	ExpectedImports           int
 	ExpectedSdkVersion        string // assumes
 	ExpectedPackages          int
+	ExpectedError             error
 }
 
 func (r ExpectedResolution) WithSdkVersion(v string) ExpectedResolution {
@@ -52,6 +53,7 @@ func (r ExpectedResolution) WithSdkVersion(v string) ExpectedResolution {
 		ExpectedImports:           r.ExpectedImports,
 		ExpectedSdkVersion:        v,
 		ExpectedPackages:          r.ExpectedPackages,
+		ExpectedError:             r.ExpectedError,
 	}
 }
 
@@ -68,6 +70,7 @@ func (r ExpectedResolution) WithExtraComponents(components ...string) ExpectedRe
 		ExpectedImports:           imports,
 		ExpectedSdkVersion:        r.ExpectedSdkVersion,
 		ExpectedPackages:          r.ExpectedPackages,
+		ExpectedError:             r.ExpectedError,
 	}
 }
 
@@ -83,7 +86,14 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 
 	installSdk(t, []string{someSdkVersion})
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
-	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, "", 1})
+	testResolution(t,
+		ExpectedResolution{
+			someSdkVersion,
+			[]string{someSdkComponent},
+			2,
+			"",
+			1,
+			nil})
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSubdir() {
@@ -97,7 +107,14 @@ func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 
 	// this will make daml.yaml in the CWD
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-package-with-subdir", "package")))
-	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, "", 1})
+	testResolution(t,
+		ExpectedResolution{
+			someSdkVersion,
+			[]string{someSdkComponent},
+			2,
+			"",
+			1,
+			nil})
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
@@ -1007,12 +1024,12 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 	require.Equal(t, strings.Join(sorted, "\n")+"\n", string(output))
 
 	t.Run("active sdk version err outside project when no sdk installed", func(t *testing.T) {
-		assertNoActiveSdkVersion(t)
+		assertNoActiveSdkVersion(t, versions.ErrNoActiveSdk)
 	})
 
 	t.Run("active sdk version err in single package with null sdk-version", func(t *testing.T) {
 		t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "null-sdk-version"))
-		assertNoActiveSdkVersion(t)
+		assertNoActiveSdkVersion(t, versions.ErrNoActiveSdk)
 	})
 
 	t.Run("active sdk version outside project", func(t *testing.T) {
@@ -1075,15 +1092,15 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 		require.NoError(t, err)
 
 		t.Chdir(tmpDir)
-		assertNoActiveSdkVersion(t)
+		assertNoActiveSdkVersion(t, versions.ErrNoActiveSdk)
 		installSdk(t, []string{someSdkVersion})
 		assertActiveSdkVersion(t, someSdkVersion)
 	})
 }
 
-func assertNoActiveSdkVersion(t *testing.T) {
+func assertNoActiveSdkVersion(t *testing.T, expectedError error) {
 	cmd := createStdTestRootCmd(t, string(builtincommand.Version), "--active")
-	require.ErrorIs(t, cmd.Execute(), versions.ErrNoActiveSdk)
+	require.ErrorIs(t, cmd.Execute(), expectedError)
 }
 
 func assertActiveSdkVersion(t *testing.T, expectedVersion string) {

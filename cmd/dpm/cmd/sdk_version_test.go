@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"daml.com/x/assistant/cmd/dpm/cmd/versions"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/samber/lo"
@@ -28,7 +29,7 @@ var expectedSdkResolution = ExpectedResolution{
 	globalSdkVersion,
 	[]string{someSdkComponent},
 	2,
-	"", 1}
+	"", 1, nil}
 
 var sdkVersionTestCases = []SdkVersionTestCase{
 	{
@@ -54,7 +55,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{someOtherSdkComponent},
 			2,
-			someSdkVersion, 1},
+			someSdkVersion, 1, nil},
 	},
 	{
 		Name:                   "package version differs from multi (package dir)",
@@ -65,7 +66,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{someOtherSdkComponent},
 			2,
-			someOtherSdkVersion, 1},
+			someOtherSdkVersion, 1, nil},
 	},
 	{
 		Name:                   "multi and package same version (multi dir)",
@@ -104,7 +105,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{},
 			0,
-			globalSdkVersion, 1},
+			globalSdkVersion, 1, versions.ErrNoActiveSdk},
 	},
 	{
 		Name:                   "no sdk version at multi or package (package dir)",
@@ -115,7 +116,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			globalSdkVersion,
 			[]string{},
 			0,
-			"null", 1},
+			"null", 1, versions.ErrNoActiveSdk},
 	},
 	{
 		Name:                   "no sdk version at multi or package (outside project dir)",
@@ -127,7 +128,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 			[]string{},
 			0,
 			globalSdkVersion,
-			0},
+			0, nil},
 	},
 	//{
 	//	Name:                   "referenced sdk version that is not installed (multi dir)",
@@ -135,10 +136,10 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 	//	PackageSdkVersion:      "null",
 	//	WorkingDir:             MultiPackageWorkingDir,
 	//	ExpectedResolution: ExpectedResolution{
-	//		"null",
+	//		globalSdkVersion,
 	//		[]string{},
 	//		0,
-	//		"null"},
+	//		"0.0.1-not-installed", 1, assistantconfig.ErrTargetSdkNotInstalled},
 	//},
 	//{
 	//	Name:                   "referenced sdk version that is not installed (package dir)",
@@ -146,10 +147,10 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 	//	PackageSdkVersion:      "null",
 	//	WorkingDir:             PackageWorkingDir,
 	//	ExpectedResolution: ExpectedResolution{
-	//		"null",
+	//		globalSdkVersion,
 	//		[]string{},
 	//		0,
-	//		"null"},
+	//		"0.0.1-not-installed", 1, assistantconfig.ErrTargetSdkNotInstalled},
 	//},
 }
 
@@ -208,7 +209,7 @@ packages:
 
 			if tc.ExpectedResolution.ExpectedSdkVersion == "null" {
 				t.Run("assert no active sdk version", func(t *testing.T) {
-					assertNoActiveSdkVersion(t)
+					assertNoActiveSdkVersion(t, tc.ExpectedResolution.ExpectedError)
 					testResolution(t, tc.ExpectedResolution)
 				})
 

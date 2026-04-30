@@ -82,7 +82,7 @@ var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 			[]string{someOtherSdkComponent},
 			2,
 			someSdkVersion,
-			1},
+			1, nil},
 	},
 	{
 		Name:                   "3 multi:some pkg:null wd:multi",
@@ -108,7 +108,7 @@ var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 			[]string{},
 			0,
 			globalSdkVersion,
-			1},
+			1, nil},
 	},
 	{
 		Name:                   "18 multi:null pkg:null wd:pkg",
@@ -120,7 +120,7 @@ var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 			[]string{},
 			0,
 			"null",
-			1},
+			1, nil},
 	},
 	{
 		Name:                   "10 multi:some pkg:some wd:pkg",
@@ -139,7 +139,7 @@ var vanillaSdkVersionTestCases = []FieldOverrideTestCase{
 			[]string{someOtherSdkComponent},
 			2,
 			someOtherSdkVersion,
-			1},
+			1, nil},
 	},
 	{
 		Name:                   "12 multi:some pkg:null wd:pkg",
@@ -341,7 +341,7 @@ func testFieldOverrideExhaustive(t *testing.T, hook func(t *testing.T, testCase 
 
 			if tc.ExpectedResolution.ExpectedSdkVersion == "null" {
 				t.Run("assert no active sdk version", func(t *testing.T) {
-					assertNoActiveSdkVersion(t)
+					assertNoActiveSdkVersion(t, tc.ExpectedResolution.ExpectedError)
 				})
 				t.Run("test resolution", func(t *testing.T) {
 					testResolution(t, tc.ExpectedResolution)
