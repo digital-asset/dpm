@@ -255,12 +255,14 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 
 func testResolution(t *testing.T, expectedResolution ExpectedResolution) {
 	deepResolution := runResolveCommand(t)
-	assert.Len(t, deepResolution.Packages, expectedResolution.ExpectedPackages)
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, len(expectedResolution.ExpectedComponents))
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, expectedResolution.ExpectedImports)
 	assert.Equal(t, resolution.Kind, deepResolution.Kind)
 	assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
-	assert.ElementsMatch(t, lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2), expectedResolution.ExpectedComponents)
+	assert.Len(t, deepResolution.Packages, expectedResolution.ExpectedPackages)
+	if expectedResolution.ExpectedPackages != 0 {
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, len(expectedResolution.ExpectedComponents))
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, expectedResolution.ExpectedImports)
+		assert.ElementsMatch(t, lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2), expectedResolution.ExpectedComponents)
+	}
 
 	t.Run("correct package paths", func(t *testing.T) {
 		for pkgPath := range deepResolution.Packages {
