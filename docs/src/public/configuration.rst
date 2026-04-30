@@ -128,7 +128,7 @@ Additionally, you can avoid specifying an sdk-version entirely and only opt-in t
 Opt-in Components
 -----------------
 
-``dpm`` supports opting into components in a single and/or a multi-package project.
+``dpm`` supports opting in to the components in a single and/or a multi-package project instead of relying on an sdk-version bundle.
 You can use pre-existing components, or ones you create and publish (see :ref:`these docs <dpm-custom-components>` on publishing your own components).
 
 in ``daml.yaml``
