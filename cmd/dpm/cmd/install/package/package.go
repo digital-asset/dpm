@@ -23,7 +23,6 @@ import (
 )
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
-	var skipSDK bool
 	cmd := &cobra.Command{
 		Use:    "package",
 		Short:  "install the SDK and all opt-in components (if any) for a package",
@@ -49,12 +48,8 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 					if err != nil {
 						return err
 					}
-					if !skipSDK {
-						if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
-							return err
-						}
-					} else {
-						cmd.Println("Skipping installation of multi-package sdk version ", sdkVersion)
+					if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+						return err
 					}
 				}
 
@@ -64,7 +59,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				for _, p := range pkgs {
 					cmd.Printf("Processing package %q...\n", p)
 					damlPackagePath := filepath.Join(p, assistantconfig.DamlPackageFilename)
-					processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath, skipSDK)
+					processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath)
 					installOverrides(ctx, cmd, config, damlPackagePath, true)
 				}
 
@@ -76,17 +71,16 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				if !isDamlPackage {
 					return fmt.Errorf("not in a package directory or subdirectory")
 				}
-				processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath, skipSDK)
+				processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath)
 				return installOverrides(ctx, cmd, config, damlPackagePath, false)
 			}
 			return nil
 		},
 	}
 
-	cmd.Flags().BoolVar(&skipSDK, "skip-sdk", false, "run install packages with overwrites only")
 	return cmd
 }
-func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, damlPath string, skip bool) error {
+func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, damlPath string) error {
 	damlPackage, err := damlpackage.Read(damlPath)
 	if err != nil {
 		return err
@@ -96,12 +90,8 @@ func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assista
 		if err != nil {
 			return err
 		}
-		if !skip {
-			if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
-				return err
-			}
-		} else {
-			cmd.Println("Skipping installation of SDK with version:", sdkVersion)
+		if err := installSdk(ctx, cmd, config, sdkVersion); err != nil {
+			return err
 		}
 	}
 	return nil

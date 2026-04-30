@@ -1,6 +1,9 @@
 // Copyright (c) 2017-2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+// TODO refactor: rip out getOrAutoInstallPackageSdk() from here and replace with only a getPackageSdk()...
+// no need to further bloat this module with sdk installation
+
 package assemblyplan
 
 import (
@@ -19,6 +22,8 @@ import (
 	"daml.com/x/assistant/pkg/versions"
 	"github.com/Masterminds/semver/v3"
 )
+
+var ErrBothSdkAndComponentsInUse = fmt.Errorf("project uses both opt-in Components and SDK bundle, but dpm does not allow usage of both simultaneously")
 
 // AssemblyPlan decides what the final commands that'll be added to the assistant root command are,
 // or rather where they'll be sourced from.
@@ -39,6 +44,13 @@ type AssemblyPlan struct {
 
 	assembler *assembler.Assembler
 	config    *assistantconfig.Config
+}
+
+var emptyBase = sdkmanifest.SdkManifest{
+	AbsolutePath: "",
+	Spec: &sdkmanifest.Spec{
+		Components: map[string]*sdkmanifest.Component{},
+	},
 }
 
 func New(ctx context.Context, config *assistantconfig.Config, a *assembler.Assembler) (plan *AssemblyPlan, err error) {
@@ -63,49 +75,29 @@ func New(ctx context.Context, config *assistantconfig.Config, a *assembler.Assem
 }
 
 func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assembler.Assembler, damlPackagePath string) (*AssemblyPlan, error) {
-	sdkVersion, err := versions.GetActiveVersion(config, damlPackagePath)
+	sdkVersion, sdkSrc, err := versions.GetActiveVersion(config, damlPackagePath)
 	if err != nil {
 		return nil, err
 	}
-
 	plan := &AssemblyPlan{
 		config:     config,
 		assembler:  a,
 		SdkVersion: sdkVersion,
 	}
 
-	var installedSdk *assistantconfig.InstalledSdkVersion
+	var damlPackage *damlpackage.DamlPackage
+	var multiPackage *multipackage.MultiPackage
+	var multiPackagePath string
 
+	// Add user-specified Components from daml.yaml / multi-package.yaml (if any)
 	if damlPackagePath != "" {
-
-		damlPackage, err := damlpackage.Read(damlPackagePath)
+		damlPackage, err = damlpackage.Read(damlPackagePath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return nil, resolutionerrors.NewDamlYamlNotFoundError(err)
 			}
 			return nil, resolutionerrors.NewMalformedDamlYamlError(err)
 		}
-
-		if sdkVersion == nil {
-			plan.Base = sdkmanifest.SdkManifest{
-				AbsolutePath: "",
-				Spec: &sdkmanifest.Spec{
-					Components: map[string]*sdkmanifest.Component{},
-				},
-			}
-		} else {
-			installedSdk, err = getOrAutoInstallPackageSdk(ctx, config, sdkVersion.String(), damlPackagePath)
-			if err != nil {
-				return nil, err
-			}
-
-			base, err := sdkmanifest.ReadSdkManifest(installedSdk.ManifestPath)
-			if err != nil {
-				return nil, err
-			}
-			plan.Base = *base
-		}
-
 		if damlPackage.Components != nil {
 			plan.DamlPackage = &sdkmanifest.SdkManifest{
 				AbsolutePath: damlPackagePath,
@@ -114,31 +106,62 @@ func NewShallow(ctx context.Context, config *assistantconfig.Config, a *assemble
 				},
 			}
 		}
-	} else {
-		if sdkVersion == nil {
-			plan.Base = sdkmanifest.SdkManifest{
-				AbsolutePath: "",
-				Spec: &sdkmanifest.Spec{
-					Components: map[string]*sdkmanifest.Component{},
-				},
-			}
-		} else {
-			installedSdk, err = assistantconfig.GetInstalledSdkVersion(config, sdkVersion)
-			if err != nil {
-				return nil, err
-			}
-			base, err := sdkmanifest.ReadSdkManifest(installedSdk.ManifestPath)
-			if err != nil {
-				return nil, err
-			}
-			plan.Base = *base
-		}
-		if err := configureMultiPackage(plan); err != nil {
-			return nil, err
+	}
+	multiPackage, multiPackagePath, err = getMultiPackage()
+	if err != nil {
+		return nil, err
+	}
+	if multiPackage != nil && multiPackage.Components != nil {
+		plan.MultiPackage = &sdkmanifest.SdkManifest{
+			AbsolutePath: multiPackagePath,
+			Spec: &sdkmanifest.Spec{
+				Components: multiPackage.Components,
+			},
 		}
 	}
-	if err := configureMultiPackage(plan); err != nil {
-		return nil, err
+
+	if plan.HasOverrides() {
+		// Opt-in components case
+
+		plan.Base = emptyBase
+		if !(sdkVersion == nil || sdkSrc == versions.SdkVersionSourceGlobal) {
+			return nil, ErrBothSdkAndComponentsInUse
+		}
+	} else {
+		// SDK case
+
+		// TODO refactor / clean up this top-level "SDK case" branch some more
+		var installedSdk *assistantconfig.InstalledSdkVersion
+		if damlPackage != nil {
+			if sdkVersion == nil {
+				plan.Base = emptyBase
+			} else {
+				installedSdk, err = getOrAutoInstallPackageSdk(ctx, config, sdkVersion.String(), damlPackagePath)
+				if err != nil {
+					return nil, err
+				}
+
+				base, err := sdkmanifest.ReadSdkManifest(installedSdk.ManifestPath)
+				if err != nil {
+					return nil, err
+				}
+				plan.Base = *base
+			}
+		} else {
+			if sdkVersion == nil {
+				plan.Base = emptyBase
+			} else {
+				installedSdk, err = assistantconfig.GetInstalledSdkVersion(config, sdkVersion)
+				if err != nil {
+					return nil, err
+				}
+				base, err := sdkmanifest.ReadSdkManifest(installedSdk.ManifestPath)
+				if err != nil {
+					return nil, err
+				}
+				plan.Base = *base
+			}
+		}
 	}
 
 	return plan, nil
@@ -168,35 +191,28 @@ func getOrAutoInstallPackageSdk(ctx context.Context, config *assistantconfig.Con
 	return installedSdk, nil
 }
 
-// configureMultiPackage mutates the AssemblyPlan to account for multi-package.yaml (if any)
-func configureMultiPackage(plan *AssemblyPlan) error {
+func getMultiPackage() (multiPackage *multipackage.MultiPackage, multiPackagePath string, err error) {
 	multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 	if !hasMultiPackage {
-		return nil
+		return nil, "", nil
 	}
-	multiPackage, err := multipackage.Read(multiPackagePath)
+	multiPackage, err = multipackage.Read(multiPackagePath)
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 
-	plan.MultiPackage = &sdkmanifest.SdkManifest{
-		AbsolutePath: multiPackagePath,
-		Spec: &sdkmanifest.Spec{
-			Components: multiPackage.Components,
-		},
-	}
-	return nil
+	return multiPackage, multiPackagePath, nil
 }
 
 func (plan *AssemblyPlan) getOverrides() (assemblies []*sdkmanifest.SdkManifest) {
-	if plan.MultiPackage != nil {
+	if plan.MultiPackage != nil && len(plan.MultiPackage.Spec.Components) > 0 {
 		assemblies = append(assemblies, plan.MultiPackage)
 	}
 
-	if plan.DamlPackage != nil {
+	if plan.DamlPackage != nil && len(plan.DamlPackage.Spec.Components) > 0 {
 		assemblies = append(assemblies, plan.DamlPackage)
 	}
 	return

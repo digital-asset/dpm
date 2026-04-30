@@ -1,10 +1,7 @@
-sdk-version: 9.9.9
 override-components:
-  # override
   meep:
     local-path: ../../meepy-component/windows
 
-  # add
   javabro:
     local-path: ../../javabro-component
 

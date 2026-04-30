@@ -20,6 +20,20 @@ import (
 	"github.com/samber/lo"
 )
 
+// SdkVersionSource describes how the effective sdk version was determined.
+// It shouldn't be used to infer the actual value of the version.
+// For example, when the source is deemed to be SdkVersionSourceGlobal,
+// the version could be some non-blank version (1.2.3), or blank if there happens to not be any sdk installed
+type SdkVersionSource int
+
+const (
+	SdkVersionSourceEnvVar SdkVersionSource = iota
+	SdkVersionSourceDamlPackage
+	SdkVersionSourceMultiPackage
+	SdkVersionSourceGlobal
+	SdkVersionSourceNone
+)
+
 type Version struct {
 	Version   *semver.Version `json:"version,omitempty"`
 	Installed bool            `json:"installed,omitempty"`
@@ -156,38 +170,40 @@ returns nil
 - when we're in package context, and sdk-version is null or "" in both daml.yaml and multi-package.yaml
 - or when DPM_SDK_VERSION=""
 */
-func GetActiveVersion(config *assistantconfig.Config, damlPackagePath string) (*semver.Version, error) {
-	v, err := GetFloatyActiveVersion(config, damlPackagePath)
+func GetActiveVersion(config *assistantconfig.Config, damlPackagePath string) (*semver.Version, SdkVersionSource, error) {
+	v, src, err := GetFloatyActiveVersion(config, damlPackagePath)
 	if errors.Is(err, assistantconfig.ErrNoSdkInstalled) {
-		return nil, nil
+		return nil, SdkVersionSourceGlobal, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if v == assistantconfig.BlankSdkVersion {
-		return nil, nil
+		return nil, src, nil
 	}
-	return semver.StrictNewVersion(v)
+
+	semVer, err := semver.StrictNewVersion(v)
+	return semVer, src, err
 }
 
 // GetFloatyActiveVersion is the same as GetActiveVersion but permits floaty versions
-func GetFloatyActiveVersion(config *assistantconfig.Config, damlPackagePath string) (string, error) {
+func GetFloatyActiveVersion(config *assistantconfig.Config, damlPackagePath string) (string, SdkVersionSource, error) {
 	// DPM_SDK_VERSION override
 	versionOverride, ok := os.LookupEnv(assistantconfig.DpmSdkVersionEnvVar)
 	if ok {
-		return versionOverride, nil
+		return versionOverride, SdkVersionSourceEnvVar, nil
 	}
 
 	multiPackageVersion := ""
 
 	multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	if hasMultiPackage {
 		multiPackage, err := multipackage.Read(multiPackagePath)
 		if err != nil {
-			return "", err
+			return "", 0, err
 		}
 		multiPackageVersion = multiPackage.SdkVersion
 	}
@@ -197,25 +213,25 @@ func GetFloatyActiveVersion(config *assistantconfig.Config, damlPackagePath stri
 		damlPackage, err := damlpackage.Read(damlPackagePath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				return "", resolutionerrors.NewDamlYamlNotFoundError(err)
+				return "", 0, resolutionerrors.NewDamlYamlNotFoundError(err)
 			}
-			return "", resolutionerrors.NewMalformedDamlYamlError(err)
+			return "", 0, resolutionerrors.NewMalformedDamlYamlError(err)
 		}
 
 		if damlPackage.SdkVersion != "" {
-			return damlPackage.SdkVersion, nil
+			return damlPackage.SdkVersion, SdkVersionSourceDamlPackage, nil
 		} else if multiPackageVersion != "" {
-			return multiPackageVersion, nil
+			return multiPackageVersion, SdkVersionSourceMultiPackage, nil
 		}
 
-		// don't inherit the global sdk-version, instead use no sdk
-		return "", nil
+		// when both parent and child have null sdk, don't inherit the global sdk-version, instead use no sdk
+		return "", SdkVersionSourceNone, nil
 	}
 
 	// in a multi-package context
 	if hasMultiPackage {
 		if multiPackageVersion != "" {
-			return multiPackageVersion, nil
+			return multiPackageVersion, SdkVersionSourceMultiPackage, nil
 		}
 		// else: fallthrough to using the global sdk
 	}
@@ -223,7 +239,7 @@ func GetFloatyActiveVersion(config *assistantconfig.Config, damlPackagePath stri
 	// not in a package or multi-package context
 	s, err := assistantconfig.GetInstalledSdkFromEnvOrDefault(config)
 	if err != nil {
-		return "", err
+		return "", SdkVersionSourceGlobal, err
 	}
-	return s.Version.String(), nil
+	return s.Version.String(), SdkVersionSourceGlobal, nil
 }

@@ -1,3 +1,4 @@
+sdk-version: 1.2.123
 build-options:
   - --target=2.1
 codegen:
@@ -37,11 +38,3 @@ typecheck-upgrades: true
 upgrades: ..
 version: 0.0.0.1
 #module-prefixes: !java.util.LinkedHashMap
-components:
-  - name: foo
-    path: ../foo-component
-
-  - name: bar
-    path: ../bar-component
-
-
