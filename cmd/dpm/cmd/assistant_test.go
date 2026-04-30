@@ -42,6 +42,8 @@ type ExpectedResolution struct {
 	ExpectedComponents        []string
 	ExpectedImports           int
 	ExpectedSdkVersion        string // assumes
+	ExpectedPackages          int
+	ExpectedError             error
 }
 
 func (r ExpectedResolution) WithSdkVersion(v string) ExpectedResolution {
@@ -50,6 +52,8 @@ func (r ExpectedResolution) WithSdkVersion(v string) ExpectedResolution {
 		ExpectedComponents:        append([]string{}, r.ExpectedComponents...),
 		ExpectedImports:           r.ExpectedImports,
 		ExpectedSdkVersion:        v,
+		ExpectedPackages:          r.ExpectedPackages,
+		ExpectedError:             r.ExpectedError,
 	}
 }
 
@@ -65,6 +69,8 @@ func (r ExpectedResolution) WithExtraComponents(components ...string) ExpectedRe
 		ExpectedComponents:        append(components, r.ExpectedComponents...),
 		ExpectedImports:           imports,
 		ExpectedSdkVersion:        r.ExpectedSdkVersion,
+		ExpectedPackages:          r.ExpectedPackages,
+		ExpectedError:             r.ExpectedError,
 	}
 }
 
@@ -80,7 +86,14 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 
 	installSdk(t, []string{someSdkVersion})
 	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "another-daml-package"))
-	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, ""})
+	testResolution(t,
+		ExpectedResolution{
+			someSdkVersion,
+			[]string{someSdkComponent},
+			2,
+			"",
+			1,
+			nil})
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSubdir() {
@@ -94,7 +107,14 @@ func (suite *MainSuite) TestResolveMultiPackageSubdir() {
 
 	// this will make daml.yaml in the CWD
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-package-with-subdir", "package")))
-	testResolution(t, ExpectedResolution{someSdkVersion, []string{someSdkComponent}, 2, ""})
+	testResolution(t,
+		ExpectedResolution{
+			someSdkVersion,
+			[]string{someSdkComponent},
+			2,
+			"",
+			1,
+			nil})
 }
 
 func (suite *MainSuite) TestResolveMultiPackageSdkVersionWithOverrides() {
@@ -252,12 +272,14 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 
 func testResolution(t *testing.T, expectedResolution ExpectedResolution) {
 	deepResolution := runResolveCommand(t)
-	assert.Len(t, deepResolution.Packages, 1)
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, len(expectedResolution.ExpectedComponents))
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, expectedResolution.ExpectedImports)
 	assert.Equal(t, resolution.Kind, deepResolution.Kind)
 	assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
-	assert.ElementsMatch(t, lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2), expectedResolution.ExpectedComponents)
+	assert.Len(t, deepResolution.Packages, expectedResolution.ExpectedPackages)
+	if expectedResolution.ExpectedPackages != 0 {
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, len(expectedResolution.ExpectedComponents))
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, expectedResolution.ExpectedImports)
+		assert.ElementsMatch(t, lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2), expectedResolution.ExpectedComponents)
+	}
 
 	t.Run("correct package paths", func(t *testing.T) {
 		for pkgPath := range deepResolution.Packages {
@@ -526,7 +548,7 @@ func installFloatySdk(t *testing.T, version string, floatyTag string) {
 
 	// verify
 	testMeepyComponent(t)
-	t.Run("link assistant", verifyLink)
+	t.Run("SETUP:add dpm bin to PATH", verifyLink)
 }
 
 func installSdk(t *testing.T, versions []string) {
@@ -549,7 +571,7 @@ func installSdk(t *testing.T, versions []string) {
 	for _, version := range versions {
 		version := version // capture
 
-		t.Run("install_"+version, func(t *testing.T) {
+		t.Run("SETUP: install sdk "+version, func(t *testing.T) {
 			cmd, r, w := createTestRootCmd(t, "install", version)
 
 			require.NoError(t, cmd.Execute())
@@ -567,7 +589,7 @@ func installSdk(t *testing.T, versions []string) {
 
 	// verify
 	testMeepyComponent(t)
-	t.Run("link assistant", verifyLink)
+	t.Run("SETUP:add dpm bin to PATH", verifyLink)
 }
 
 func installSdkForComponent(t *testing.T, sdkVersion, componentName, componentVersion string) {
@@ -587,14 +609,14 @@ func installSdkForComponent(t *testing.T, sdkVersion, componentName, componentVe
 
 	// create an SdkManifest and push it
 	edition := sdkmanifest.OpenSource
-	sdkManifest := sdkmanifest.SdkManifest{
+	var sdkManifest = sdkmanifest.SdkManifest{
 		ManifestMeta: schema.ManifestMeta{
 			APIVersion: sdkmanifest.SdkManifestAPIVersion,
 			Kind:       sdkmanifest.SdkManifestKind,
 		},
 		Spec: &sdkmanifest.Spec{
 			Components: map[string]*sdkmanifest.Component{
-				componentName: &sdkmanifest.Component{
+				componentName: {
 					Name:    componentName,
 					Version: sdkmanifest.AssemblySemVer(componentSemVer),
 				},
@@ -617,7 +639,7 @@ func installSdkForComponent(t *testing.T, sdkVersion, componentName, componentVe
 	testutil.PushComponent(t, ctx, reg, componentName, componentVersion, testutil.TestdataPath(t, "meepy-component", testutil.OS))
 	testutil.PushComponent(t, ctx, reg, sdkmanifest.AssistantName, "4.5.6", testutil.TestdataPath(t, "assistant-binary", testutil.OS))
 
-	t.Run("install_"+sdkVersion, func(t *testing.T) {
+	t.Run("SETUP: install sdk "+sdkVersion, func(t *testing.T) {
 		cmd, r, w := createTestRootCmd(t, "install", sdkVersion)
 
 		require.NoError(t, cmd.Execute())
@@ -634,7 +656,7 @@ func installSdkForComponent(t *testing.T, sdkVersion, componentName, componentVe
 
 	// verify
 	testMeepyComponent(t)
-	t.Run("link assistant", verifyLink)
+	t.Run("SETUP:add dpm bin to PATH", verifyLink)
 }
 
 func (suite *MainSuite) TestAutoInstallDefaultDisabled() {
@@ -1002,12 +1024,12 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 	require.Equal(t, strings.Join(sorted, "\n")+"\n", string(output))
 
 	t.Run("active sdk version err outside project when no sdk installed", func(t *testing.T) {
-		assertNoActiveSdkVersion(t)
+		assertNoActiveSdkVersion(t, versions.ErrNoActiveSdk)
 	})
 
 	t.Run("active sdk version err in single package with null sdk-version", func(t *testing.T) {
 		t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "null-sdk-version"))
-		assertNoActiveSdkVersion(t)
+		assertNoActiveSdkVersion(t, versions.ErrNoActiveSdk)
 	})
 
 	t.Run("active sdk version outside project", func(t *testing.T) {
@@ -1070,15 +1092,15 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 		require.NoError(t, err)
 
 		t.Chdir(tmpDir)
-		assertNoActiveSdkVersion(t)
+		assertNoActiveSdkVersion(t, versions.ErrNoActiveSdk)
 		installSdk(t, []string{someSdkVersion})
 		assertActiveSdkVersion(t, someSdkVersion)
 	})
 }
 
-func assertNoActiveSdkVersion(t *testing.T) {
+func assertNoActiveSdkVersion(t *testing.T, expectedError error) {
 	cmd := createStdTestRootCmd(t, string(builtincommand.Version), "--active")
-	require.ErrorIs(t, cmd.Execute(), versions.ErrNoActiveSdk)
+	require.ErrorIs(t, cmd.Execute(), expectedError)
 }
 
 func assertActiveSdkVersion(t *testing.T, expectedVersion string) {
