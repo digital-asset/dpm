@@ -17,6 +17,9 @@ inputs:
     type: string
     description: auth key
     required: true
+  gh_token:
+    description: github auth secret
+    required: true
 runs:
   using: composite
   steps:
@@ -31,21 +34,25 @@ runs:
         export GIT_COMMIT_COUNT=$(git rev-list --count HEAD)
         goreleaser ${{ inputs.flags }}
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
-    - name: dpm publish dry-run
-      run: make publish-release-to-gar ASSISTANT_ARGS='-d'
-      shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
-    - name: dpm publish to ${{ inputs.repo }}
-      run: |
-        EXTRA_TAGS="-t latest"
-        if [[ "${{ github.ref_type }}" == "tag" ]]; then
-          EXTRA_TAGS="$EXTRA_TAGS -t ${{ github.ref_name }}"
-        fi
-        make publish-release-to-gar ASSISTANT_ARGS='--registry ${{ inputs.registry }}/${{ inputs.repo }} '"$EXTRA_TAGS"
-      shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
     - uses: ./.github/actions/nsis
       with:
         bin-path: dist/windows/amd64/dpm.exe
         out: dist/dpm-installer.exe
-    - name: publish windows installer to bucket
-      run: ./.github/actions/release/publish-windows.sh
+    - name: Create draft GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ inputs.gh_token }}
+        RELEASE_NAME: 0.0.0-skiprelease
+      run: |
+        git tag "${RELEASE_NAME}"
+        git push --tag origin 0.0.0-skiprelease
+        gh release create "${RELEASE_NAME}" \
+          dist/linux/arm64/dpm \
+          dist/linux/amd64/dpm \
+          dist/darwin/arm64/dpm \
+          dist/darwin/amd64/dpm \
+          dist/windows/amd64/dpm.exe \
+          dist/dpm-installer.exe \
+          --draft \
+          --generate-notes \
+          --title "${RELEASE_NAME}"
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"

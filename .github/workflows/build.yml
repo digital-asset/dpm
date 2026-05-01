@@ -58,10 +58,16 @@ jobs:
 
   release-public:
     runs-on: digital-asset-dpm
-    needs: 
+    needs:
       - windows
       - linux
     if: success() && startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/tags/0.0.0-skiprelease'
+    permissions:
+      contents: write
+    # needs:
+    #   - windows
+    #   - linux
+    # if: success() && startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -71,16 +77,17 @@ jobs:
           repo: da-images/public
           flags: "--clean --skip=announce,publish,validate"
           key: ${{ secrets.DA_IMAGES }}
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
 
-  release-public-unstable:
-    runs-on: digital-asset-dpm
-    needs: 
-      - windows
-      - linux
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: ./.github/actions/release
-        with:
-          repo: da-images/public-unstable
-          flags: "--snapshot"
-          key: ${{ secrets.DA_IMAGES }}
+#  release-public-unstable:
+#    runs-on: digital-asset-dpm
+#    needs:
+#      - windows
+#      - linux
+#    steps:
+#      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+#      - uses: ./.github/actions/release
+#        with:
+#          repo: da-images/public-unstable
+#          flags: "--snapshot"
+#          key: ${{ secrets.DA_IMAGES }}
