@@ -134,30 +134,61 @@ Opt-in Components
 
 
 ``dpm`` supports opting in to the components in a single and/or a multi-package project instead of relying on an sdk-version bundle.
-You can use pre-existing components, or ones you create and publish (see :ref:`these docs <dpm-custom-components>` on publishing your own components).
+
+You can use pre-existing components, or components you create and publish to extend the CLI (see :ref:`Publishing your own custom component <dpm-custom-components>`).
+
+Pre-existing components
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The following pre-existing components are available for opt-in:
+
++---------------------+----------------------------------------------+
+| Name                | Description                                  |
++=====================+==============================================+
+| canton-open-source  | Canton open source sandbox / JAR             |
++---------------------+----------------------------------------------+
+| codegen             | Java and Typescript codegen                  |
++---------------------+----------------------------------------------+
+| damlc               | The Daml compiler                            |
++---------------------+----------------------------------------------+
+| daml-new            | Daml new project templates                   |
++---------------------+----------------------------------------------+
+| daml-script         | Daml scripting and testing                   |
++---------------------+----------------------------------------------+
+| upgrade-check       | Smart Contract Upgrade (SCU) checker         |
++---------------------+----------------------------------------------+
+| scribe              | Participant Query Store                      |
++---------------------+----------------------------------------------+
+| daml-shell          | Shell to interact with the Participant Query |
+|                     | Store                                        |
++---------------------+----------------------------------------------+
+
+The components above are available for opt-in at specific versions. You can find the available versions for each component in the `public da-images registry <https://console.cloud.google.com/artifacts/docker/da-images/europe/public?project=da-images>`_ ).
 
 in single-package projects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following example shows how to opt-in to the `damlc` pre-existing component, a custom `foo` component, and a local `codegen-python` component without specifying an sdk-version,
 
 .. code:: yaml
 
    # daml.yaml
 
    components:
-     # damlc to use version 3.5.1-rc1
+     # damlc pre-existing component at version 3.5.1-rc1
      - damlc:3.5.1-rc1
 
      # adding component "foo"
      - oci://example.com/some/path/foo:1.2.3
 
      # codegen-java to use a component present locally on the filesystem
-     - name: codegen-java
+     - name: codegen-python
        path: ../path/to/component/directory
 
 in multi-package projects
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For multi-package projects, you must specify the ``components`` yaml object in ``multi-package.yaml``. This applies the specified components to all packages.
+For multi-package projects, you should specify the ``components`` yaml object in ``multi-package.yaml``. This applies the specified components to all packages.
 
 .. code:: yaml
 
@@ -177,7 +208,13 @@ For multi-package projects, you must specify the ``components`` yaml object in `
      - name: codegen-java
        path: ../path/to/component/directory
 
+
 When a ``daml.yaml`` in a multi-package project also defines the `components` field, ``dpm`` gives precedence to ``daml.yaml`` components over the values specified in ``multi-package.yaml``.
+
+So you can optionally also specify the ``components`` field in a package's individual ``daml.yaml``, giving you the flexibility to have different components for different packages in the multi-package project.
+
+Installation
+~~~~~~~~~~~~
 
 Components specified in ``components`` must be installed by running
 
@@ -186,6 +223,7 @@ Components specified in ``components`` must be installed by running
     dpm install package
 
 in a directory containing the ``daml.yaml`` or ``multi-package.yaml``
+
 
 .. warning::
 
