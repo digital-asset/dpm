@@ -67,7 +67,7 @@ find the source code for dependency DARs and build them in topological order.
 
 .. note::
 
-    This functionality is available in DPM version 1.0.13 or later (or bundled with SDK 3.5 or later)
+    This functionality is available in DPM version 1.0.14 or later (or bundled with SDK 3.5 or later)
 
 You can also specify the `sdk-version:` field in ``multi-package.yaml``. This SDK version applies to all packages in the multi-package, unless a package's individual ``daml.yaml`` specifies its own `sdk-version`, which takes precedence over the one in ``multi-package.yaml``.
 
@@ -116,7 +116,7 @@ Escape syntax uses the ``\`` prefix: ``\${NOT_INTERPOLATED}``.
 
 .. note::
 
-    This functionality is available in DPM version 1.0.13 or later (or bundled with SDK 3.5 or later)
+    This functionality is available in DPM version 1.0.14 or later (or bundled with SDK 3.5 or later)
 
 Additionally, if you specify the `sdk-version` in the `multi-package.yaml` that references your project `daml.yaml`, you can exclude
 repeating the `sdk-version:` field in your `daml.yaml`, and the value specified in your `multi-package.yaml` will be used.
@@ -128,15 +128,21 @@ Additionally, you can avoid specifying an sdk-version entirely and only opt-in t
 Opt-in Components
 -----------------
 
+.. note::
+
+    This functionality is available in DPM version 1.0.14 or later (or bundled with SDK 3.5 or later)
+
+
 ``dpm`` supports opting in to the components in a single and/or a multi-package project instead of relying on an sdk-version bundle.
 You can use pre-existing components, or ones you create and publish (see :ref:`these docs <dpm-custom-components>` on publishing your own components).
 
-in ``daml.yaml``
-~~~~~~~~~~~~~~~~
+in single-package projects
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: yaml
 
-   # note: the 'components' field is only available in SDK versions 3.5 or later
+   # daml.yaml
+
    components:
      # damlc to use version 3.5.1-rc1
      - damlc:3.5.1-rc1
@@ -148,18 +154,19 @@ in ``daml.yaml``
      - name: codegen-java
        path: ../path/to/component/directory
 
-in ``multi-package.yaml``
+in multi-package projects
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can use the same ``components`` yaml object in a ``multi-package.yaml`` too. This applies the specified components to all packages.
+For multi-package projects, you must specify the ``components`` yaml object in ``multi-package.yaml``. This applies the specified components to all packages.
 
 .. code:: yaml
+
+   # multi-package.yaml
 
    packages:
      - ./daml-pkg-1
      - ./daml-pkg-2
 
-   # note: the 'components' field is only available in SDK versions 3.5 or later
    components:
      - damlc:3.5.1-rc1
 
@@ -170,7 +177,7 @@ You can use the same ``components`` yaml object in a ``multi-package.yaml`` too.
      - name: codegen-java
        path: ../path/to/component/directory
 
-When both ``multi-package.yaml`` and one of its packages' ``daml.yaml`` simultaneously define `components` field, ``dpm`` gives precedence to ``daml.yaml`` components over the values specified in ``multi-package.yaml``.
+When a ``daml.yaml`` in a multi-package project also defines the `components` field, ``dpm`` gives precedence to ``daml.yaml`` components over the values specified in ``multi-package.yaml``.
 
 Components specified in ``components`` must be installed by running
 
