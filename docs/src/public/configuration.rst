@@ -168,7 +168,7 @@ The components above are available for opt-in at specific versions. You can find
 in single-package projects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The following example shows how to opt-in to the `damlc` pre-existing component, a custom `foo` component, and a local `codegen-python` component without specifying an sdk-version,
+The following example shows how to opt-in to the `damlc` pre-existing component, a custom `foo` component, and a local `codegen-python` component without specifying an sdk-version:
 
 .. code:: yaml
 
@@ -178,10 +178,10 @@ The following example shows how to opt-in to the `damlc` pre-existing component,
      # damlc pre-existing component at version 3.5.1-rc1
      - damlc:3.5.1-rc1
 
-     # adding component "foo"
+     # custom component "foo" from an external registry
      - oci://example.com/some/path/foo:1.2.3
 
-     # codegen-java to use a component present locally on the filesystem
+     # a codegen-python component present locally on the filesystem
      - name: codegen-python
        path: ../path/to/component/directory
 
