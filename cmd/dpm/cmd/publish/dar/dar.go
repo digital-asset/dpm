@@ -23,7 +23,7 @@ func Cmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "dar <registry>",
 		Short:   "Publish a dar to an OCI registry",
-		Example: "dpm artifacts publish dar 'oci://whatever.dev/bar/test/foo:1.2.3-alpha' -f path/to/foo.dar",
+		Example: "dpm publish dar 'oci://whatever.dev/bar/test/foo:1.2.3-alpha' -f path/to/foo.dar",
 		Hidden:  !assistantconfig.DpmLockfileEnabled(), // Use single feature flag to represent features in current release
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

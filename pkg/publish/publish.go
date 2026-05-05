@@ -76,18 +76,24 @@ func (p *Publisher) Publish(ctx context.Context) (err error) {
 	p.printer.Println("destination is " + p.config.Destination.String())
 
 	var pushOps []*ocipusher.PushOperation
-	if p.config.Name != sdkmanifest.AssistantName {
-		pushOps, err = p.prepareComponents(ctx)
-		if err != nil {
-			return err
-		}
-	} else {
+
+	if p.config.Name == sdkmanifest.AssistantName {
 		assistantPushOps, closeFn, err := p.prepareAssistant(ctx)
 		defer func() { _ = closeFn() }()
 		if err != nil {
 			return err
 		}
 		pushOps = assistantPushOps
+	} else if p.config.Destination.Artifact.ArtifactType() == ociconsts.ComponentArtifactType {
+		pushOps, err = p.prepareComponents(ctx)
+		if err != nil {
+			return err
+		}
+	} else {
+		pushOps, err = p.prepareGeneric(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	if p.config.DryRun {
@@ -215,6 +221,19 @@ func (p *Publisher) prepareComponents(ctx context.Context) ([]*ocipusher.PushOpe
 	var pushOps []*ocipusher.PushOperation
 	for platform, dir := range p.config.Platforms {
 		pushOp, err := p.prepareComponent(ctx, platform, dir)
+		if err != nil {
+			return nil, err
+		}
+
+		pushOps = append(pushOps, pushOp)
+	}
+	return pushOps, nil
+}
+
+func (p *Publisher) prepareGeneric(ctx context.Context) ([]*ocipusher.PushOperation, error) {
+	var pushOps []*ocipusher.PushOperation
+	for platform, dir := range p.config.Platforms {
+		pushOp, err := p.prepare(ctx, platform, dir)
 		if err != nil {
 			return nil, err
 		}

@@ -69,6 +69,36 @@ func (suite *RepoSuite) TestPublishThirdPartyComponents() {
 	})
 }
 
+func (suite *RepoSuite) TestPublishGenericArtifact() {
+	t := suite.T()
+	_, _ = testutil.StartRegistry(t)
+	uri := fmt.Sprintf("%s/x/y/z", os.Getenv(assistantconfig.OciRegistryEnvVar))
+
+	args := []string{"publish", fmt.Sprintf("oci://%s/meep:1.2.3", uri),
+		"-p", "windows/amd64=" + testutil.TestdataPath(t, "meepy-component", "windows"),
+		"-p", "linux/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
+		"-p", "darwin/amd64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
+		"-p", "darwin/arm64=" + testutil.TestdataPath(t, "meepy-component", "unix"),
+	}
+
+	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
+		args = append(args, "--insecure")
+	}
+	cmd := createStdTestRootCmd(t)
+	cmd.SetArgs(args)
+	require.NoError(t, cmd.Execute())
+
+	t.Run("exit if publishing existing tag", func(t *testing.T) {
+		cmd, r, w := createTestRootCmd(t, args...)
+		assert.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		assert.NoError(t, err)
+		assert.Contains(t, string(output), "skipped pushing because component")
+	})
+}
+
 func (suite *RepoSuite) TestComponentTags() {
 	t := suite.T()
 	_, reg := testutil.StartRegistry(t)

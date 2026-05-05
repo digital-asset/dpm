@@ -23,7 +23,7 @@ Examples
 
 ::
 
-  dpm artifacts publish component 'oci://whatever.dev/bar/test/foo:1.2.3-alpha' -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin 
+  dpm publish component 'oci://whatever.dev/bar/test/foo:1.2.3-alpha' -p linux/amd64=dist/foo-linux -p darwin/arm64=dist/foo-darwin 
 
 Options
 ~~~~~~~
@@ -42,5 +42,5 @@ Options
 SEE ALSO
 ~~~~~~~~
 
-* :ref:`dpm publish <dpm_publish>` 	 - Commands for publishing artifacts
+* :ref:`dpm publish <dpm_publish>` 	 - Command for publishing an artifact to an OCI registry
 

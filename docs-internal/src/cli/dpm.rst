@@ -28,7 +28,7 @@ SEE ALSO
 * :ref:`dpm component <dpm_component>` 	 - commands for component development
 * :ref:`dpm install <dpm_install>` 	 - install a dpm-sdk
 * :ref:`dpm login <dpm_login>` 	 - 
-* :ref:`dpm publish <dpm_publish>` 	 - Commands for publishing artifacts
+* :ref:`dpm publish <dpm_publish>` 	 - Command for publishing an artifact to an OCI registry
 * :ref:`dpm repo <dpm_repo>` 	 - 
 * :ref:`dpm resolve <dpm_resolve>` 	 - 
 * :ref:`dpm tags <dpm_tags>` 	 - list published tags of an artifact

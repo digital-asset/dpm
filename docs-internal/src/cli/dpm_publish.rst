@@ -6,20 +6,31 @@ Dpm Publish
 dpm publish
 -----------
 
-Commands for publishing artifacts
+Command for publishing an artifact to an OCI registry
 
 Synopsis
 ~~~~~~~~
 
 
-Commands for publishing artifacts
+Command/subcommands for publishing artifacts to an OCI registry
+
+::
+
+  dpm publish <registry> [flags]
 
 Options
 ~~~~~~~
 
 ::
 
-  -h, --help   help for publish
+  -a, --annotations stringToString   annotations to include in the published OCI artifact (default [])
+      --auth string                  path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json
+  -d, --dry-run                      don't actually push to the registry
+  -t, --extra-tags strings           publish extra tags besides the semver
+  -h, --help                         help for publish
+  -g, --include-git-info             include git info as annotations on the published manifest
+      --insecure                     use http instead of https for OCI registry
+  -p, --platform stringToString      REQUIRED <os>/<arch>=<path-to-component> or generic=<path-to-component> (default [])
 
 SEE ALSO
 ~~~~~~~~

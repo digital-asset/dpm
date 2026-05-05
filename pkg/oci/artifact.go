@@ -52,3 +52,13 @@ func (a *SdkManifestArtifact) RepoName() string {
 }
 func (a *SdkManifestArtifact) ArtifactType() string  { return AssemblyArtifactType }
 func (a *SdkManifestArtifact) FileMediaType() string { return AssemblyFileMediaType }
+
+type GenericArtifact struct {
+	ArtifactName string
+}
+
+func (a *GenericArtifact) RepoName() string {
+	return a.ArtifactName
+}
+func (a *GenericArtifact) ArtifactType() string  { return AssemblyArtifactType }
+func (a *GenericArtifact) FileMediaType() string { return AssemblyFileMediaType }
