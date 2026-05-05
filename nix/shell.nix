@@ -3,6 +3,7 @@ let
   requiredPackages = with pkgs; ([
     # these packages are required both in CI and for local development
       bash
+      gh
       go
       go-junit-report
       gotools

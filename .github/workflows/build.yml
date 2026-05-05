@@ -62,6 +62,8 @@ jobs:
       - windows
       - linux
     if: success() && startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/tags/0.0.0-skiprelease'
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -71,6 +73,7 @@ jobs:
           repo: da-images/public
           flags: "--clean --skip=announce,publish,validate"
           key: ${{ secrets.DA_IMAGES }}
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
 
   release-public-unstable:
     runs-on: digital-asset-dpm
