@@ -132,6 +132,12 @@ To get the list in a machine readable format:
         }
     ]
 
+Installing dpm without an SDK
+=============================
+
+You can download the ``dpm`` binary which doesn't have any SDK bundled with it from the `releases page <https://github.com/digital-asset/dpm/releases>`_.
+You can then run ``dpm install`` or ``dpm install package`` described in the :ref:`next section <dpm-operate>`.
+
 .. _dpm-operate:
 
 Operate
@@ -169,6 +175,7 @@ Operate
 - ``dpm docs``:                     Generate documentation for a daml package from its documentation comments
 - ``dpm init``:                     Initialize a ``daml.yaml`` project configuration file in the current directory
 - ``dpm install``:                  Install new SDK versions manually
+- ``dpm install package``:          Install the SDK(s) or :ref:`opt-in components <dpm-override-components>` used by current project
 - ``dpm inspect-dar``:              Inspect a DAR archive
 - ``dpm new``:                      Create a new Daml package
 - ``dpm pqs``:                      participant query store
