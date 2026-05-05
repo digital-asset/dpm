@@ -41,11 +41,11 @@ runs:
     - name: Create draft GitHub Release
       env:
         GITHUB_TOKEN: ${{ inputs.gh_token }}
-        RELEASE_NAME: 0.0.0-skiprelease
+        RELEASE_TAG: 0.0.0-skiprelease
       run: |
-        git tag "${RELEASE_NAME}"
-        git push --tag origin 0.0.0-skiprelease
-        gh release create "${RELEASE_NAME}" \
+        git tag "${RELEASE_TAG}"
+        git push --tag origin "${RELEASE_TAG}"
+        gh release create "${RELEASE_TAG}" \
           dist/linux/arm64/dpm \
           dist/linux/amd64/dpm \
           dist/darwin/arm64/dpm \
@@ -54,5 +54,5 @@ runs:
           dist/dpm-installer.exe \
           --draft \
           --generate-notes \
-          --title "${RELEASE_NAME}"
+          --title "${RELEASE_TAG}"
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
