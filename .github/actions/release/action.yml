@@ -19,7 +19,7 @@ inputs:
     required: true
   gh_token:
     description: github auth secret
-    required: true
+    required: false
 runs:
   using: composite
   steps:
@@ -36,6 +36,18 @@ runs:
         DPM_BIN_VERSION="$(cat dist/metadata.json | jq -r .version)"
         echo "DPM_BIN_VERSION=${DPM_BIN_VERSION}" >> "${GITHUB_ENV}"
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
+    - name: dpm publish dry-run
+      run: make publish-release-to-gar ASSISTANT_ARGS='-d'
+      shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
+    - name: dpm publish to ${{ inputs.repo }}
+      run: |
+        EXTRA_TAGS="-t latest"
+        if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          EXTRA_TAGS="$EXTRA_TAGS -t ${{ github.ref_name }}"
+        fi
+        make publish-release-to-gar ASSISTANT_ARGS='--registry ${{ inputs.registry }}/${{ inputs.repo }} '"$EXTRA_TAGS"
+        export GIT_COMMIT_COUNT=$(git rev-list --count HEAD)
+      shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
     - uses: ./.github/actions/nsis
       with:
         bin-path: dist/windows/amd64/dpm.exe
@@ -43,13 +55,10 @@ runs:
     - name: Create draft GitHub Release
       env:
         GH_TOKEN: ${{ inputs.gh_token }}
-        RELEASE_TAG: 0.0.0-skiprelease
+      if: inputs.flags != '--snapshot'
       run: |
-        git tag -f "${RELEASE_TAG}"
-        git push -f --tag origin "${RELEASE_TAG}"
-        gh release create "${RELEASE_TAG}" \
+        gh release create ${{ github.ref_name }} \
           dist/dpm-* \
-          --draft \
           --generate-notes \
-          --title "${RELEASE_TAG}"
+          --title ${{ github.ref_name }}
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
