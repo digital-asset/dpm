@@ -94,7 +94,6 @@ func (suite *RepoSuite) TestComponentTags() {
 
 func (suite *RepoSuite) TestDarTags() {
 	t := suite.T()
-	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 	_, reg := testutil.StartRegistry(t)
 
 	args := testutil.PushDarUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "test-dar"))

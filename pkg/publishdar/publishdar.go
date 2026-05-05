@@ -11,7 +11,6 @@ import (
 	"maps"
 	"os"
 
-	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/licenseutils"
 	ociconsts "daml.com/x/assistant/pkg/oci"
@@ -53,48 +52,45 @@ func New(config *DarConfig, printer utils.RawPrinter) *DarPublisher {
 
 func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 	var pushOp *darpusher.DarPushOperation
-	if assistantconfig.DpmLockfileEnabled() {
-		pushOp, err = p.prepareDar(ctx, p.config.File)
 
-		if p.config.DryRun {
-			p.printer.Println("Skipping push due to --dry-run")
-			return nil
-		}
+	pushOp, err = p.prepareDar(ctx, p.config.File)
 
-		if p.config.Destination.Registry == "" {
-			return fmt.Errorf("--registy must be provided when not in dry-run mode")
-		}
+	if p.config.DryRun {
+		p.printer.Println("Skipping push due to --dry-run")
+		return nil
+	}
 
-		client, err := assistantremote.New(p.config.Destination.Registry, p.config.AuthFilePath, p.config.Insecure)
+	if p.config.Destination.Registry == "" {
+		return fmt.Errorf("--registy must be provided when not in dry-run mode")
+	}
+
+	client, err := assistantremote.New(p.config.Destination.Registry, p.config.AuthFilePath, p.config.Insecure)
+	if err != nil {
+		return err
+	}
+
+	versionExists, err := p.checkVersionExists(ctx, pushOp, client)
+	if err != nil {
+		return err
+	}
+
+	if versionExists {
+		p.printer.Println("skipped pushing because dar's version already exists in remote")
+	} else {
+		_, err := p.push(ctx, client, pushOp)
 		if err != nil {
 			return err
 		}
-
-		versionExists, err := p.checkVersionExists(ctx, pushOp, client)
+	}
+	if p.config.ExtraTags != nil && len(p.config.ExtraTags) > 0 {
+		p.printer.Println("pushing extra tags...")
+		// Function below is not specifically for a generated index, can be utilized to setting tags to artifacts in general
+		err := ociindex.Tag(ctx, client, &ociconsts.DarArtifact{DarRepo: p.config.Destination.Artifact.RepoName()}, p.config.Version, p.config.ExtraTags)
 		if err != nil {
 			return err
 		}
+	}
 
-		if versionExists {
-			p.printer.Println("skipped pushing because dar's version already exists in remote")
-		} else {
-			_, err := p.push(ctx, client, pushOp)
-			if err != nil {
-				return err
-			}
-		}
-		if p.config.ExtraTags != nil && len(p.config.ExtraTags) > 0 {
-			p.printer.Println("pushing extra tags...")
-			// Function below is not specifically for a generated index, can be utilized to setting tags to artifacts in general
-			err := ociindex.Tag(ctx, client, &ociconsts.DarArtifact{DarRepo: p.config.Destination.Artifact.RepoName()}, p.config.Version, p.config.ExtraTags)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	{
-		p.printer.Println("Skipping dar publishing because DPM_LOCKFILE_ENABLED is not set to true, enable feature flag to publish dar")
-	}
 	return nil
 }
 

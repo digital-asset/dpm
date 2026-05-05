@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"daml.com/x/assistant/pkg/assistantconfig"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/publish"
 	"daml.com/x/assistant/pkg/publishcmd"
@@ -24,7 +23,6 @@ func Cmd() *cobra.Command {
 		Use:     "dar <registry>",
 		Short:   "Publish a dar to an OCI registry",
 		Example: "dpm artifacts publish dar 'oci://whatever.dev/bar/test/foo:1.2.3-alpha' -f path/to/foo.dar",
-		Hidden:  !assistantconfig.DpmLockfileEnabled(), // Use single feature flag to represent features in current release
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 
