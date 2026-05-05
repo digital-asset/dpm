@@ -33,6 +33,8 @@ runs:
     - run: |
         export GIT_COMMIT_COUNT=$(git rev-list --count HEAD)
         goreleaser ${{ inputs.flags }}
+        
+        # export this env var so that the NSIS build can use it in the output filename
         DPM_BIN_VERSION="$(cat dist/metadata.json | jq -r .version)"
         echo "DPM_BIN_VERSION=${DPM_BIN_VERSION}" >> "${GITHUB_ENV}"
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
@@ -46,13 +48,12 @@ runs:
           EXTRA_TAGS="$EXTRA_TAGS -t ${{ github.ref_name }}"
         fi
         make publish-release-to-gar ASSISTANT_ARGS='--registry ${{ inputs.registry }}/${{ inputs.repo }} '"$EXTRA_TAGS"
-        export GIT_COMMIT_COUNT=$(git rev-list --count HEAD)
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
     - uses: ./.github/actions/nsis
       with:
         bin-path: dist/windows/amd64/dpm.exe
-        out: dist/dpm-installer-${DPM_BIN_VERSION}-windows-amd64.exe
-    - name: Create draft GitHub Release
+        out: dist/dpm-${DPM_BIN_VERSION}-windows-amd64.exe
+    - name: Create GitHub Release
       env:
         GH_TOKEN: ${{ inputs.gh_token }}
       if: inputs.flags != '--snapshot'

@@ -46,8 +46,6 @@ archives:
   - id: bins
     formats: [ binary ]
   - id: github-release
-    ids:
-      - cli
     formats: [ tar.gz ]
     name_template: "dpm-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     strip_binary_directory: true
