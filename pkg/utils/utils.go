@@ -39,3 +39,22 @@ func GetWithFallback(m map[string]string, primary, fallback string) (string, boo
 	}
 	return "", false
 }
+
+// ExpandEnv interpolates the environment variables in yaml manifests
+func ExpandEnv(contents []byte) ([]byte, error) {
+	var undefinedVars []string
+
+	out := os.Expand(string(contents), func(key string) string {
+		val, ok := os.LookupEnv(key)
+		if !ok {
+			undefinedVars = append(undefinedVars, key)
+			return ""
+		}
+		return val
+	})
+
+	if len(undefinedVars) > 0 {
+		return []byte{}, fmt.Errorf("environment variables used in manifest are not set: %v", undefinedVars)
+	}
+	return []byte(out), nil
+}

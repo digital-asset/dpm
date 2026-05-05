@@ -44,9 +44,23 @@ func TestRepoSuite(t *testing.T) {
 
 func (suite *RepoSuite) TestRepoCreateTarball() {
 	t := suite.T()
+
+	t.Run("using uri-based components", func(t *testing.T) {
+		_, reg := testutil.StartRegistry(t)
+		assistantOciUri := fmt.Sprintf("oci://%s/components/%s:4.5.6", strings.TrimPrefix(reg.URL, "http://"), sdkmanifest.AssistantName)
+		t.Setenv("TEST_ASSISTANT_URI", assistantOciUri)
+		testRepoCreateTarball(t, testutil.TestdataPath(t, "publish-with-uri.yaml"))
+	})
+
+	t.Run("using version-based components", func(t *testing.T) {
+		testutil.StartRegistry(t)
+		testRepoCreateTarball(t, testutil.TestdataPath(t, "publish.yaml"))
+	})
+}
+
+func testRepoCreateTarball(t *testing.T, manifestPath string) {
 	// the commands under test should work fully without requiring Edition env var to be set
 	os.Unsetenv(assistantconfig.EditionEnvVar)
-	testutil.StartRegistry(t)
 	bundlePath, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
 
@@ -62,7 +76,7 @@ func (suite *RepoSuite) TestRepoCreateTarball() {
 		cmd, _, w := createTestRootCmd(t)
 
 		args := []string{"repo", "create-tarball", "-o", bundlePath,
-			"-f", testutil.TestdataPath(t, "publish.yaml")}
+			"-f", manifestPath}
 		cmd.SetArgs(appendRegistryArgsFromEnv(args))
 		require.NoError(t, cmd.Execute())
 		assert.NoError(t, w.Close())

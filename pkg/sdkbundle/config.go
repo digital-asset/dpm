@@ -10,6 +10,7 @@ import (
 	"daml.com/x/assistant/pkg/schema"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
+	"daml.com/x/assistant/pkg/utils"
 	"github.com/goccy/go-yaml"
 	"github.com/samber/lo"
 )
@@ -179,8 +180,13 @@ func ReadPublishConfig(filePath string) (*PublishConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	expanded, err := utils.ExpandEnv(contents)
+	if err != nil {
+		return nil, err
+	}
 	c := &PublishConfig{}
-	if err := yaml.Unmarshal(contents, c); err != nil {
+	if err := yaml.Unmarshal(expanded, c); err != nil {
 		return nil, err
 	}
 	return c, nil

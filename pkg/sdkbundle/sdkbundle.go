@@ -28,11 +28,13 @@ import (
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
 	"daml.com/x/assistant/pkg/utils/fileinfo"
+	"github.com/Masterminds/semver/v3"
 	"github.com/goccy/go-yaml"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/samber/lo"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/oci"
+	"oras.land/oras-go/v2/registry"
 )
 
 // Bootstrap installs an SDK from a bundle
@@ -210,15 +212,42 @@ func createFromManifest(ctx context.Context, client *assistantremote.Remote, man
 	comps = append(comps, manifest.Spec.Assistant)
 	licenses := make(map[string][]byte)
 	for _, comp := range comps {
-		repoName := ociconsts.ComponentRepoPrefix + comp.Name
-		tag := assembler.ComputeTagOrDigest(comp)
-		fmt.Printf("pulling component %s/%s:%s...\n", client.Registry, repoName, tag)
-		desc, err := clone(ctx, client, localRegistryPath, repoName, tag, platform, blobCache)
-		if err != nil {
-			return "", fmt.Errorf("failed to pull component '%s:%s'. %w", repoName, tag, err)
+
+		var ref registry.Reference
+		var remote *assistantremote.Remote
+		var err error
+
+		if comp.Uri != nil {
+			ref, err = registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
+			if err != nil {
+				return "", err
+			}
+
+			if _, err := semver.StrictNewVersion(ref.Reference); err != nil {
+				return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", ref.Reference, *comp.Uri, err)
+			}
+
+			remote, err = assistantremote.New(ref.Registry, "", client.Insecure)
+			if err != nil {
+				return "", err
+			}
+		} else {
+			repoName := ociconsts.ComponentRepoPrefix + comp.Name
+			tag := assembler.ComputeTagOrDigest(comp)
+			ref, err = registry.ParseReference(fmt.Sprintf("%s/%s:%s", client.Registry, repoName, tag))
+			if err != nil {
+				return "", err
+			}
+			remote = client
 		}
 
-		imageManifestPath := filepath.Join(localRegistryPath, repoName, "blobs", "sha256", desc.Digest.Hex())
+		fmt.Printf("pulling component %s/%s:%s...\n", remote.Registry, ref.Repository, ref.Reference)
+		desc, err := clone(ctx, client, localRegistryPath, ref, platform, blobCache)
+		if err != nil {
+			return "", fmt.Errorf("failed to pull component '%s/%s:%s'. %w", remote.Registry, ref.Repository, ref.Reference, err)
+		}
+
+		imageManifestPath := filepath.Join(localRegistryPath, ref.Repository, "blobs", "sha256", desc.Digest.Hex())
 
 		// put a symlink to the assistant binary at known location in the bundle
 		if comp == manifest.Spec.Assistant {
@@ -346,8 +375,8 @@ func linkAssistant(platform *simpleplatform.NonGeneric, dir, imageManifestPath s
 // which the ORAS_CACHE's oci-layout seems to not have.
 //
 // TODO this function can be DRY-ed a bit using pieces from other parts of the codebase
-func clone(ctx context.Context, client *assistantremote.Remote, registryPath, repoName, tag string, platform *simpleplatform.NonGeneric, blobCache string) (*v1.Descriptor, error) {
-	index, indexBytes, err := ociindex.FetchIndex(ctx, client, repoName, tag)
+func clone(ctx context.Context, client *assistantremote.Remote, registryPath string, ref registry.Reference, platform *simpleplatform.NonGeneric, blobCache string) (*v1.Descriptor, error) {
+	index, indexBytes, err := ociindex.FetchIndex(ctx, client, ref.Repository, ref.Reference)
 	if err != nil {
 		return nil, err
 	}
@@ -357,12 +386,12 @@ func clone(ctx context.Context, client *assistantremote.Remote, registryPath, re
 		return nil, err
 	}
 
-	layout, err := oci.New(filepath.Join(registryPath, repoName))
+	layout, err := oci.New(filepath.Join(registryPath, ref.Repository))
 	if err != nil {
 		return nil, err
 	}
 
-	repo, err := client.CachedRepo(repoName, blobCache)
+	repo, err := client.CachedRepo(ref.Repository, blobCache)
 	if err != nil {
 		return nil, err
 	}
@@ -371,13 +400,13 @@ func clone(ctx context.Context, client *assistantremote.Remote, registryPath, re
 	if descriptor.Platform != nil {
 		opts.WithTargetPlatform(descriptor.Platform)
 	}
-	_, err = oras.Copy(ctx, repo, tag, layout, tag, opts)
+	_, err = oras.Copy(ctx, repo, ref.Reference, layout, ref.Reference, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	// push the index too
-	_, err = oras.TagBytes(ctx, layout, v1.MediaTypeImageIndex, indexBytes, tag)
+	_, err = oras.TagBytes(ctx, layout, v1.MediaTypeImageIndex, indexBytes, ref.Reference)
 	if err != nil {
 		return nil, err
 	}

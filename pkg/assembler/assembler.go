@@ -262,12 +262,20 @@ func validate(commands []*ValidatedCommand) error {
 }
 
 func (a *Assembler) collectAssistant(ctx context.Context, assistant *sdkmanifest.Component) (string, error) {
-	if assistant.LocalPath != nil {
-		return "", fmt.Errorf("assistant can only be OCI and not a local-path")
-	}
-	p, err := a.handleOCI(ctx, assistant)
-	if err != nil {
-		return "", err
+	var p string
+	var err error
+	if assistant.Uri != nil {
+		p, err = a.handleURI(ctx, assistant)
+		if err != nil {
+			return "", err
+		}
+	} else if assistant.Version != nil {
+		p, err = a.handleOCI(ctx, assistant)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", fmt.Errorf("assistant can only be sourced from remote repo using 'uri' or 'version' fields")
 	}
 	entries, err := os.ReadDir(p)
 	if err != nil {

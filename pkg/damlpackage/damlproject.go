@@ -11,6 +11,7 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/componentlist"
 	"daml.com/x/assistant/pkg/sdkmanifest"
+	"daml.com/x/assistant/pkg/utils"
 	"github.com/goccy/go-yaml"
 )
 
@@ -37,7 +38,7 @@ func Read(filePath string) (*DamlPackage, error) {
 }
 
 func ReadFromContents(contents []byte) (*DamlPackage, error) {
-	expanded, err := expandEnv(contents)
+	expanded, err := utils.ExpandEnv(contents)
 	if err != nil {
 		return nil, err
 	}
@@ -85,22 +86,4 @@ func ReadFromContents(contents []byte) (*DamlPackage, error) {
 	}
 
 	return &obj, nil
-}
-
-func expandEnv(contents []byte) ([]byte, error) {
-	var undefinedVars []string
-
-	out := os.Expand(string(contents), func(key string) string {
-		val, ok := os.LookupEnv(key)
-		if !ok {
-			undefinedVars = append(undefinedVars, key)
-			return ""
-		}
-		return val
-	})
-
-	if len(undefinedVars) > 0 {
-		return []byte{}, fmt.Errorf("environment variables used in daml.yaml are not set: %v", undefinedVars)
-	}
-	return []byte(out), nil
 }
