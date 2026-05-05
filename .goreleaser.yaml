@@ -43,7 +43,14 @@ release:
   prerelease: yes
 
 archives:
-  - formats: [ binary ]
+  - id: bins
+    formats: [ binary ]
+  - id: github-release
+    ids:
+      - cli
+    formats: [ tar.gz ]
+    name_template: "dpm-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    strip_binary_directory: true
 
 snapshot:
   version_template: '{{ incpatch .Version }}-snapshot-{{ .Now.Format "20060102" }}.{{ .Env.GIT_COMMIT_COUNT }}.0.v{{ .ShortCommit }}'

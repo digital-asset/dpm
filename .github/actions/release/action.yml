@@ -33,26 +33,23 @@ runs:
     - run: |
         export GIT_COMMIT_COUNT=$(git rev-list --count HEAD)
         goreleaser ${{ inputs.flags }}
+        DPM_BIN_VERSION="$(cat dist/metadata.json | jq -r .version)"
+        echo "DPM_BIN_VERSION=${DPM_BIN_VERSION}" >> "${GITHUB_ENV}"
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
     - uses: ./.github/actions/nsis
       with:
         bin-path: dist/windows/amd64/dpm.exe
-        out: dist/dpm-installer.exe
+        out: dist/dpm-installer-${DPM_BIN_VERSION}-windows-amd64.exe
     - name: Create draft GitHub Release
       env:
-        GITHUB_TOKEN: ${{ inputs.gh_token }}
-        RELEASE_NAME: 0.0.0-skiprelease
+        GH_TOKEN: ${{ inputs.gh_token }}
+        RELEASE_TAG: 0.0.0-skiprelease
       run: |
-        git tag "${RELEASE_NAME}"
-        git push --tag origin 0.0.0-skiprelease
-        gh release create "${RELEASE_NAME}" \
-          dist/linux/arm64/dpm \
-          dist/linux/amd64/dpm \
-          dist/darwin/arm64/dpm \
-          dist/darwin/amd64/dpm \
-          dist/windows/amd64/dpm.exe \
-          dist/dpm-installer.exe \
+        git tag -f "${RELEASE_TAG}"
+        git push -f --tag origin "${RELEASE_TAG}"
+        gh release create "${RELEASE_TAG}" \
+          dist/dpm-* \
           --draft \
           --generate-notes \
-          --title "${RELEASE_NAME}"
+          --title "${RELEASE_TAG}"
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
