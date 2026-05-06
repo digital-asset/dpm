@@ -8,14 +8,14 @@ inputs:
   repo:
     type: string
     description: GAR repo to use when publishing
-    default: "temp"
+    required: true
   flags:
     type: string
     description: Additional flags to pass to goreleaser
     default: "--snapshot"
   gh_token:
     description: github auth secret
-    required: false
+    required: true
 runs:
   using: composite
   steps:

@@ -76,7 +76,8 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/release
         with:
-          repo: stable
+          # todo - update once decided moved to CF
+          repo: "temp"
           flags: "--clean --skip=announce,publish,validate"
           gh_token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -89,6 +90,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/release
         with:
-          repo: unstable
+          # todo - update once decided moved to CF
+          repo: "temp/unstable"
           flags: "--snapshot"
           gh_token: ${{ secrets.GITHUB_TOKEN }}
