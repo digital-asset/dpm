@@ -49,12 +49,8 @@ runs:
 #        fi
 #
 #        echo "$GH_TOKEN" | docker login ghcr.io -u "$USER" --password-stdin
-    - name: Log in to the Container registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: gha
-        password: ${{ inputs.gh_token }}
+    - name: Log in to GHCR
+      run: echo "${{ inputs.gh_token }}" | docker login ghcr.io -u gha --password-stdin
     - name: dpm publish to ${{ inputs.repo }}
       run: |
         ref_name=${{ github.ref_name }}
