@@ -22,8 +22,6 @@ inputs:
   gh_token:
     description: github auth secret
     required: false
-env:
-  USER: gha
 runs:
   using: composite
   steps:
@@ -43,14 +41,11 @@ runs:
         echo "DPM_BIN_VERSION=${DPM_BIN_VERSION}" >> "${GITHUB_ENV}"
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
 #    - run: |
-#        if [ -z "${GH_TOKEN:-}" ] || [ -z "${GH_USER:-}" ]; then
-#          echo "Error: you need to set GH_TOKEN and GH_USER."
-#          exit 1
-#        fi
-#
 #        echo "$GH_TOKEN" | docker login ghcr.io -u "$USER" --password-stdin
     - name: Log in to GHCR
-      run: echo "${{ inputs.gh_token }}" | docker login ghcr.io -u gha --password-stdin
+      run: |
+        echo "${{ inputs.gh_token }}" | docker login ghcr.io -u gha --password-stdin
+      shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
     - name: dpm publish to ${{ inputs.repo }}
       run: |
         ref_name=${{ github.ref_name }}
