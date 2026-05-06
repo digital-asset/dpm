@@ -38,17 +38,18 @@ runs:
         DPM_BIN_VERSION="$(cat dist/metadata.json | jq -r .version)"
         echo "DPM_BIN_VERSION=${DPM_BIN_VERSION}" >> "${GITHUB_ENV}"
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
-    - name: dpm publish dry-run
-      run: make publish-release-to-gar ASSISTANT_ARGS='-d'
-      shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
     - name: dpm publish to ${{ inputs.repo }}
       run: |
-        EXTRA_TAGS="-t latest"
+        ref_name=${{ github.ref_name }}
+        sanitized_ref_name="${ref_name//\//-}"
+        
+        EXTRA_TAGS="-t ${sanitized_ref_name}"
         if [[ "${{ github.ref_type }}" == "tag" ]]; then
-          EXTRA_TAGS="$EXTRA_TAGS -t ${{ github.ref_name }}"
+          EXTRA_TAGS="$EXTRA_TAGS -t latest"
         fi
+        
         make publish-release-to-gar ASSISTANT_ARGS='--registry ${{ inputs.registry }}/${{ inputs.repo }} '"$EXTRA_TAGS"
-      shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
+      shell: bash -xeuo pipefail -c "source nix.source && exec bash {0}"
     - uses: ./.github/actions/nsis
       with:
         bin-path: dist/windows/amd64/dpm.exe
