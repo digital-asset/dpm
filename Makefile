@@ -21,7 +21,7 @@ local-build:
 # Publish built artifacts to GAR registry:
 publish-release-to-gar: VERSION = $(shell cat dist/metadata.json | jq -r '.["version"]')
 publish-release-to-gar:
-	dist/${OS_TYPE}/${CPU_ARCH}/./dpm repo publish-dpm $(VERSION) $(ASSISTANT_ARGS) -g \
+	dist/${OS_TYPE}/${CPU_ARCH}/./dpm publish component oci://ghcr.io/dasormeter/components/dpm:$(VERSION) $(ASSISTANT_ARGS) -g \
 		-p linux/arm64=dist/linux/arm64/dpm \
 		-p linux/amd64=dist/linux/amd64/dpm \
 		-p darwin/arm64=dist/darwin/arm64/dpm \
