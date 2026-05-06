@@ -4,11 +4,13 @@ inputs:
   registry:
     type: string
     description: GAR registry to use when publishing
-    default: "europe-docker.pkg.dev"
+#    default: "europe-docker.pkg.dev"
+    default: "ghcr.io/digital-asset"
   repo:
     type: string
     description: GAR repo to use when publishing
-    default: "da-images/public-unstable"
+    #default: "da-images/public-unstable"
+    default: "temp"
   flags:
     type: string
     description: Additional flags to pass to goreleaser
@@ -27,9 +29,9 @@ runs:
       with:
         fetch-depth: 0
     - uses: ./.github/actions/nix
-    - uses: ./.github/actions/gcloud-login
-      with:
-        key: ${{ inputs.key }}
+#    - uses: ./.github/actions/gcloud-login
+#      with:
+#        key: ${{ inputs.key }}
     - run: |
         export GIT_COMMIT_COUNT=$(git rev-list --count HEAD)
         goreleaser ${{ inputs.flags }}
