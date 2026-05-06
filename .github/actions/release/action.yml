@@ -43,9 +43,14 @@ runs:
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
     - name: dpm publish to ${{ inputs.repo }}
       run: |
-        EXTRA_TAGS="-t latest"
-        if [[ "${{ github.ref_type }}" == "tag" ]]; then
-          EXTRA_TAGS="$EXTRA_TAGS -t ${{ github.ref_name }}"
+        sanitize_extra_tag() {
+         echo "${1//\//-}"
+        }
+        EXTRA_TAGS="-t $(sanitize_extra_tag ${{ github.ref_name }})"
+        
+        # latest only on tagged release
+        if [[ "${{ github.ref_type }}" == "tag" && "${{ github.event_type }}" != "pull_request" ]]; then
+           EXTRA_TAGS="$EXTRA_TAGS -t latest"
         fi
         make publish-release-to-gar ASSISTANT_ARGS='--registry ${{ inputs.registry }}/${{ inputs.repo }} '"$EXTRA_TAGS"
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
