@@ -18,7 +18,7 @@ local-build:
 	go test -v ./...
 	GIT_COMMIT_COUNT=$(shell git rev-list --count HEAD) goreleaser --snapshot --clean
 
-# Publish built artifacts to ghcr registry:
+# Publish built artifacts to registry:
 publish-release-to-gar: VERSION = $(shell cat dist/metadata.json | jq -r '.["version"]')
 publish-release-to-gar:
 	dist/${OS_TYPE}/${CPU_ARCH}/./dpm repo publish-dpm $(VERSION) $(ASSISTANT_ARGS) -g \
