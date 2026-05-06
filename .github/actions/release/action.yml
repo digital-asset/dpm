@@ -15,10 +15,10 @@ inputs:
     type: string
     description: Additional flags to pass to goreleaser
     default: "--snapshot"
-  key:
-    type: string
-    description: auth key
-    required: true
+#  key:
+#    type: string
+#    description: auth key
+#    required: true
   gh_token:
     description: github auth secret
     required: false

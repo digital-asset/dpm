@@ -70,9 +70,9 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/release
         with:
-          repo: da-images/public
+          repo: stable
           flags: "--clean --skip=announce,publish,validate"
-          key: ${{ secrets.DA_IMAGES }}
+#          key: ${{ secrets.DA_IMAGES }}
           gh_token: ${{ secrets.GITHUB_TOKEN }}
 
   release-public-unstable:
@@ -84,6 +84,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/release
         with:
-          repo: da-images/public-unstable
+          repo: unstable
           flags: "--snapshot"
-          key: ${{ secrets.DA_IMAGES }}
+#          key: ${{ secrets.DA_IMAGES }}
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
