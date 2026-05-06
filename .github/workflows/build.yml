@@ -91,6 +91,6 @@ jobs:
       - uses: ./.github/actions/release
         with:
           # todo - update once decided moved to CF
-          repo: "temp/unstable"
+          repo: "temp/temp"
           flags: "--snapshot"
           gh_token: ${{ secrets.GITHUB_TOKEN }}
