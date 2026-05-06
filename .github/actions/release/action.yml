@@ -4,7 +4,6 @@ inputs:
   registry:
     type: string
     description: GAR registry to use when publishing
-#    default: "europe-docker.pkg.dev"
     default: "ghcr.io/digital-asset"
   repo:
     type: string
