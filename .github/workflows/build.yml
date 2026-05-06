@@ -9,6 +9,9 @@ defaults:
 jobs:
   linux:
     runs-on: digital-asset-dpm
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/nix
@@ -39,6 +42,9 @@ jobs:
 
   windows:
     runs-on: windows-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
@@ -70,9 +76,9 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/release
         with:
-          repo: da-images/public
+          # todo - update once decided moved to CF
+          repo: "temp"
           flags: "--clean --skip=announce,publish,validate"
-          key: ${{ secrets.DA_IMAGES }}
           gh_token: ${{ secrets.GITHUB_TOKEN }}
 
   release-public-unstable:
@@ -84,6 +90,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/release
         with:
-          repo: da-images/public-unstable
+          # todo - update once decided moved to CF
+          repo: "temp/temp"
           flags: "--snapshot"
-          key: ${{ secrets.DA_IMAGES }}
+          gh_token: ${{ secrets.GITHUB_TOKEN }}

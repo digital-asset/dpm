@@ -4,22 +4,18 @@ inputs:
   registry:
     type: string
     description: GAR registry to use when publishing
-    default: "europe-docker.pkg.dev"
+    default: "ghcr.io/digital-asset"
   repo:
     type: string
     description: GAR repo to use when publishing
-    default: "da-images/public-unstable"
+    required: true
   flags:
     type: string
     description: Additional flags to pass to goreleaser
     default: "--snapshot"
-  key:
-    type: string
-    description: auth key
-    required: true
   gh_token:
     description: github auth secret
-    required: false
+    required: true
 runs:
   using: composite
   steps:
@@ -27,9 +23,6 @@ runs:
       with:
         fetch-depth: 0
     - uses: ./.github/actions/nix
-    - uses: ./.github/actions/gcloud-login
-      with:
-        key: ${{ inputs.key }}
     - run: |
         export GIT_COMMIT_COUNT=$(git rev-list --count HEAD)
         goreleaser ${{ inputs.flags }}
@@ -37,6 +30,10 @@ runs:
         # export this env var so that the NSIS build can use it in the output filename
         DPM_BIN_VERSION="$(cat dist/metadata.json | jq -r .version)"
         echo "DPM_BIN_VERSION=${DPM_BIN_VERSION}" >> "${GITHUB_ENV}"
+      shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
+    - name: Log in to GHCR
+      run: |
+        echo "${{ inputs.gh_token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
     - name: dpm publish to ${{ inputs.repo }}
       run: |
