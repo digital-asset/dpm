@@ -50,6 +50,11 @@ archives:
     name_template: "dpm-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     strip_binary_directory: true
 
+checksum:
+  name_template: "dpm-{{ .Version }}-checksums.txt"
+  ids:
+    - github-release
+
 snapshot:
   version_template: '{{ incpatch .Version }}-snapshot-{{ .Now.Format "20060102" }}.{{ .Env.GIT_COMMIT_COUNT }}.0.v{{ .ShortCommit }}'
 
