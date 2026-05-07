@@ -88,4 +88,4 @@ component.yaml schema
 ---------------------
 
 See the
-`json-schema <https://github.com/DACH-NY/dpm/blob/main/schema/component.schema.json>`__
+`json-schema <https://raw.githubusercontent.com/digital-asset/dpm/refs/heads/main/schema/component.v1.schema.json>`__

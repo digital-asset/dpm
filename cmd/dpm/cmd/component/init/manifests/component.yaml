@@ -1,4 +1,4 @@
-# $schema: https://raw.githubusercontent.com/DACH-NY/dpm/refs/heads/json-schema/schema/component.schema.json
+# $schema: https://raw.githubusercontent.com/digital-asset/dpm/refs/heads/main/schema/component.v1.schema.json
 # Edit as needed!
 
 apiVersion: digitalasset.com/v1
