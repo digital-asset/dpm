@@ -49,8 +49,15 @@ type Assembler struct {
 	ExportsPathsWarnOnly bool
 }
 
+type ValidatedCommands map[string][]*ValidatedCommand
+
+func (v ValidatedCommands) AsTree() (*Node, error) {
+	return BuildTree(lo.Flatten(lo.Values(v)))
+}
+
 type AssemblyResult struct {
-	ValidatedCommands map[string][]*ValidatedCommand
+	ValidatedCommands ValidatedCommands
+
 	// will be non-nil if the input assembly manifest included an assistant
 	AssistantAbsolutePath *string
 
@@ -209,7 +216,7 @@ func validate(commands []*ValidatedCommand) error {
 	var errs []error
 
 	groupedByName := lo.GroupByMap(commands, func(cmd *ValidatedCommand) (string, string) {
-		return cmd.GetName(), cmd.ComponentName
+		return cmd.String(), cmd.ComponentName
 	})
 
 	for cmd, comps := range groupedByName {
@@ -222,7 +229,7 @@ func validate(commands []*ValidatedCommand) error {
 		return string(b), struct{}{}
 	})
 	for _, cmd := range commands {
-		_, ok := builtin[cmd.GetName()]
+		_, ok := builtin[cmd.String()]
 		if ok {
 			errs = append(errs, fmt.Errorf("command named %q (from component %q) conflicts with the assistant's built-in commands", cmd.GetName(), cmd.ComponentName))
 		}

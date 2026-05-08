@@ -90,6 +90,6 @@ func TestAssembleRemote(t *testing.T) {
 func getCommandByName(cmds map[string][]*ValidatedCommand, commandName string) *ValidatedCommand {
 	flattened := lo.Flatten(lo.Values(cmds))
 	return lo.FirstOr(lo.Filter(flattened, func(cmd *ValidatedCommand, _ int) bool {
-		return cmd.GetName() == commandName
+		return cmd.String() == commandName
 	}), nil)
 }

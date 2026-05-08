@@ -26,7 +26,7 @@ func TestAssemblyPlanForSdkBundle(t *testing.T) {
 	meepCommnads := commands["meep"]
 	require.Len(t, meepCommnads, 1)
 	assert.Equal(t, meepCommnads[0].ComponentName, "meep")
-	assert.Equal(t, meepCommnads[0].Command.GetName(), "useless")
+	assert.Equal(t, meepCommnads[0].Command.GetName(), []string{"useless"})
 }
 
 func TestAssemblyPlanForOptInComponents(t *testing.T) {

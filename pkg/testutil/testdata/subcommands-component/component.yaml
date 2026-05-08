@@ -1,0 +1,15 @@
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: ./meep
+      name: codegen
+      desc: codegen stuff
+
+    - path: ./meep-java
+      name: codegen java
+      desc: java codegen
+
+    - path: ./meep-js
+      name: codegen js
+      desc: js codegen

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/schema"
@@ -90,14 +91,16 @@ func (s *Spec) AllCommands() (all []Command) {
 
 type Command interface {
 	isComponentCommand() bool
-	GetName() string
+	GetName() []string
 	GetPath() string
 	GetAliases() []string
 	GetDesc() *string
+	String() string
 }
 
 type JarCommand struct {
-	Name    string   `yaml:"name"`
+	Foo     string   `yaml:"name"` // list in string form: "a b c" is [a, b, c] // TODO replace this with sum type
+	Name    []string `yaml:"-"`
 	Path    string   `yaml:"path"`
 	Desc    *string  `yaml:"desc"`
 	Aliases []string `yaml:"aliases"`
@@ -113,7 +116,7 @@ func (cmd *JarCommand) GetPath() string {
 	return cmd.Path
 }
 
-func (cmd *JarCommand) GetName() string {
+func (cmd *JarCommand) GetName() []string {
 	return cmd.Name
 }
 
@@ -121,8 +124,13 @@ func (cmd *JarCommand) GetAliases() []string {
 	return cmd.Aliases
 }
 
+func (cmd *JarCommand) String() string {
+	return strings.Join(cmd.GetName(), " ")
+}
+
 type NativeCommand struct {
-	Name     string   `yaml:"name"`
+	Foo      string   `yaml:"name"` // list in string form: "a b c" is [a, b, c] // TODO replace this with sum type
+	Name     []string `yaml:"-"`
 	Path     string   `yaml:"path"`
 	Desc     *string  `yaml:"desc"`
 	Aliases  []string `yaml:"aliases"`
@@ -137,12 +145,16 @@ func (cmd *NativeCommand) GetPath() string {
 	return cmd.Path
 }
 
-func (cmd *NativeCommand) GetName() string {
+func (cmd *NativeCommand) GetName() []string {
 	return cmd.Name
 }
 
 func (cmd *NativeCommand) GetAliases() []string {
 	return cmd.Aliases
+}
+
+func (cmd *NativeCommand) String() string {
+	return strings.Join(cmd.GetName(), " ")
 }
 
 func (cmd *JarCommand) isComponentCommand() bool {
@@ -157,9 +169,17 @@ func (cmd *JarCommand) UnmarshalYAML(data []byte) error {
 	if alias.Path == "" {
 		return fmt.Errorf("%w: 'jar-path'", ErrMissingComponentField)
 	}
-	if alias.Name == "" {
+
+	alias.Foo = strings.TrimSpace(alias.Foo)
+	if alias.Foo == "" {
 		return fmt.Errorf("%w: 'name'", ErrMissingComponentField)
 	}
+
+	alias.Name = strings.Split(alias.Foo, " ")
+	if len(alias.Name) == 0 {
+		return fmt.Errorf("%w: 'foo'", ErrMissingComponentField)
+	}
+
 	*cmd = JarCommand(alias)
 	return nil
 }
@@ -176,9 +196,17 @@ func (cmd *NativeCommand) UnmarshalYAML(data []byte) error {
 	if alias.Path == "" {
 		return fmt.Errorf("%w: 'path'", ErrMissingComponentField)
 	}
-	if alias.Name == "" {
+
+	alias.Foo = strings.TrimSpace(alias.Foo)
+	if alias.Foo == "" {
 		return fmt.Errorf("%w: 'name'", ErrMissingComponentField)
 	}
+
+	alias.Name = strings.Split(alias.Foo, " ")
+	if len(alias.Name) == 0 {
+		return fmt.Errorf("%w: 'foo'", ErrMissingComponentField)
+	}
+
 	*cmd = NativeCommand(alias)
 	return nil
 }

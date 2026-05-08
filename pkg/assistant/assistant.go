@@ -146,10 +146,46 @@ func (da *DamlAssistant) computeSdkCommands(ctx context.Context, config *assista
 	if err != nil {
 		return nil, err
 	}
-	return da.toCobraCommands(ctx, config, lo.Flatten(lo.Values(validatedCmds)), deepResolutionFilePath)
+	return da.toCobraCommands(ctx, config, validatedCmds, deepResolutionFilePath)
 }
 
-func (da *DamlAssistant) toCobraCommands(execContext context.Context, config *assistantconfig.Config, cmds []*assembler.ValidatedCommand, deepResolutionFilePath string) ([]*cobra.Command, error) {
+func (da *DamlAssistant) toCobraCommands(execContext context.Context, config *assistantconfig.Config, cmds assembler.ValidatedCommands, deepResolutionFilePath string) ([]*cobra.Command, error) {
+	rootNode, err := cmds.AsTree()
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*cobra.Command
+
+	for _, child := range rootNode.Children {
+		c, err := da.buildCobra(child, execContext, config, deepResolutionFilePath)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, c)
+	}
+
+	return result, nil
+}
+
+func (da *DamlAssistant) buildCobra(node *assembler.Node, execContext context.Context, config *assistantconfig.Config, deepResolutionFilePath string) (*cobra.Command, error) {
+	c, err := da.toCmd(node.Command, execContext, config, deepResolutionFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, child := range node.Children {
+		sub, err := da.buildCobra(child, execContext, config, deepResolutionFilePath)
+		if err != nil {
+			return nil, err
+		}
+		c.AddCommand(sub)
+	}
+
+	return c, nil
+}
+
+func (da *DamlAssistant) toCmd(c *assembler.ValidatedCommand, execContext context.Context, config *assistantconfig.Config, deepResolutionFilePath string) (*cobra.Command, error) {
 	dpmBin, err := os.Executable()
 	if err != nil {
 		return nil, err
@@ -161,62 +197,59 @@ func (da *DamlAssistant) toCobraCommands(execContext context.Context, config *as
 		return nil, err
 	}
 
-	return lo.Map(cmds, func(c *assembler.ValidatedCommand, _ int) *cobra.Command {
-		cmd := &cobra.Command{
-			Use:                c.GetName(),
-			DisableFlagParsing: true,
-			SilenceUsage:       true,
-			Aliases:            c.GetAliases(),
-			RunE: func(cmd *cobra.Command, args []string) error {
-				var binaryPath string
-				var fullArgs []string
+	cmd := &cobra.Command{
+		Use:                c.GetName()[len(c.GetName())-1],
+		DisableFlagParsing: true,
+		SilenceUsage:       true,
+		Aliases:            c.GetAliases(),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var binaryPath string
+			var fullArgs []string
 
-				switch v := c.Command.(type) {
-				case *component.JarCommand:
-					binaryPath = "java"
-					fullArgs = append(fullArgs, v.JvmArgs...)
-					fullArgs = append(fullArgs, "-jar")
-					fullArgs = append(fullArgs, c.AbsolutePath)
-					fullArgs = append(fullArgs, v.JarArgs...)
-					fullArgs = append(fullArgs, args...)
-				case *component.NativeCommand:
-					binaryPath = c.AbsolutePath
-					fullArgs = append(fullArgs, v.ExecArgs...)
-					fullArgs = append(fullArgs, args...)
-				}
+			switch v := c.Command.(type) {
+			case *component.JarCommand:
+				binaryPath = "java"
+				fullArgs = append(fullArgs, v.JvmArgs...)
+				fullArgs = append(fullArgs, "-jar")
+				fullArgs = append(fullArgs, c.AbsolutePath)
+				fullArgs = append(fullArgs, v.JarArgs...)
+				fullArgs = append(fullArgs, args...)
+			case *component.NativeCommand:
+				binaryPath = c.AbsolutePath
+				fullArgs = append(fullArgs, v.ExecArgs...)
+				fullArgs = append(fullArgs, args...)
+			}
 
-				extraEnv := map[string]string{
-					assistantconfig.DpmPathInjectedEnvVar: dpmPath,
-				}
-				if c.ResolvedDependencies != nil {
-					maps.Copy(extraEnv, c.ResolvedDependencies)
-				}
+			extraEnv := map[string]string{
+				assistantconfig.DpmPathInjectedEnvVar: dpmPath,
+			}
+			if c.ResolvedDependencies != nil {
+				maps.Copy(extraEnv, c.ResolvedDependencies)
+			}
 
-				extraEnv[assistantconfig.ResolutionFilePathEnvVar] = deepResolutionFilePath
-				extraEnv[assistantconfig.DpmSdkVersionEnvVar] = c.DpmSdkVersionEnvVar
+			extraEnv[assistantconfig.ResolutionFilePathEnvVar] = deepResolutionFilePath
+			extraEnv[assistantconfig.DpmSdkVersionEnvVar] = c.DpmSdkVersionEnvVar
 
-				// inject DAML_PACKAGE env var into command for their convenience
-				if isDamlPkg {
-					extraEnv[assistantconfig.DamlPackageEnvVar] = filepath.Dir(damlYamlAbsPath)
-				}
+			// inject DAML_PACKAGE env var into command for their convenience
+			if isDamlPkg {
+				extraEnv[assistantconfig.DamlPackageEnvVar] = filepath.Dir(damlYamlAbsPath)
+			}
 
-				exitCode, err := da.execSdkCommand(execContext, binaryPath, fullArgs, extraEnv)
-				if err != nil {
-					return err
-				}
-				da.ExitFn(exitCode)
-				return nil
-			},
-		}
-		if c.GetDesc() != nil {
-			cmd.Short = *c.GetDesc()
-		} else {
-			cmd.Hidden = true
-		}
-		return cmd
-	}), nil
+			exitCode, err := da.execSdkCommand(execContext, binaryPath, fullArgs, extraEnv)
+			if err != nil {
+				return err
+			}
+			da.ExitFn(exitCode)
+			return nil
+		},
+	}
+	if c.GetDesc() != nil {
+		cmd.Short = *c.GetDesc()
+	} else {
+		cmd.Hidden = true
+	}
+	return cmd, nil
 }
-
 func (da *DamlAssistant) execSdkCommand(ctx context.Context, path string, args []string, extraEnv map[string]string) (int, error) {
 	cmd := exec.CommandContext(ctx, path, args...)
 	cmd.Stdin = da.Stdin

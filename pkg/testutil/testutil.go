@@ -241,7 +241,8 @@ func PushGenericComponentWithCommand(t *testing.T, reg *httptest.Server, compone
 		Spec: &component.Spec{
 			JarCommands: []component.JarCommand{
 				{
-					Name: command,
+					Foo:  command,
+					Name: []string{command},
 					Path: "./dummy",
 					Desc: &command,
 				},

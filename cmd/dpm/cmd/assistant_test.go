@@ -371,6 +371,26 @@ func (suite *MainSuite) TestComponentPublish() {
 	})
 }
 
+func (suite *MainSuite) TestComponentSubcommands() {
+	t := suite.T()
+
+	t.Chdir(testutil.TestdataPath(t, "subcommands-component"))
+
+	assertCommandOutput(t, "i'm top-level codegen. Args: [random-arg]", "codegen", "random-arg")
+	assertCommandOutput(t, "i'm js codegen. Args: [random-arg]", "codegen", "js", "random-arg")
+	assertCommandOutput(t, "i'm java codegen. Args: [random-arg]", "codegen", "java", "random-arg")
+}
+
+func assertCommandOutput(t *testing.T, contains string, args ...string) {
+	cmd, r, w := createTestRootCmd(t, args...)
+	assert.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+
+	output, err := io.ReadAll(r)
+	assert.NoError(t, err)
+	assert.Contains(t, string(output), contains)
+}
+
 func (suite *MainSuite) TestComponentPublishDryRun() {
 	t := suite.T()
 
