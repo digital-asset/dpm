@@ -7,13 +7,17 @@ import (
 	"strings"
 
 	"daml.com/x/assistant/pkg/builtincommand"
+	"daml.com/x/assistant/pkg/component"
 	"github.com/samber/lo"
 )
 
 type Node struct {
 	Command  *ValidatedCommand
-	Path     []string
 	Children []*Node
+}
+
+func (n *Node) path() []string {
+	return n.Command.GetName()
 }
 
 func (n *Node) GroupByComponents() map[string][]*ValidatedCommand {
@@ -34,16 +38,18 @@ func BuildTree(entries []*ValidatedCommand) (*Node, error) {
 	nodes := lo.Map(entries, func(e *ValidatedCommand, _ int) *Node {
 		return &Node{
 			Command: e,
-			Path:    e.GetName(),
 		}
 	})
 
 	nodesByParent := lo.GroupBy(nodes, func(n *Node) string {
-		return pathKey(parentPath(n.Path))
+		return pathKey(parentPath(n.Command.GetName()))
 	})
 
-	root := &Node{Path: []string{}}
-	root.Children = buildChildren(root.Path, nodesByParent)
+	root := &Node{
+		// using a dummy command for root node
+		Command: &ValidatedCommand{Command: &component.NativeCommand{}},
+	}
+	root.Children = buildChildren(root.path(), nodesByParent)
 
 	// validations
 	var errs []error
@@ -64,7 +70,7 @@ func buildChildren(path []string, nodesByParent map[string][]*Node) []*Node {
 	children := nodesByParent[pathKey(path)]
 
 	for _, child := range children {
-		child.Children = buildChildren(child.Path, nodesByParent)
+		child.Children = buildChildren(child.path(), nodesByParent)
 	}
 
 	return children
@@ -83,7 +89,7 @@ func parentPath(path []string) []string {
 
 func validateNoDuplicates(nodes []*Node) []error {
 	byPath := lo.GroupBy(nodes, func(n *Node) string {
-		return pathKey(n.Path)
+		return pathKey(n.path())
 	})
 
 	dupeGroups := lo.Filter(lo.Values(byPath), func(group []*Node, _ int) bool {
@@ -91,7 +97,7 @@ func validateNoDuplicates(nodes []*Node) []error {
 	})
 
 	return lo.Map(dupeGroups, func(group []*Node, _ int) error {
-		return fmt.Errorf("command %v defined in multiple components", group[0].Path)
+		return fmt.Errorf("command %v defined in multiple components", group[0].path())
 	})
 }
 
@@ -107,18 +113,18 @@ func flattenTree(root *Node) []*Node {
 
 func validateNoOrphanCommands(root *Node, nodes []*Node) []error {
 	attached := lo.SliceToMap(flattenTree(root), func(n *Node) (string, bool) {
-		return pathKey(n.Path), true
+		return pathKey(n.path()), true
 	})
 
 	unattached := lo.Filter(nodes, func(n *Node, _ int) bool {
-		return !attached[pathKey(n.Path)]
+		return !attached[pathKey(n.path())]
 	})
 
 	return lo.Map(unattached, func(n *Node, _ int) error {
 		return fmt.Errorf(
 			"missing parent %v for path %v",
-			parentPath(n.Path),
-			n.Path,
+			parentPath(n.path()),
+			n.path(),
 		)
 	})
 }
