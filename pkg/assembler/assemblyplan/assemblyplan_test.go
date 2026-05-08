@@ -117,5 +117,5 @@ func loadDamlPackage(t *testing.T, installedSdksPath, damlPackagePath, sdkVersio
 	plan := load(t, installedSdksPath, damlPackagePath, sdkVersion)
 	result, err := plan.Assemble(ctx)
 	require.NoError(t, err)
-	return plan, result.ValidatedCommands
+	return plan, result.ValidatedCommands.GroupByComponents()
 }

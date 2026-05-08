@@ -239,10 +239,8 @@ func (plan *AssemblyPlan) Assemble(ctx context.Context) (*assembler.AssemblyResu
 		sdkVersion = plan.SdkVersion.String()
 	}
 	result.ShallowResolution.SdkVersion = sdkVersion
-	for _, cs := range result.ValidatedCommands {
-		for _, c := range cs {
-			c.DpmSdkVersionEnvVar = sdkVersion
-		}
+	for _, c := range result.ValidatedCommands.AsList() {
+		c.DpmSdkVersionEnvVar = sdkVersion
 	}
 
 	return result, nil

@@ -15,7 +15,6 @@ import (
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
-	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/component"
 	"daml.com/x/assistant/pkg/ocipuller"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
@@ -49,14 +48,8 @@ type Assembler struct {
 	ExportsPathsWarnOnly bool
 }
 
-type ValidatedCommands map[string][]*ValidatedCommand
-
-func (v ValidatedCommands) AsTree() (*Node, error) {
-	return BuildTree(lo.Flatten(lo.Values(v)))
-}
-
 type AssemblyResult struct {
-	ValidatedCommands ValidatedCommands
+	ValidatedCommands *Node
 
 	// will be non-nil if the input assembly manifest included an assistant
 	AssistantAbsolutePath *string
@@ -100,12 +93,16 @@ func (a *Assembler) AssembleManyWithOverlay(ctx context.Context, assemblyManifes
 		maps.Copy(components, manifestComponents)
 	}
 
-	cmds := extractCommands(components)
-	if err := validate(lo.Flatten(lo.Values(cmds))); err != nil {
+	cmds, err := extractCommands(components)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := a.setCommandsDependencyPaths(cmds, components); err != nil {
+	//if err := validate(lo.Flatten(lo.Values(cmds))); err != nil {
+	//	return nil, err
+	//}
+
+	if err := a.setCommandsDependencyPaths(cmds.GroupByComponents(), components); err != nil {
 		return nil, err
 	}
 
@@ -200,8 +197,8 @@ type ResolvedComponent struct {
 	Version       string `yaml:"version,omitempty"` // For V2
 }
 
-func extractCommands(comps map[string]*ResolvedComponent) map[string][]*ValidatedCommand {
-	return lo.MapValues(comps, func(comp *ResolvedComponent, _ string) []*ValidatedCommand {
+func extractCommands(comps map[string]*ResolvedComponent) (*Node, error) {
+	foo := lo.MapValues(comps, func(comp *ResolvedComponent, _ string) []*ValidatedCommand {
 		return lo.Map(comp.Spec.AllCommands(), func(c component.Command, _ int) *ValidatedCommand {
 			return &ValidatedCommand{
 				Command:       c,
@@ -210,62 +207,8 @@ func extractCommands(comps map[string]*ResolvedComponent) map[string][]*Validate
 			}
 		})
 	})
-}
 
-func validate(commands []*ValidatedCommand) error {
-	var errs []error
-
-	groupedByName := lo.GroupByMap(commands, func(cmd *ValidatedCommand) (string, string) {
-		return cmd.String(), cmd.ComponentName
-	})
-
-	for cmd, comps := range groupedByName {
-		if len(comps) > 1 {
-			errs = append(errs, fmt.Errorf("command named %q is defined in multiple components %v", cmd, comps))
-		}
-	}
-
-	builtin := lo.SliceToMap(builtincommand.BuiltinCommands, func(b builtincommand.BuiltinCommand) (string, struct{}) {
-		return string(b), struct{}{}
-	})
-	for _, cmd := range commands {
-		_, ok := builtin[cmd.String()]
-		if ok {
-			errs = append(errs, fmt.Errorf("command named %q (from component %q) conflicts with the assistant's built-in commands", cmd.GetName(), cmd.ComponentName))
-		}
-	}
-
-	aliases := lo.FlatMap(commands, func(c *ValidatedCommand, _ int) []lo.Entry[string, string] {
-		return lo.Map(c.GetAliases(), func(alias string, _ int) lo.Entry[string, string] {
-			return lo.Entry[string, string]{
-				Key:   alias,
-				Value: c.ComponentName,
-			}
-		})
-	})
-	groupedByAlias := lo.GroupByMap(aliases, func(p lo.Entry[string, string]) (string, string) {
-		return p.Key, p.Value
-	})
-	for alias, comps := range groupedByAlias {
-		if len(comps) > 1 {
-			errs = append(errs, fmt.Errorf("command alias %q is used by multiple components %v", alias, comps))
-		}
-	}
-
-	uniqueByPath := lo.UniqBy(commands, func(cmd *ValidatedCommand) string { return cmd.AbsolutePath })
-	for _, c := range uniqueByPath {
-		errMsg := fmt.Sprintf("component %q command validation failed for command %q", c.ComponentName, c.GetName())
-		f, err := os.Stat(c.AbsolutePath)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("%s: %w", errMsg, err))
-			continue
-		}
-		if f.IsDir() {
-			errs = append(errs, fmt.Errorf("%s: %q is a directory", errMsg, c.AbsolutePath))
-		}
-	}
-
-	return errors.Join(errs...)
+	return BuildTree(lo.Flatten(lo.Values(foo)))
 }
 
 func (a *Assembler) collectAssistant(ctx context.Context, assistant *sdkmanifest.Component) (string, error) {

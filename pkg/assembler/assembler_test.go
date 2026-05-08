@@ -36,11 +36,11 @@ func TestAssemble(t *testing.T) {
 	// local dir component
 	expected, err := filepath.Abs(p)
 	require.NoError(t, err)
-	assert.Equal(t, expected, getCommandByName(result.ValidatedCommands, "meep").AbsolutePath)
+	assert.Equal(t, expected, getCommandByName(result.ValidatedCommands.GroupByComponents(), "meep").AbsolutePath)
 
 	expected, err = filepath.Abs(testutil.TestdataPath(t, "javabro-component", "jars", "fake.jar"))
 	require.NoError(t, err)
-	assert.Equal(t, expected, getCommandByName(result.ValidatedCommands, "javux").AbsolutePath)
+	assert.Equal(t, expected, getCommandByName(result.ValidatedCommands.GroupByComponents(), "javux").AbsolutePath)
 
 	t.Run("exports and imports", func(t *testing.T) {
 		assert.Len(t, result.ShallowResolution.Imports, 2)
@@ -83,7 +83,7 @@ func TestAssembleRemote(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		result, err := a.ReadAndAssemble(ctx, testutil.TestdataPath(t, "remote-components.yaml"))
 		require.NoError(t, err)
-		assert.Len(t, result.ValidatedCommands, 1)
+		assert.Len(t, result.ValidatedCommands.GroupByComponents(), 1)
 	}
 }
 
