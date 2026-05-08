@@ -8,44 +8,63 @@ import (
 
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/component"
+	"daml.com/x/assistant/pkg/utils"
 	"github.com/samber/lo"
 )
 
-type Node struct {
+// ValidatedCommandNode is a tree where every node is a command.
+// The root node is a placeholder dummy command
+type ValidatedCommandNode struct {
 	Command  *ValidatedCommand
-	Children []*Node
+	Children []*ValidatedCommandNode
 }
 
-func (n *Node) path() []string {
+func (n *ValidatedCommandNode) path() []string {
 	return n.Command.GetName()
 }
 
-func (n *Node) GroupByComponents() map[string][]*ValidatedCommand {
+// GroupByComponents returns the command tree as a  {<component name> -> <command>} map
+func (n *ValidatedCommandNode) GroupByComponents() map[string][]*ValidatedCommand {
 	return lo.GroupByMap(n.AsList(), func(cmd *ValidatedCommand) (string, *ValidatedCommand) {
 		return cmd.ComponentName, cmd
 	})
 }
 
-func (n *Node) AsList() []*ValidatedCommand {
-	xs := lo.Map(flattenTree(n), func(item *Node, _ int) *ValidatedCommand {
+// AsList returns all the commands in the tree as a list
+func (n *ValidatedCommandNode) AsList() []*ValidatedCommand {
+	xs := lo.Map(flattenTree(n), func(item *ValidatedCommandNode, _ int) *ValidatedCommand {
 		return item.Command
 	})
 	return xs[1:]
 }
 
-// BuildTree return a tree containing all the commands. The root node is a dummy
-func BuildTree(entries []*ValidatedCommand) (*Node, error) {
-	nodes := lo.Map(entries, func(e *ValidatedCommand, _ int) *Node {
-		return &Node{
+// BuildCommandTree builds a tree from all the raw component commands and runs some validations
+func BuildCommandTree(comps map[string]*ResolvedComponent) (*ValidatedCommandNode, error) {
+	flatCommands := lo.MapValues(comps, func(comp *ResolvedComponent, _ string) []*ValidatedCommand {
+		return lo.Map(comp.Spec.AllCommands(), func(c component.Command, _ int) *ValidatedCommand {
+			return &ValidatedCommand{
+				Command:       c,
+				AbsolutePath:  utils.ResolvePath(comp.AbsolutePath, c.GetPath()),
+				ComponentName: comp.ComponentName,
+			}
+		})
+	})
+
+	return buildCommandTree(lo.Flatten(lo.Values(flatCommands)))
+}
+
+func buildCommandTree(entries []*ValidatedCommand) (*ValidatedCommandNode, error) {
+	nodes := lo.Map(entries, func(e *ValidatedCommand, _ int) *ValidatedCommandNode {
+		return &ValidatedCommandNode{
 			Command: e,
 		}
 	})
 
-	nodesByParent := lo.GroupBy(nodes, func(n *Node) string {
+	nodesByParent := lo.GroupBy(nodes, func(n *ValidatedCommandNode) string {
 		return pathKey(parentPath(n.Command.GetName()))
 	})
 
-	root := &Node{
+	root := &ValidatedCommandNode{
 		// using a dummy command for root node
 		Command: &ValidatedCommand{Command: &component.NativeCommand{}},
 	}
@@ -66,7 +85,7 @@ func BuildTree(entries []*ValidatedCommand) (*Node, error) {
 	return root, nil
 }
 
-func buildChildren(path []string, nodesByParent map[string][]*Node) []*Node {
+func buildChildren(path []string, nodesByParent map[string][]*ValidatedCommandNode) []*ValidatedCommandNode {
 	children := nodesByParent[pathKey(path)]
 
 	for _, child := range children {
@@ -87,22 +106,22 @@ func parentPath(path []string) []string {
 	return path[:len(path)-1]
 }
 
-func validateNoDuplicates(nodes []*Node) []error {
-	byPath := lo.GroupBy(nodes, func(n *Node) string {
+func validateNoDuplicates(nodes []*ValidatedCommandNode) []error {
+	byPath := lo.GroupBy(nodes, func(n *ValidatedCommandNode) string {
 		return pathKey(n.path())
 	})
 
-	dupeGroups := lo.Filter(lo.Values(byPath), func(group []*Node, _ int) bool {
+	dupeGroups := lo.Filter(lo.Values(byPath), func(group []*ValidatedCommandNode, _ int) bool {
 		return len(group) > 1
 	})
 
-	return lo.Map(dupeGroups, func(group []*Node, _ int) error {
+	return lo.Map(dupeGroups, func(group []*ValidatedCommandNode, _ int) error {
 		return fmt.Errorf("command %v defined in multiple components", group[0].path())
 	})
 }
 
-func flattenTree(root *Node) []*Node {
-	out := []*Node{root}
+func flattenTree(root *ValidatedCommandNode) []*ValidatedCommandNode {
+	out := []*ValidatedCommandNode{root}
 
 	for _, child := range root.Children {
 		out = append(out, flattenTree(child)...)
@@ -111,16 +130,16 @@ func flattenTree(root *Node) []*Node {
 	return out
 }
 
-func validateNoOrphanCommands(root *Node, nodes []*Node) []error {
-	attached := lo.SliceToMap(flattenTree(root), func(n *Node) (string, bool) {
+func validateNoOrphanCommands(root *ValidatedCommandNode, nodes []*ValidatedCommandNode) []error {
+	attached := lo.SliceToMap(flattenTree(root), func(n *ValidatedCommandNode) (string, bool) {
 		return pathKey(n.path()), true
 	})
 
-	unattached := lo.Filter(nodes, func(n *Node, _ int) bool {
+	unattached := lo.Filter(nodes, func(n *ValidatedCommandNode, _ int) bool {
 		return !attached[pathKey(n.path())]
 	})
 
-	return lo.Map(unattached, func(n *Node, _ int) error {
+	return lo.Map(unattached, func(n *ValidatedCommandNode, _ int) error {
 		return fmt.Errorf(
 			"missing parent %v for path %v",
 			parentPath(n.path()),

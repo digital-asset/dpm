@@ -60,7 +60,7 @@ func (da *DamlAssistant) SetOutputStreams(cmd *cobra.Command) {
 }
 
 func (da *DamlAssistant) ComputeSdkCommandsFromAssemblyManifest(ctx context.Context, config *assistantconfig.Config, manifst *sdkmanifest.SdkManifest) ([]*cobra.Command, error) {
-	return da.computeSdkCommands(ctx, config, func(a *assembler.Assembler) (*assembler.Node, string, error) {
+	return da.computeSdkCommands(ctx, config, func(a *assembler.Assembler) (*assembler.ValidatedCommandNode, string, error) {
 		// TODO "dpm component run" command doesn't yet support daml.yaml or multi-package.yaml
 		result, err := a.Assemble(ctx, manifst)
 		if err != nil {
@@ -71,7 +71,7 @@ func (da *DamlAssistant) ComputeSdkCommandsFromAssemblyManifest(ctx context.Cont
 }
 
 func (da *DamlAssistant) ComputeSdkCommandsFromAssemblyPlan(ctx context.Context, config *assistantconfig.Config, resolutionType resolutionType) ([]*cobra.Command, error) {
-	return da.computeSdkCommands(ctx, config, func(a *assembler.Assembler) (*assembler.Node, string, error) {
+	return da.computeSdkCommands(ctx, config, func(a *assembler.Assembler) (*assembler.ValidatedCommandNode, string, error) {
 		var deepResolutionFilePath string
 		if resolutionType == DeepResolution {
 			deepResolution, err := resolver.New(config, a).RunDeepResolution(ctx)
@@ -132,7 +132,7 @@ func createResolutionFile() (*os.File, error) {
 	return os.OpenFile(customPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
 }
 
-func (da *DamlAssistant) computeSdkCommands(ctx context.Context, config *assistantconfig.Config, getValidatedCommands func(*assembler.Assembler) (*assembler.Node, string, error)) ([]*cobra.Command, error) {
+func (da *DamlAssistant) computeSdkCommands(ctx context.Context, config *assistantconfig.Config, getValidatedCommands func(*assembler.Assembler) (*assembler.ValidatedCommandNode, string, error)) ([]*cobra.Command, error) {
 	puller, err := remotepuller.NewFromRemoteConfig(config)
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func (da *DamlAssistant) computeSdkCommands(ctx context.Context, config *assista
 	return da.toCobraCommands(ctx, config, validatedCmds, deepResolutionFilePath)
 }
 
-func (da *DamlAssistant) toCobraCommands(execContext context.Context, config *assistantconfig.Config, commandsTree *assembler.Node, deepResolutionFilePath string) ([]*cobra.Command, error) {
+func (da *DamlAssistant) toCobraCommands(execContext context.Context, config *assistantconfig.Config, commandsTree *assembler.ValidatedCommandNode, deepResolutionFilePath string) ([]*cobra.Command, error) {
 	var result []*cobra.Command
 
 	for _, child := range commandsTree.Children {
@@ -163,7 +163,7 @@ func (da *DamlAssistant) toCobraCommands(execContext context.Context, config *as
 	return result, nil
 }
 
-func (da *DamlAssistant) buildCobra(node *assembler.Node, execContext context.Context, config *assistantconfig.Config, deepResolutionFilePath string) (*cobra.Command, error) {
+func (da *DamlAssistant) buildCobra(node *assembler.ValidatedCommandNode, execContext context.Context, config *assistantconfig.Config, deepResolutionFilePath string) (*cobra.Command, error) {
 	c, err := da.toCmd(node.Command, execContext, config, deepResolutionFilePath)
 	if err != nil {
 		return nil, err

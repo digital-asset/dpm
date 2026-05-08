@@ -49,7 +49,7 @@ type Assembler struct {
 }
 
 type AssemblyResult struct {
-	ValidatedCommands *Node
+	ValidatedCommands *ValidatedCommandNode
 
 	// will be non-nil if the input assembly manifest included an assistant
 	AssistantAbsolutePath *string
@@ -93,14 +93,10 @@ func (a *Assembler) AssembleManyWithOverlay(ctx context.Context, assemblyManifes
 		maps.Copy(components, manifestComponents)
 	}
 
-	cmds, err := extractCommands(components)
+	cmds, err := BuildCommandTree(components)
 	if err != nil {
 		return nil, err
 	}
-
-	//if err := validate(lo.Flatten(lo.Values(cmds))); err != nil {
-	//	return nil, err
-	//}
 
 	if err := a.setCommandsDependencyPaths(cmds.GroupByComponents(), components); err != nil {
 		return nil, err
@@ -195,20 +191,6 @@ type ResolvedComponent struct {
 	ComponentName string
 	AbsolutePath  string
 	Version       string `yaml:"version,omitempty"` // For V2
-}
-
-func extractCommands(comps map[string]*ResolvedComponent) (*Node, error) {
-	foo := lo.MapValues(comps, func(comp *ResolvedComponent, _ string) []*ValidatedCommand {
-		return lo.Map(comp.Spec.AllCommands(), func(c component.Command, _ int) *ValidatedCommand {
-			return &ValidatedCommand{
-				Command:       c,
-				AbsolutePath:  utils.ResolvePath(comp.AbsolutePath, c.GetPath()),
-				ComponentName: comp.ComponentName,
-			}
-		})
-	})
-
-	return BuildTree(lo.Flatten(lo.Values(foo)))
 }
 
 func (a *Assembler) collectAssistant(ctx context.Context, assistant *sdkmanifest.Component) (string, error) {
