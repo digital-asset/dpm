@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
-	github.com/charmbracelet/lipgloss v1.1.0
+	github.com/charmbracelet/lipgloss v1.1.0 //
 	github.com/fatih/color v1.19.0
 	github.com/go-git/go-git/v5 v5.19.0
 	github.com/goccy/go-yaml v1.19.2
