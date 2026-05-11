@@ -1,6 +1,6 @@
 Copyright 2026
 
-[digital-asset/dpm : dependabot/go_modules/go_modules-d4b3b64db6]
+[digital-asset/dpm : dependabot/go_modules/go_modules-d7145cbce0]
 
 Phase: DEVELOPMENT
 Distribution: EXTERNAL
@@ -26,7 +26,7 @@ cyphar/filepath-securejoin v0.6.1: https://github.com/cyphar/filepath-securejoin
 docker-cli v29.4.0: https://github.com/docker/cli : Apache License 2.0
 docker-org v0.9.3: https://github.com/docker/migrator : Apache License 2.0
 emirpasic-gods v1.18.1: https://github.com/emirpasic/gods : (BSD 2-clause "Simplified" License AND ISC License)
-exp 20240711-snapshot-8a7402ab: http://code.google.com/p/go.exp : BSD 3-clause "New" or "Revised" License
+exp 20260409-snapshot-746e56fc: http://code.google.com/p/go.exp : BSD 3-clause "New" or "Revised" License
 fatih-color 1.19.0: http://godoc.org/github.com/fatih/color : (MIT License AND Apache License 2.0 AND BSD 3-clause "New" or "Revised" License)
 github.com/charmbracelet/colorprofile v0.4.3: https://github.com/charmbracelet/colorprofile : MIT License
 github.com/charmbracelet/x 20240806-snapshot-69247e0a: https://github.com/charmbracelet/x : MIT License
@@ -36,7 +36,7 @@ github.com/charmbracelet/x term/v0.2.2: https://github.com/charmbracelet/x : MIT
 github.com/go-git/gcfg 20230307-snapshot-3a3c6141: https://github.com/go-git/gcfg : BSD 3-clause "New" or "Revised" License
 github.com/google/go-containerregistry v0.21.5: https://github.com/google/go-containerregistry : Apache License 2.0
 github.com/jdx/go-netrc v1.0.0 : MIT License
-github.com/pjbgf/sha1cd v0.5.0: https://github.com/pjbgf/sha1cd : Apache License 2.0
+github.com/pjbgf/sha1cd v0.6.0: https://github.com/pjbgf/sha1cd : Apache License 2.0
 github.com/rivo/uniseg v0.4.7: https://github.com/rivo/uniseg : MIT License
 github.com/samber/lo v1.53.0: https://github.com/samber/lo : MIT License
 github.com/skeema/knownhosts 1.3.2: https://github.com/skeema/knownhosts : Apache License 2.0
@@ -45,8 +45,8 @@ goccy/go-yaml v1.19.2: https://github.com/goccy/go-yaml : MIT License
 go-check-check 20201130-snapshot-10cb9826: http://labix.org/gocheck : BSD 2-clause "Simplified" License
 go-colorful v1.4.0: https://github.com/lucasb-eyer/go-colorful : MIT License
 GoDoc Text v0.2.0: http://godoc.org/github.com/kr/text : MIT License
-go-git/go-billy v5.8.0: https://github.com/go-git/go-billy : Apache License 2.0
-go-git/go-git v5.18.0: https://github.com/go-git/go-git : Apache License 2.0
+go-git/go-billy v5.9.0: https://github.com/go-git/go-billy : Apache License 2.0
+go-git/go-git v5.19.0: https://github.com/go-git/go-git : Apache License 2.0
 go-git/go-git-fixtures 20231010-snapshot-55a94097: https://github.com/go-git/go-git-fixtures : Apache License 2.0
 golang-github-spf13-pflag-dev v1.0.10: https://github.com/spf13/pflag : BSD 3-clause "New" or "Revised" License
 golang.org/x/crypto v0.50.0: https://godoc.org/golang.org/x/crypto : BSD 3-clause "New" or "Revised" License
@@ -98,7 +98,7 @@ yaml for Go v3.0.1: https://github.com/go-yaml/yaml : (MIT License AND Apache Li
 Licenses: 
 
 Apache License 2.0
-(containerd/stargz-snapshotter estargz/v0.18.2, docker-cli v29.4.0, docker-org v0.9.3, fatih-color 1.19.0, github.com/google/go-containerregistry v0.21.5, github.com/pjbgf/sha1cd v0.5.0, github.com/skeema/knownhosts 1.3.2, go-git/go-billy v5.8.0, go-git/go-git v5.18.0, go-git/go-git-fixtures 20231010-snapshot-55a94097, groupcache 20241129-snapshot-2c02b820, inconshreveable/mousetrap v1.1.0, opencontainers/go-digest 1.0.0, opencontainers/image-spec v1.1.1, oras.land/oras-go v2.6.0, spf13-cobra 1.10.2, xanzy-ssh-agent v0.3.3, yaml for Go v3.0.1)
+(containerd/stargz-snapshotter estargz/v0.18.2, docker-cli v29.4.0, docker-org v0.9.3, fatih-color 1.19.0, github.com/google/go-containerregistry v0.21.5, github.com/pjbgf/sha1cd v0.6.0, github.com/skeema/knownhosts 1.3.2, go-git/go-billy v5.9.0, go-git/go-git v5.19.0, go-git/go-git-fixtures 20231010-snapshot-55a94097, groupcache 20241129-snapshot-2c02b820, inconshreveable/mousetrap v1.1.0, opencontainers/go-digest 1.0.0, opencontainers/image-spec v1.1.1, oras.land/oras-go v2.6.0, spf13-cobra 1.10.2, xanzy-ssh-agent v0.3.3, yaml for Go v3.0.1)
 
 Apache License
 Version 2.0, January 2004
@@ -417,7 +417,7 @@ Redistribution and use in source and binary forms, with or without
 ---
 
 BSD 3-clause "New" or "Revised" License
-(aymanbagabas/go-udiff v0.2.0, cloudflare/circl v1.6.3, cyphar/filepath-securejoin v0.6.1, exp 20240711-snapshot-8a7402ab, fatih-color 1.19.0, github.com/go-git/gcfg 20230307-snapshot-3a3c6141, gliderlabs/ssh v0.3.8, golang-github-spf13-pflag-dev v1.0.10, golang.org/x/crypto v0.50.0, golang.org/x/mod v0.35.0, golang.org/x/net v0.53.0, golang.org/x/sys v0.43.0, golang.org/x/term v0.42.0, golang.org/x/tools v0.44.0, golang/sync v0.20.0, golang/text v0.36.0, google/go-cmp v0.7.0, goproxy v1.7.2, klauspost-compress v1.18.5, mergo v1.0.2, ProtonMail/go-crypto v1.4.1, rogpeppe/go-internal v1.14.1, vbatts-tar-split v0.12.2)
+(aymanbagabas/go-udiff v0.2.0, cloudflare/circl v1.6.3, cyphar/filepath-securejoin v0.6.1, exp 20260409-snapshot-746e56fc, fatih-color 1.19.0, github.com/go-git/gcfg 20230307-snapshot-3a3c6141, gliderlabs/ssh v0.3.8, golang-github-spf13-pflag-dev v1.0.10, golang.org/x/crypto v0.50.0, golang.org/x/mod v0.35.0, golang.org/x/net v0.53.0, golang.org/x/sys v0.43.0, golang.org/x/term v0.42.0, golang.org/x/tools v0.44.0, golang/sync v0.20.0, golang/text v0.36.0, google/go-cmp v0.7.0, goproxy v1.7.2, klauspost-compress v1.18.5, mergo v1.0.2, ProtonMail/go-crypto v1.4.1, rogpeppe/go-internal v1.14.1, vbatts-tar-split v0.12.2)
 
 Copyright (c) <YEAR>, <OWNER>
 All rights reserved.
