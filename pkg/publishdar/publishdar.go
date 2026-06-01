@@ -104,7 +104,7 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 
 func (p *DarPublisher) prepareDar(ctx context.Context, dir string) (*darpusher.DarPushOperation, error) {
 	if p.config.ExcludeLicense {
-		p.printer.Println("Skipping license file check due to --exclude-license flag being set, this is NOT recommended for production use")
+		p.printer.Println("FOR TESTING ONLY: Skipping license file check due to --exclude-license flag being set")
 	} else {
 		p.printer.Printf("📦 Checking %q includes license file...\n", dir)
 		if err := checkHasLicense(dir); err != nil {
