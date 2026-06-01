@@ -28,34 +28,38 @@ func (suite *MainSuite) TestDars() {
 
 	t.Setenv("TEST_DPM_REGISTRY", destinationRegistry)
 	t.Setenv(assistantconfig.DpmDarsEnabledEnvVar, "true")
+
 	pushDar(t, fmt.Sprintf("oci://%s/some/dars/foo:1.2.3", destinationRegistry))
 	pushDar(t, fmt.Sprintf("oci://%s/some/dars/n/stuff/foo:4.5.6", destinationRegistry))
 	pushDar(t, fmt.Sprintf("oci://%s/some/more/official/dars/foo:7.8.9", destinationRegistry))
 
-	t.Chdir(testutil.TestdataPath(t, "daml-dependencies"))
-	res := lo.Values(runResolveCommand(t).Packages)[0]
+	t.Run("dar resolution", func(t *testing.T) {
+		t.Chdir(testutil.TestdataPath(t, "daml-dependencies"))
+		res := lo.Values(runResolveCommand(t).Packages)[0]
 
-	assert.Len(t, res.Errors, 3)
-	for _, err := range res.Errors {
-		assert.Equal(t, err.Code, resolutionerrors.DarNotInstalled)
-	}
+		assert.Len(t, res.Errors, 3)
+		for _, err := range res.Errors {
+			assert.Equal(t, err.Code, resolutionerrors.DarNotInstalled)
+		}
+	})
 }
 
 func pushDar(t *testing.T, uri string, extraTags ...string) {
-	cmd := createStdTestRootCmd(t)
-	args := []string{
-		"publish", "dar", uri,
-		"-f", testutil.TestdataPath(t, "test-dar"),
-	}
+	t.Run("push dar", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t)
+		args := []string{
+			"publish", "dar", uri,
+			"-f", testutil.TestdataPath(t, "test-dar"),
+		}
 
-	for _, t := range extraTags {
-		args = append(args, "--extra-tags", t)
-	}
+		for _, t := range extraTags {
+			args = append(args, "--extra-tags", t)
+		}
 
-	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
-		args = append(args, "--insecure")
-	}
-	cmd.SetArgs(args)
-	require.NoError(t, cmd.Execute())
-
+		if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
+			args = append(args, "--insecure")
+		}
+		cmd.SetArgs(args)
+		require.NoError(t, cmd.Execute())
+	})
 }
