@@ -32,6 +32,7 @@ type PublishDarCmd struct {
 	Annotations            map[string]string
 	File                   string
 	ExtraTags              []string
+	ExcludeLicense         bool
 
 	Insecure     bool
 	Registry     string

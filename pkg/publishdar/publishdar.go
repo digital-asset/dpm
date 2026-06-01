@@ -36,6 +36,7 @@ type DarConfig struct {
 	DryRun, IncludeGitInfo bool
 	Annotations            map[string]string
 	ExtraTags              []string
+	ExcludeLicense         bool
 
 	Destination  *publish.Destination
 	AuthFilePath string
@@ -55,6 +56,9 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 	var pushOp *darpusher.DarPushOperation
 	if assistantconfig.DpmLockfileEnabled() {
 		pushOp, err = p.prepareDar(ctx, p.config.File)
+		if err != nil {
+			return err
+		}
 
 		if p.config.DryRun {
 			p.printer.Println("Skipping push due to --dry-run")
@@ -99,9 +103,13 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 }
 
 func (p *DarPublisher) prepareDar(ctx context.Context, dir string) (*darpusher.DarPushOperation, error) {
-	p.printer.Printf("📦 Checking %q includes license file...\n", dir)
-	if err := checkHasLicense(dir); err != nil {
-		return nil, err
+	if p.config.ExcludeLicense {
+		p.printer.Println("Skipping license file check due to --exclude-license flag being set, this is NOT recommended for production use")
+	} else {
+		p.printer.Printf("📦 Checking %q includes license file...\n", dir)
+		if err := checkHasLicense(dir); err != nil {
+			return nil, err
+		}
 	}
 	p.printer.Printf("License file included ✅\n")
 	p.printer.Println()
