@@ -45,7 +45,7 @@ type Dar struct {
 	Digest string   `yaml:"digest,omitempty"`
 	Path   string   `yaml:"path"`
 
-	Dependency *damlpackage.ResolvedDependency `yaml:"-"`
+	Dependency *damlpackage.ParsedDarDependency `yaml:"-"`
 }
 
 func ReadPackageLock(filePath string) (*PackageLock, error) {

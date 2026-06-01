@@ -36,7 +36,7 @@ func TestOciDarPuller(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	dar := &damlpackage.ResolvedDependency{
+	dar := &damlpackage.ParsedDarDependency{
 		FullUrl: u,
 		Location: &damlpackage.ArtifactLocation{
 			Client: &auth.Client{Client: registry.Client()},

@@ -14,6 +14,11 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
+type ParsedDarDependencies struct {
+	Dependencies     map[string]*ParsedDarDependency
+	DataDependencies map[string]*ParsedDarDependency
+}
+
 type DamlPackage struct {
 	SdkVersion string `yaml:"sdk-version"`
 
@@ -23,9 +28,10 @@ type DamlPackage struct {
 	// deprecated in favor of Components
 	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components,omitempty"`
 
-	Dependencies         []string                       `yaml:"dependencies,omitempty"`
-	ArtifactLocations    ArtifactLocations              `yaml:"artifact-locations,omitempty"`
-	ResolvedDependencies map[string]*ResolvedDependency `yaml:"-"`
+	Dependencies          []string               `yaml:"dependencies,omitempty"`
+	DataDependencies      []string               `yaml:"data-dependencies,omitempty"`
+	ArtifactLocations     ArtifactLocations      `yaml:"artifact-locations,omitempty"`
+	ParsedDarDependencies *ParsedDarDependencies `yaml:"-"`
 }
 
 func Read(filePath string) (*DamlPackage, error) {
@@ -70,16 +76,23 @@ func ReadFromContents(contents []byte) (*DamlPackage, error) {
 		obj.DeprecatedOverrideComponents = nil
 	}
 
-	if assistantconfig.DpmLockfileEnabled() {
+	if assistantconfig.DpmDarsEnabled() {
 		_, defaultLocation, err := obj.ArtifactLocations.GetDefaultLocation()
 		if err != nil {
 			return nil, fmt.Errorf("invalid artifact locations: %w", err)
 		}
 
+		obj.ParsedDarDependencies = &ParsedDarDependencies{}
 		if len(obj.Dependencies) > 0 {
-			obj.ResolvedDependencies, err = obj.computeResolvedDependencies(defaultLocation)
+			obj.ParsedDarDependencies.Dependencies, err = parseLocations(obj.Dependencies, obj.ArtifactLocations, defaultLocation)
 			if err != nil {
-				return nil, fmt.Errorf("failed to resolve provided dependencies: %w", err)
+				return nil, fmt.Errorf("failed to parse provided dependencies: %w", err)
+			}
+		}
+		if len(obj.DataDependencies) > 0 {
+			obj.ParsedDarDependencies.DataDependencies, err = parseLocations(obj.DataDependencies, obj.ArtifactLocations, defaultLocation)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse provided data-dependencies: %w", err)
 			}
 		}
 	}

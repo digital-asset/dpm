@@ -17,14 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func get(t *testing.T, lock *packagelock.PackageLock, s string) *packagelock.Dar {
-	d, ok := lo.Find(lock.Dars, func(d *packagelock.Dar) bool {
-		return d.URI.String() == s
-	})
-	require.Truef(t, ok, "expected %q dar is missing in lockfile", s)
-	return d
-}
-
 func (suite *MainSuite) TestLockfileUpdate() {
 	t := suite.T()
 	ctx := t.Context()
@@ -117,6 +109,14 @@ func (suite *MainSuite) TestLockfileUpdate() {
 		require.NoError(t, err)
 		assert.Contains(t, string(dar), "haha not a real dar")
 	})
+}
+
+func get(t *testing.T, lock *packagelock.PackageLock, s string) *packagelock.Dar {
+	d, ok := lo.Find(lock.Dars, func(d *packagelock.Dar) bool {
+		return d.URI.String() == s
+	})
+	require.Truef(t, ok, "expected %q dar is missing in lockfile", s)
+	return d
 }
 
 func (suite *MainSuite) TestLockfileFieldOverridesExhaustive() {
