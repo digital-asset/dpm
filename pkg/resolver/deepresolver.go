@@ -98,7 +98,7 @@ func (d *DeepResolver) resolve(ctx context.Context, packageAbsolutePaths ...stri
 
 		if result, err := d.resolvePackageAndDars(ctx, resolvedPath); err != nil {
 			pkgs[resolvedPath] = &resolution.Package{
-				Errors: []*resolutionerrors.ResolutionError{resolutionerrors.Standardize(err)},
+				Errors: resolutionerrors.Standardize(err),
 			}
 		} else {
 			pkgs[resolvedPath] = result
@@ -205,7 +205,7 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) (string,
 			return "", err
 		}
 		if !ok {
-			return "", fmt.Errorf("dar %q is not installed", dar.FullUrl)
+			return "", resolutionerrors.NewDarNotInstalled(fmt.Errorf("dar %q is not installed", dar.FullUrl))
 		}
 
 		darManifest, err := darmanifest.ReadDarManifest(darDir)
@@ -227,7 +227,7 @@ func (d *DeepResolver) resolveDefaultSdk(ctx context.Context) resolution.Default
 		// in case where we can't determine what the sdk-version is,
 		// because there aren't any installed, and the user didn't set DPM_SDK_VERSION
 		defaultSdk[assistantconfig.GetSdkVersionOverrideWithFallback("unknown–sdk-version")] = &resolution.Package{
-			Errors: []*resolutionerrors.ResolutionError{resolutionerrors.Standardize(err)},
+			Errors: resolutionerrors.Standardize(err),
 		}
 		return defaultSdk
 	}
@@ -235,7 +235,7 @@ func (d *DeepResolver) resolveDefaultSdk(ctx context.Context) resolution.Default
 	result, err := d.assembler.ReadAndAssemble(ctx, installedSdk.ManifestPath)
 	if err != nil {
 		defaultSdk[installedSdk.Version.String()] = &resolution.Package{
-			Errors: []*resolutionerrors.ResolutionError{resolutionerrors.Standardize(err)},
+			Errors: resolutionerrors.Standardize(err),
 		}
 	} else {
 		v := installedSdk.Version.String()

@@ -76,7 +76,7 @@ func ReadFromContents(contents []byte) (*DamlPackage, error) {
 		obj.DeprecatedOverrideComponents = nil
 	}
 
-	if assistantconfig.DpmDarsEnabled() {
+	if assistantconfig.DpmDarsEnabled() || assistantconfig.DpmLockfileEnabled() {
 		_, defaultLocation, err := obj.ArtifactLocations.GetDefaultLocation()
 		if err != nil {
 			return nil, fmt.Errorf("invalid artifact locations: %w", err)

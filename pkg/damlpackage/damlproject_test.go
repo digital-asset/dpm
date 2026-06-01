@@ -13,7 +13,7 @@ import (
 
 func TestDarDependencies(t *testing.T) {
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
-	t.Setenv("TEST_DPM_REGISTRY_PORT", "5000")
+	t.Setenv("TEST_DPM_REGISTRY", "localhost:5000")
 	p, err := Read(testutil.TestdataPath(t, "daml-dependencies", "daml.yaml"))
 	require.NoError(t, err)
 

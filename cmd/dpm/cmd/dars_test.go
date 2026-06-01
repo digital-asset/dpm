@@ -8,8 +8,10 @@ import (
 	"os"
 	"testing"
 
+	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/testutil"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,15 +19,12 @@ import (
 func (suite *MainSuite) TestDars() {
 	t := suite.T()
 
-	testutil.StartRegistry(t)
-
 	tmpDamlHome, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
+
+	testutil.StartRegistry(t)
 	destinationRegistry := os.Getenv(assistantconfig.OciRegistryEnvVar)
-	tmpDamlHome, err = os.MkdirTemp("", "")
-	require.NoError(t, err)
-	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
 	t.Setenv("TEST_DPM_REGISTRY", destinationRegistry)
 	t.Setenv(assistantconfig.DpmDarsEnabledEnvVar, "true")
@@ -34,9 +33,12 @@ func (suite *MainSuite) TestDars() {
 	pushDar(t, fmt.Sprintf("oci://%s/some/more/official/dars/foo:7.8.9", destinationRegistry))
 
 	t.Chdir(testutil.TestdataPath(t, "daml-dependencies"))
-	res := runResolveCommand(t)
-	assert.Nil(t, res)
+	res := lo.Values(runResolveCommand(t).Packages)[0]
 
+	assert.Len(t, res.Errors, 3)
+	for _, err := range res.Errors {
+		assert.Equal(t, err.Code, resolutionerrors.DarNotInstalled)
+	}
 }
 
 func pushDar(t *testing.T, uri string, extraTags ...string) {

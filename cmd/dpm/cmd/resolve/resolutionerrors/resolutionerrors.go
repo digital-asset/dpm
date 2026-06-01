@@ -11,6 +11,7 @@ const (
 	DamlYamlNotFound  = "DAML_YAML_NOT_FOUND"
 	UnknownError      = "UNKNOWN_ERROR"
 	OutdatedLockfile  = "OUTDATED_DPM_LOCK"
+	DarNotInstalled   = "DAR_NOT_INSTALLED"
 )
 
 type ResolutionError struct {
@@ -92,15 +93,36 @@ func NewUnknownError(cause error) *ResolutionError {
 	}
 }
 
-func Standardize(err error) *ResolutionError {
+func NewDarNotInstalled(cause error) *ResolutionError {
+	return &ResolutionError{
+		Code:  DarNotInstalled,
+		Cause: cause,
+	}
+}
+
+func Standardize(err error) []*ResolutionError {
 	if err == nil {
 		return nil
 	}
 
-	var resErr *ResolutionError
-	if errors.As(err, &resErr) {
-		return resErr
+	type joinErr interface {
+		Unwrap() []error
 	}
 
-	return NewUnknownError(err)
+	if joined, ok := err.(joinErr); ok {
+		var out []*ResolutionError
+
+		for _, e := range joined.Unwrap() {
+			out = append(out, Standardize(e)...)
+		}
+
+		return out
+	}
+
+	var resErr *ResolutionError
+	if errors.As(err, &resErr) {
+		return []*ResolutionError{resErr}
+	}
+
+	return []*ResolutionError{NewUnknownError(err)}
 }
