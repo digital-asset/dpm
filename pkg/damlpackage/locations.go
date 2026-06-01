@@ -9,7 +9,6 @@ import (
 
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"oras.land/oras-go/v2/registry"
-	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
 )
 
@@ -33,7 +32,7 @@ type ParsedDarDependency struct {
 	Location *ArtifactLocation
 }
 
-func (d *ParsedDarDependency) GetOciRepo() (*remote.Repository, *registry.Reference, error) {
+func (d *ParsedDarDependency) GetOciRemote() (*assistantremote.Remote, *registry.Reference, error) {
 	ref, err := registry.ParseReference(strings.TrimPrefix(d.FullUrl.String(), "oci://"))
 	if err != nil {
 		return nil, nil, err
@@ -55,12 +54,7 @@ func (d *ParsedDarDependency) GetOciRepo() (*remote.Repository, *registry.Refere
 		}
 	}
 
-	repo, err := assistantRemote.Repo(ref.Repository)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return repo, &ref, nil
+	return assistantRemote, &ref, nil
 }
 
 var regex = regexp.MustCompile(`^(@[a-zA-Z0-9_-]+)/`)

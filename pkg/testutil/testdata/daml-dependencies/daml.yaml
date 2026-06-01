@@ -1,13 +1,15 @@
 dependencies:
   - daml-script
 #  - ./meep.dar TODO
-  - foo:devnet
-  - oci://$TEST_DPM_REGISTRY/some/dars/foo:1.2.3
+#  - foo:devnet
   - "@my-location/foo:4.5.6"
 
 artifact-locations:
   "@digital-asset":
      default: true
      url: oci://$TEST_DPM_REGISTRY/more/official/dars
+     insecure: true
   "@my-location":
       url: oci://$TEST_DPM_REGISTRY/some/dars/n/stuff
+      insecure: true
+

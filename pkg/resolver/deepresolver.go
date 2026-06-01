@@ -194,7 +194,7 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) (string,
 	}
 
 	if scheme == "oci" {
-		_, ref, err := dar.GetOciRepo()
+		_, ref, err := dar.GetOciRemote()
 		if err != nil {
 			return "", err
 		}
@@ -208,7 +208,7 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) (string,
 			return "", resolutionerrors.NewDarNotInstalled(fmt.Errorf("dar %q is not installed", dar.FullUrl))
 		}
 
-		darManifest, err := darmanifest.ReadDarManifest(darDir)
+		darManifest, err := darmanifest.ReadDarManifest(filepath.Join(darDir, assistantconfig.DarManifestName))
 		if err != nil {
 			return "", err
 		}

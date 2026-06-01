@@ -50,6 +50,10 @@ func (a *RemoteOciPuller) PullComponentByFullPath(ctx context.Context, component
 	return a.pull(ctx, componentPath, tag, destPath, platform)
 }
 
+func (a *RemoteOciPuller) PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) error {
+	return a.pull(ctx, darPath, tag, destPath, &simpleplatform.Generic{})
+}
+
 func (a *RemoteOciPuller) PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, platform *simpleplatform.NonGeneric) error {
 	repo, err := edition.SdkManifestsRepo()
 	if err != nil {

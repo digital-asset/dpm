@@ -47,6 +47,10 @@ func Fake(registry *httptest.Server) (*Assembler, error) {
 
 type FakePuller struct{}
 
+func (f *FakePuller) PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) error {
+	panic("not implemented")
+}
+
 func (f *FakePuller) PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, platform *simpleplatform.NonGeneric) error {
 	panic("not implemented")
 }

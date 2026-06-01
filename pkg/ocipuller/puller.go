@@ -18,6 +18,7 @@ type OciPuller interface {
 	PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, platform *simpleplatform.NonGeneric) error
 	PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error
 	PullComponentByFullPath(ctx context.Context, componentPath, tag, destPath string, platform simpleplatform.Platform) error
+	PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) error
 }
 
 // ApplyFileInfoCopyOptions returns an oras.CopyOptions that applies

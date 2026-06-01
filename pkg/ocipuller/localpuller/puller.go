@@ -26,6 +26,10 @@ type LocalOciPuller struct {
 	localRegistryPath string
 }
 
+func (a *LocalOciPuller) PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) error {
+	return fmt.Errorf("local oci-layout pulling of dars is not supported")
+}
+
 var _ ocipuller.OciPuller = (*LocalOciPuller)(nil)
 
 func New(config *assistantconfig.Config, localRegistryPath string) *LocalOciPuller {

@@ -54,7 +54,7 @@ func New(config *DarConfig, printer utils.RawPrinter) *DarPublisher {
 
 func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 	var pushOp *darpusher.DarPushOperation
-	if assistantconfig.DpmLockfileEnabled() {
+	if assistantconfig.DpmLockfileEnabled() || assistantconfig.DpmDarsEnabled() {
 		pushOp, err = p.prepareDar(ctx, p.config.File)
 		if err != nil {
 			return err
@@ -95,8 +95,7 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 				return err
 			}
 		}
-	}
-	{
+	} else {
 		p.printer.Println("Skipping dar publishing because DPM_LOCKFILE_ENABLED is not set to true, enable feature flag to publish dar")
 	}
 	return nil
