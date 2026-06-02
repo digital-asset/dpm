@@ -95,10 +95,16 @@ func parseLocations(ds []string, artifactLocations ArtifactLocations, defaultLoc
 			// TODO
 			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: http dependencies not yet supported", d))
 			continue
-		} else if strings.HasPrefix(d, ".") {
-			// TODO
-			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: file paths not yet supported", d))
-			continue
+		} else if isFilePath(d) {
+			u, err := url.Parse("builtin://" + d)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			parsedLocations[d] = &ParsedDarDependency{
+				Location: nil,
+				FullUrl:  u,
+			}
 		} else if strings.HasPrefix(d, "@") {
 			parsed := regex.FindStringSubmatch(d)
 			if len(parsed) < 2 {
@@ -163,4 +169,10 @@ func parseLocations(ds []string, artifactLocations ArtifactLocations, defaultLoc
 	}
 
 	return parsedLocations, nil
+}
+
+func isFilePath(s string) bool {
+	return strings.HasPrefix(s, ".") ||
+		strings.HasPrefix(s, "/") ||
+		strings.Index(s, ":") == 1
 }
