@@ -99,7 +99,7 @@ func (p *DamlPackage) parseLocations(ds []string, artifactLocations ArtifactLoca
 			continue
 		} else if isFilePath(d) {
 			absPath := utils.ResolvePath(filepath.Dir(p.AbsolutePath), d)
-			u, err := url.Parse("file://" + absPath)
+			u, err := url.Parse("file://" + filepath.ToSlash(absPath))
 			if err != nil {
 				errs = append(errs, err)
 				continue
