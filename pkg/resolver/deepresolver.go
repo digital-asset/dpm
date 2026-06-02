@@ -112,20 +112,22 @@ func (d *DeepResolver) resolvePackageAndDars(ctx context.Context, absPath string
 		return nil, err
 	}
 
-	if assistantconfig.DpmLockfileEnabled() {
-		lock, err := packagelock.ReadPackageLock(filepath.Join(absPath, assistantconfig.DpmLockFileName))
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
+	if !assistantconfig.DpmLockfileEnabled() {
+		return result.ShallowResolution, nil
 
-		paths := lo.Map(lock.Dars, func(d *packagelock.Dar, _ int) string {
-			return d.Path
-		})
-		if len(paths) > 0 {
-			result.ShallowResolution.Imports[resolution.DarImportsFields] = paths
-		}
+	}
+	lock, err := packagelock.ReadPackageLock(filepath.Join(absPath, assistantconfig.DpmLockFileName))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, err
 	}
 
+	paths := lo.Map(lock.Dars, func(d *packagelock.Dar, _ int) string {
+		return d.Path
+	})
+	if len(paths) > 0 {
+		result.ShallowResolution.Imports[resolution.DarImportsFields] = paths
+	}
+	
 	return result.ShallowResolution, nil
 }
 
