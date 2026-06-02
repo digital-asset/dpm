@@ -1,6 +1,6 @@
 Copyright 2026
 
-[digital-asset/dpm : update-go-libs]
+[digital-asset/dpm : deps-fields-in-resolution]
 
 Phase: DEVELOPMENT
 Distribution: EXTERNAL
@@ -74,6 +74,7 @@ kr/pretty v0.3.1: https://github.com/kr/pretty : MIT License
 Masterminds-semver v3.5.0: https://github.com/Masterminds/semver : MIT License
 mattn-go-colorable v0.1.15: http://godoc.org/github.com/mattn/go-colorable : MIT License
 mattn-go-isatty v0.0.22: http://godoc.org/github.com/mattn/go-isatty : MIT License
+mattn-go-runewidth v0.0.24: https://github.com/mattn/go-runewidth : Unknown License
 mergo v1.0.2: https://github.com/imdario/mergo : BSD 3-clause "New" or "Revised" License
 Microsoft-go-winio v0.6.2: https://github.com/Microsoft/go-winio/ : MIT License
 muesli/termenv v0.16.0: https://github.com/muesli/termenv : MIT License
