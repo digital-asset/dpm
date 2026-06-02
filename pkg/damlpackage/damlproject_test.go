@@ -50,18 +50,18 @@ override-components:
 `
 
 	t.Run("cannot use both fields together", func(t *testing.T) {
-		_, err := ReadFromContents(makeDamlYaml(componentsField, overrideComponentsField))
+		_, err := ReadFromContents(makeDamlYaml(componentsField, overrideComponentsField), "-")
 		require.Error(t, err)
 	})
 
 	t.Run("populates components fields", func(t *testing.T) {
-		p, err := ReadFromContents(makeDamlYaml(componentsField))
+		p, err := ReadFromContents(makeDamlYaml(componentsField), "-")
 		require.NoError(t, err)
 		assert.Contains(t, p.Components, "foo")
 	})
 
 	t.Run("populates components fields from override-components", func(t *testing.T) {
-		p, err := ReadFromContents(makeDamlYaml(overrideComponentsField))
+		p, err := ReadFromContents(makeDamlYaml(overrideComponentsField), "-")
 		require.NoError(t, err)
 		assert.Contains(t, p.Components, "damlc")
 	})

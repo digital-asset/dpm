@@ -32,17 +32,20 @@ type DamlPackage struct {
 	DataDependencies      []string               `yaml:"data-dependencies,omitempty"`
 	ArtifactLocations     ArtifactLocations      `yaml:"artifact-locations,omitempty"`
 	ParsedDarDependencies *ParsedDarDependencies `yaml:"-"`
+
+	// absolute path to daml.yaml
+	AbsolutePath string `yaml:"-"`
 }
 
-func Read(filePath string) (*DamlPackage, error) {
-	bytes, err := os.ReadFile(filePath)
+func Read(absoluteFilePath string) (*DamlPackage, error) {
+	bytes, err := os.ReadFile(absoluteFilePath)
 	if err != nil {
 		return nil, err
 	}
-	return ReadFromContents(bytes)
+	return ReadFromContents(bytes, absoluteFilePath)
 }
 
-func ReadFromContents(contents []byte) (*DamlPackage, error) {
+func ReadFromContents(contents []byte, absoluteFilePath string) (*DamlPackage, error) {
 	expanded, err := expandEnv(contents)
 	if err != nil {
 		return nil, err
@@ -52,6 +55,8 @@ func ReadFromContents(contents []byte) (*DamlPackage, error) {
 	if err := yaml.UnmarshalWithOptions(expanded, &obj); err != nil {
 		return nil, err
 	}
+
+	obj.AbsolutePath = absoluteFilePath
 
 	if obj.ComponentsList != nil {
 		obj.Components, err = obj.ComponentsList.ToMap()
@@ -84,13 +89,13 @@ func ReadFromContents(contents []byte) (*DamlPackage, error) {
 
 		obj.ParsedDarDependencies = &ParsedDarDependencies{}
 		if len(obj.Dependencies) > 0 {
-			obj.ParsedDarDependencies.Dependencies, err = parseLocations(obj.Dependencies, obj.ArtifactLocations, defaultLocation)
+			obj.ParsedDarDependencies.Dependencies, err = obj.parseLocations(obj.Dependencies, obj.ArtifactLocations, defaultLocation)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse provided dependencies: %w", err)
 			}
 		}
 		if len(obj.DataDependencies) > 0 {
-			obj.ParsedDarDependencies.DataDependencies, err = parseLocations(obj.DataDependencies, obj.ArtifactLocations, defaultLocation)
+			obj.ParsedDarDependencies.DataDependencies, err = obj.parseLocations(obj.DataDependencies, obj.ArtifactLocations, defaultLocation)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse provided data-dependencies: %w", err)
 			}

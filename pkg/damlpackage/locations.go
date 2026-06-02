@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strings"
 
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
+	"daml.com/x/assistant/pkg/utils"
 	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote"
 	"oras.land/oras-go/v2/registry/remote/auth"
@@ -78,7 +80,7 @@ func (ls ArtifactLocations) GetDefaultLocation() (name string, location *Artifac
 	return
 }
 
-func parseLocations(ds []string, artifactLocations ArtifactLocations, defaultLocation *ArtifactLocation) (map[string]*ParsedDarDependency, error) {
+func (p *DamlPackage) parseLocations(ds []string, artifactLocations ArtifactLocations, defaultLocation *ArtifactLocation) (map[string]*ParsedDarDependency, error) {
 	parsedLocations := map[string]*ParsedDarDependency{}
 
 	var errs []error
@@ -96,7 +98,8 @@ func parseLocations(ds []string, artifactLocations ArtifactLocations, defaultLoc
 			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: http dependencies not yet supported", d))
 			continue
 		} else if isFilePath(d) {
-			u, err := url.Parse("builtin://" + d)
+			absPath := utils.ResolvePath(filepath.Dir(p.AbsolutePath), d)
+			u, err := url.Parse("file://" + absPath)
 			if err != nil {
 				errs = append(errs, err)
 				continue
