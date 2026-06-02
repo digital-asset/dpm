@@ -11,6 +11,7 @@
    dpm_login
    dpm_publish
    dpm_publish_component
+   dpm_publish_dar
    dpm_repo
    dpm_repo_create-tarball
    dpm_repo_promote-components
