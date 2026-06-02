@@ -127,7 +127,7 @@ func (d *DeepResolver) resolvePackageAndDars(ctx context.Context, absPath string
 	if len(paths) > 0 {
 		result.ShallowResolution.Imports[resolution.DarImportsFields] = paths
 	}
-	
+
 	return result.ShallowResolution, nil
 }
 
@@ -192,7 +192,21 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) (string,
 	if scheme == "builtin" || scheme == "file" {
 		return strings.TrimPrefix(dar.FullUrl.String(), scheme+"://"), nil
 	}
+	if scheme == "file" {
+		f := strings.TrimPrefix(dar.FullUrl.String(), scheme+"://")
+		// verify the file exists
+		if _, err := os.Stat(f); err != nil {
+			return "", fmt.Errorf("dar file doesn't exist: %w", err)
+		}
 
+		// evaluate symlink (if it is one)
+		evaluatedSymlink, err := filepath.EvalSymlinks(f)
+		if err != nil {
+			return "", err
+		}
+		
+		return evaluatedSymlink, nil
+	}
 	if scheme == "oci" {
 		// TODO
 		return "", fmt.Errorf("oci dars not yet fully implemented")
