@@ -58,13 +58,13 @@ data-dependencies:
 	})
 
 	t.Run("resolution of absolute file-path dars", func(t *testing.T) {
-		absoluteDar, _ := filepath.Abs(testutil.TestdataPath(t, "test-dar", "test.dar"))
+		absoluteDarPath, _ := filepath.Abs(testutil.TestdataPath(t, "test-dar", "test.dar"))
 		ActivateDamlYamlForTest(t, fmt.Sprintf(`
 dependencies:
   - %s
 data-dependencies:
   - %s
-`, absoluteDar, absoluteDar))
+`, absoluteDarPath, absoluteDarPath))
 		res := lo.Values(runResolveCommand(t).Packages)[0]
 
 		assert.Contains(t, res.ResolvedDependencies[0], "test.dar")
