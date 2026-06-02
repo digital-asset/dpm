@@ -28,11 +28,13 @@ type Packages map[string]*Package
 type DefaultSDK map[string]*Package
 
 type Package struct {
-	Errors       []*resolutionerrors.ResolutionError `yaml:"errors,omitempty"`
-	Components   map[string]string                   `yaml:"components,omitempty"`
-	ComponentsV2 map[string]map[string]string        `yaml:"componentsV2,omitempty"`
-	Imports      Imports                             `yaml:"imports,omitempty"`
-	SdkVersion   string                              `yaml:"sdk-version"`
+	Errors                   []*resolutionerrors.ResolutionError `yaml:"errors,omitempty"`
+	Components               map[string]string                   `yaml:"components,omitempty"`
+	ComponentsV2             map[string]map[string]string        `yaml:"componentsV2,omitempty"`
+	Imports                  Imports                             `yaml:"imports,omitempty"`
+	SdkVersion               string                              `yaml:"sdk-version"`
+	ResolvedDependencies     []string                            `yaml:"resolved-dependencies"`
+	ResolvedDataDependencies []string                            `yaml:"resolved-data-dependencies"`
 }
 
 // Imports is export Var -> paths list mapping

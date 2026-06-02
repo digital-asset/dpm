@@ -4,13 +4,14 @@
 package cmd
 
 import (
-	"daml.com/x/assistant/pkg/assembler"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"daml.com/x/assistant/pkg/assembler"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/sdkmanifest"

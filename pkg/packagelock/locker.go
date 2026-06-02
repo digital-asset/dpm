@@ -181,7 +181,7 @@ func (l *Locker) computeExpectedLockfile(packageDirAbsPath string) (*PackageLock
 	}
 
 	// TODO de-duplicate p.ResolvedDependencies first
-	expectedDars := lo.MapToSlice(p.ResolvedDependencies, func(_ string, d *damlpackage.ResolvedDependency) *Dar {
+	expectedDars := lo.MapToSlice(p.ParsedDarDependencies.Dependencies, func(_ string, d *damlpackage.ParsedDarDependency) *Dar {
 		return &Dar{
 			URI:        d.FullUrl,
 			Dependency: d,

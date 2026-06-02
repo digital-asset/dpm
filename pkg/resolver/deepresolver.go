@@ -9,11 +9,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assembler/assemblyplan"
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/packagelock"
 	"daml.com/x/assistant/pkg/resolution"
@@ -94,7 +96,7 @@ func (d *DeepResolver) resolve(ctx context.Context, packageAbsolutePaths ...stri
 
 		if result, err := d.resolvePackageAndDars(ctx, resolvedPath); err != nil {
 			pkgs[resolvedPath] = &resolution.Package{
-				Errors: []*resolutionerrors.ResolutionError{resolutionerrors.Standardize(err)},
+				Errors: resolutionerrors.Standardize(err),
 			}
 		} else {
 			pkgs[resolvedPath] = result
@@ -110,20 +112,18 @@ func (d *DeepResolver) resolvePackageAndDars(ctx context.Context, absPath string
 		return nil, err
 	}
 
-	if !assistantconfig.DpmLockfileEnabled() {
-		return result.ShallowResolution, nil
-	}
+	if assistantconfig.DpmLockfileEnabled() {
+		lock, err := packagelock.ReadPackageLock(filepath.Join(absPath, assistantconfig.DpmLockFileName))
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
 
-	lock, err := packagelock.ReadPackageLock(filepath.Join(absPath, assistantconfig.DpmLockFileName))
-	if errors.Is(err, os.ErrNotExist) {
-		return nil, err
-	}
-
-	paths := lo.Map(lock.Dars, func(d *packagelock.Dar, _ int) string {
-		return d.Path
-	})
-	if len(paths) > 0 {
-		result.ShallowResolution.Imports[resolution.DarImportsFields] = paths
+		paths := lo.Map(lock.Dars, func(d *packagelock.Dar, _ int) string {
+			return d.Path
+		})
+		if len(paths) > 0 {
+			result.ShallowResolution.Imports[resolution.DarImportsFields] = paths
+		}
 	}
 
 	return result.ShallowResolution, nil
@@ -138,7 +138,65 @@ func (d *DeepResolver) resolvePackage(ctx context.Context, absPath string) (*ass
 	if err != nil {
 		return nil, err
 	}
+
+	if assistantconfig.DpmDarsEnabled() {
+		resolvedDeps, resolvedDataDeps, err := d.resolvePackageDars(absPath)
+		if err != nil {
+			return nil, err
+		}
+		result.ShallowResolution.ResolvedDependencies = resolvedDeps
+		result.ShallowResolution.ResolvedDataDependencies = resolvedDataDeps
+	}
+
 	return result, nil
+}
+
+func (d *DeepResolver) resolvePackageDars(absPath string) (deps []string, dataDeps []string, err error) {
+	p, err := damlpackage.Read(filepath.Join(absPath, assistantconfig.DamlPackageFilename))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var errs []error
+
+	for _, dar := range p.ParsedDarDependencies.Dependencies {
+		r, err := d.resolveDar(dar)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		deps = append(deps, r)
+	}
+
+	for _, dar := range p.ParsedDarDependencies.DataDependencies {
+		r, err := d.resolveDar(dar)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		dataDeps = append(dataDeps, r)
+	}
+
+	if err := errors.Join(errs...); err != nil {
+		return nil, nil, err
+	}
+
+	return
+}
+
+func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) (string, error) {
+	scheme := dar.FullUrl.Scheme
+
+	if scheme == "builtin" || scheme == "file" {
+		return strings.TrimPrefix(dar.FullUrl.String(), scheme+"://"), nil
+	}
+
+	if scheme == "oci" {
+		// TODO
+		return "", fmt.Errorf("oci dars not yet fully implemented")
+	}
+
+	return "", fmt.Errorf("unsupported schema %s", scheme)
 }
 
 func (d *DeepResolver) resolveDefaultSdk(ctx context.Context) resolution.DefaultSDK {
@@ -150,7 +208,7 @@ func (d *DeepResolver) resolveDefaultSdk(ctx context.Context) resolution.Default
 		// in case where we can't determine what the sdk-version is,
 		// because there aren't any installed, and the user didn't set DPM_SDK_VERSION
 		defaultSdk[assistantconfig.GetSdkVersionOverrideWithFallback("unknown–sdk-version")] = &resolution.Package{
-			Errors: []*resolutionerrors.ResolutionError{resolutionerrors.Standardize(err)},
+			Errors: resolutionerrors.Standardize(err),
 		}
 		return defaultSdk
 	}
@@ -158,7 +216,7 @@ func (d *DeepResolver) resolveDefaultSdk(ctx context.Context) resolution.Default
 	result, err := d.assembler.ReadAndAssemble(ctx, installedSdk.ManifestPath)
 	if err != nil {
 		defaultSdk[installedSdk.Version.String()] = &resolution.Package{
-			Errors: []*resolutionerrors.ResolutionError{resolutionerrors.Standardize(err)},
+			Errors: resolutionerrors.Standardize(err),
 		}
 	} else {
 		v := installedSdk.Version.String()

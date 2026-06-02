@@ -92,15 +92,29 @@ func NewUnknownError(cause error) *ResolutionError {
 	}
 }
 
-func Standardize(err error) *ResolutionError {
+func Standardize(err error) []*ResolutionError {
 	if err == nil {
 		return nil
 	}
 
-	var resErr *ResolutionError
-	if errors.As(err, &resErr) {
-		return resErr
+	type joinErr interface {
+		Unwrap() []error
 	}
 
-	return NewUnknownError(err)
+	if joined, ok := err.(joinErr); ok {
+		var out []*ResolutionError
+
+		for _, e := range joined.Unwrap() {
+			out = append(out, Standardize(e)...)
+		}
+
+		return out
+	}
+
+	var resErr *ResolutionError
+	if errors.As(err, &resErr) {
+		return []*ResolutionError{resErr}
+	}
+
+	return []*ResolutionError{NewUnknownError(err)}
 }

@@ -25,7 +25,7 @@ type ArtifactLocation struct {
 	Client *auth.Client
 }
 
-type ResolvedDependency struct {
+type ParsedDarDependency struct {
 	// the fully-qualified URL for the artifact e.g. oci://example.com/foo/bar/baz:1.2.3
 	FullUrl *url.URL
 
@@ -33,7 +33,7 @@ type ResolvedDependency struct {
 	Location *ArtifactLocation
 }
 
-func (d *ResolvedDependency) GetOciRepo() (*remote.Repository, *registry.Reference, error) {
+func (d *ParsedDarDependency) GetOciRepo() (*remote.Repository, *registry.Reference, error) {
 	ref, err := registry.ParseReference(strings.TrimPrefix(d.FullUrl.String(), "oci://"))
 	if err != nil {
 		return nil, nil, err
@@ -78,19 +78,19 @@ func (ls ArtifactLocations) GetDefaultLocation() (name string, location *Artifac
 	return
 }
 
-func (p *DamlPackage) computeResolvedDependencies(defaultLocation *ArtifactLocation) (map[string]*ResolvedDependency, error) {
-	resolved := map[string]*ResolvedDependency{}
+func parseLocations(ds []string, artifactLocations ArtifactLocations, defaultLocation *ArtifactLocation) (map[string]*ParsedDarDependency, error) {
+	parsedLocations := map[string]*ParsedDarDependency{}
 
 	var errs []error
 
-	for _, d := range p.Dependencies {
+	for _, d := range ds {
 		if strings.HasPrefix(d, "oci://") {
 			u, err := url.Parse(d)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("couldn't parse dependency url %q: %w", d, err))
 				continue
 			}
-			resolved[d] = &ResolvedDependency{FullUrl: u}
+			parsedLocations[d] = &ParsedDarDependency{FullUrl: u}
 		} else if strings.HasPrefix(d, "http://") || strings.HasPrefix(d, "https://") {
 			// TODO
 			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: http dependencies not yet supported", d))
@@ -105,7 +105,7 @@ func (p *DamlPackage) computeResolvedDependencies(defaultLocation *ArtifactLocat
 				errs = append(errs, fmt.Errorf("error parsing dependency %q: Dependencies beginning with @ must be of the form '@<artifact-location>/<suffix>'", d))
 				continue
 			}
-			location, ok := p.ArtifactLocations[parsed[1]]
+			location, ok := artifactLocations[parsed[1]]
 			if !ok {
 				errs = append(errs, fmt.Errorf("dependency %q has no corresponding artifact location", d))
 				continue
@@ -122,7 +122,7 @@ func (p *DamlPackage) computeResolvedDependencies(defaultLocation *ArtifactLocat
 				errs = append(errs, fmt.Errorf("couldn't parse full url %q for dependency %q: ", rawUrl, d))
 				continue
 			}
-			resolved[d] = &ResolvedDependency{
+			parsedLocations[d] = &ParsedDarDependency{
 				Location: location,
 				FullUrl:  u,
 			}
@@ -138,7 +138,7 @@ func (p *DamlPackage) computeResolvedDependencies(defaultLocation *ArtifactLocat
 				errs = append(errs, fmt.Errorf("couldn't parse full url %q for dependency %q: ", rawUrl, d))
 				continue
 			}
-			resolved[d] = &ResolvedDependency{
+			parsedLocations[d] = &ParsedDarDependency{
 				Location: defaultLocation,
 				FullUrl:  u,
 			}
@@ -151,7 +151,7 @@ func (p *DamlPackage) computeResolvedDependencies(defaultLocation *ArtifactLocat
 				errs = append(errs, fmt.Errorf("couldn't parse full url %q for dependency %q: ", s, d))
 				continue
 			}
-			resolved[d] = &ResolvedDependency{
+			parsedLocations[d] = &ParsedDarDependency{
 				Location: nil,
 				FullUrl:  u,
 			}
@@ -162,5 +162,5 @@ func (p *DamlPackage) computeResolvedDependencies(defaultLocation *ArtifactLocat
 		return nil, errors.Join(errs...)
 	}
 
-	return resolved, nil
+	return parsedLocations, nil
 }

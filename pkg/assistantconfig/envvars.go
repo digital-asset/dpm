@@ -66,4 +66,5 @@ const (
 	DpmSdkVersionEnvVar = "DPM_SDK_VERSION"
 
 	DpmLockfileEnabledEnvVar = "DPM_LOCKFILE_ENABLED"
+	DpmDarsEnabledEnvVar     = "DPM_DARS_ENABLED"
 )

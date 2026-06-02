@@ -39,7 +39,7 @@ func New(config *assistantconfig.Config) *OciDarPuller {
 	}
 }
 
-func (a *OciDarPuller) PullDar(ctx context.Context, dar *damlpackage.ResolvedDependency) (*PulledDar, error) {
+func (a *OciDarPuller) PullDar(ctx context.Context, dar *damlpackage.ParsedDarDependency) (*PulledDar, error) {
 	result, err := a.doPullDar(ctx, dar)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (a *OciDarPuller) PullDar(ctx context.Context, dar *damlpackage.ResolvedDep
 	return result, nil
 }
 
-func (a *OciDarPuller) doPullDar(ctx context.Context, dar *damlpackage.ResolvedDependency) (*PulledDar, error) {
+func (a *OciDarPuller) doPullDar(ctx context.Context, dar *damlpackage.ParsedDarDependency) (*PulledDar, error) {
 	repo, ref, err := dar.GetOciRepo()
 	if err != nil {
 		return nil, err

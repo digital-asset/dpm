@@ -376,3 +376,7 @@ func GetAssistantUserAgent() string {
 func DpmLockfileEnabled() bool {
 	return os.Getenv(DpmLockfileEnabledEnvVar) == "true"
 }
+
+func DpmDarsEnabled() bool {
+	return os.Getenv(DpmDarsEnabledEnvVar) == "true"
+}
