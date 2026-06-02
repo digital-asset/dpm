@@ -46,7 +46,7 @@ func (suite *RepoSuite) TestRepoCreateTarball() {
 	t := suite.T()
 	// the commands under test should work fully without requiring Edition env var to be set
 	os.Unsetenv(assistantconfig.EditionEnvVar)
-	testutil.StartRegistry(t)
+	testutil.StartDpmRegistry(t)
 	bundlePath, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
 
@@ -119,7 +119,7 @@ func (suite *RepoSuite) TestRepoCreateTarball() {
 func (suite *RepoSuite) TestRepoPublishAssembly() {
 	t := suite.T()
 
-	client, _ := testutil.StartRegistry(t)
+	client, _ := testutil.StartDpmRegistry(t)
 
 	tmpDamlHome, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
@@ -184,7 +184,7 @@ func testPlatformSpecificSdk(t *testing.T, damlHome string) {
 
 func (suite *RepoSuite) TestResolveLatest() {
 	t := suite.T()
-	testutil.StartRegistry(t)
+	testutil.StartDpmRegistry(t)
 
 	tmpDamlHome, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
@@ -322,7 +322,7 @@ func (suite *RepoSuite) TestOciAnnotations() {
 	}
 
 	t.Run("publishing of new and legacy annotations", func(t *testing.T) {
-		_, reg := testutil.StartRegistry(t)
+		_, reg := testutil.StartDpmRegistry(t)
 		testPushAndPull(t)
 		assertAllAnnotation(t, reg, IncludesLegacy)
 	})
@@ -330,7 +330,7 @@ func (suite *RepoSuite) TestOciAnnotations() {
 	t.Run("missing legacy on the read side is ok", func(t *testing.T) {
 		t.Setenv(ociconsts.SkipLegacyOciAnnotationsEnvVar, "true")
 
-		_, reg := testutil.StartRegistry(t)
+		_, reg := testutil.StartDpmRegistry(t)
 		testPushAndPull(t)
 		assertAllAnnotation(t, reg, NoLegacy)
 	})
@@ -339,7 +339,7 @@ func (suite *RepoSuite) TestOciAnnotations() {
 func (suite *RepoSuite) TestPromoteComponents() {
 	t := suite.T()
 
-	testutil.StartRegistry(t)
+	testutil.StartDpmRegistry(t)
 	sourceRegistry := os.Getenv(assistantconfig.OciRegistryEnvVar)
 
 	tmpDamlHome, err := os.MkdirTemp("", "")
@@ -348,7 +348,7 @@ func (suite *RepoSuite) TestPromoteComponents() {
 
 	publishComponents(t)
 
-	testutil.StartRegistry(t)
+	testutil.StartDpmRegistry(t)
 	destinationRegistry := os.Getenv(assistantconfig.OciRegistryEnvVar)
 
 	tmpDamlHome, err = os.MkdirTemp("", "")

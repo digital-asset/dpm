@@ -178,7 +178,7 @@ func GetRemote(registry *httptest.Server) *assistantremote.Remote {
 	return assistantremote.NewWithCustomClient(strings.TrimPrefix(registry.URL, prefix), &auth.Client{Client: registry.Client()}, insecure)
 }
 
-func StartRegistry(t *testing.T) (client *assistantremote.Remote, reg *httptest.Server) {
+func StartDpmRegistry(t *testing.T) (client *assistantremote.Remote, reg *httptest.Server) {
 	reg = httptest.NewServer(registry.New())
 	t.Cleanup(func() { reg.Close() })
 	regUrl := strings.TrimPrefix(reg.URL, "http://")

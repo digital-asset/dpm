@@ -172,7 +172,7 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 	installSdk(t, []string{someSdkVersion})
 
 	// prepare and install another sdk
-	_, reg := testutil.StartRegistry(t)
+	_, reg := testutil.StartDpmRegistry(t)
 	anotherSdkVersion := "1.2.3"
 	anotherSdkAssembly := createAssembly(t, anotherSdkVersion, "4.5.6")
 	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, anotherSdkVersion, anotherSdkAssembly)
@@ -345,7 +345,7 @@ func (suite *MainSuite) TestComponentDependencyPaths() {
 func (suite *MainSuite) TestComponentPublish() {
 	t := suite.T()
 	ctx := testutil.Context(t)
-	client, _ := testutil.StartRegistry(t)
+	client, _ := testutil.StartDpmRegistry(t)
 
 	publish := func(t *testing.T, version string) {
 		args := []string{"repo", "publish-component", "meepy-repo", version,
@@ -463,7 +463,7 @@ func (suite *MainSuite) TestSdkInstallCommand() {
 
 func installFloatySdk(t *testing.T, version string, floatyTag string) {
 	ctx := testutil.Context(t)
-	_, reg := testutil.StartRegistry(t)
+	_, reg := testutil.StartDpmRegistry(t)
 
 	// Push assembly for each version
 	testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, version, testutil.TestdataPath(t, "remote-components.yaml"))
@@ -496,7 +496,7 @@ func installFloatySdk(t *testing.T, version string, floatyTag string) {
 
 func installSdk(t *testing.T, versions []string) {
 	ctx := testutil.Context(t)
-	_, reg := testutil.StartRegistry(t)
+	_, reg := testutil.StartDpmRegistry(t)
 
 	// Push assembly for each version
 	for _, v := range versions {
@@ -537,7 +537,7 @@ func installSdk(t *testing.T, versions []string) {
 
 func installSdkForComponent(t *testing.T, sdkVersion, componentName, componentVersion string) {
 	ctx := testutil.Context(t)
-	_, reg := testutil.StartRegistry(t)
+	_, reg := testutil.StartDpmRegistry(t)
 
 	assert.NotEmpty(t, os.Getenv(assistantconfig.DpmHomeEnvVar), "must set DPM_HOME to use installSdkForComponent")
 
@@ -747,8 +747,8 @@ func (suite *MainSuite) TestInstallPackageMultipleRegistries() {
 	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
 
 	ctx := testutil.Context(t)
-	_, reg := testutil.StartRegistry(t)
-	_, altReg := testutil.StartRegistry(t)
+	_, reg := testutil.StartDpmRegistry(t)
+	_, altReg := testutil.StartDpmRegistry(t)
 
 	regURL := strings.TrimPrefix(reg.URL, "http://")
 	altURL := strings.TrimPrefix(altReg.URL, "http://")
@@ -798,7 +798,7 @@ func (suite *MainSuite) TestInstallPackageMultipleRegistries() {
 func (suite *MainSuite) TestSdkVersionCommand() {
 	t := suite.T()
 	ctx := testutil.Context(t)
-	_, reg := testutil.StartRegistry(t)
+	_, reg := testutil.StartDpmRegistry(t)
 
 	sdkVersions := []string{someSdkVersion, "2.0.0-alpha", "1.0.0", "1.0.1", "3.0.0", "1.1.0"}
 	sorted := []string{

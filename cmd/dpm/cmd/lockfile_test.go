@@ -34,7 +34,7 @@ func (suite *MainSuite) TestLockfileUpdate() {
 	tmpDamlHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
-	_, reg := testutil.StartRegistry(t)
+	_, reg := testutil.StartDpmRegistry(t)
 	multiPackageDir := testutil.TestdataPath(t, "multi-package-simple")
 	t.Setenv(assistantconfig.DamlMultiPackageEnvVar, multiPackageDir)
 

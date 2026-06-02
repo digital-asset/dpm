@@ -152,7 +152,7 @@ func (suite *MainSuite) TestComponentOverlay() {
 
 	t.Setenv("PATH", testutil.TestdataPath(t, "fake-java", testutil.OS)+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	_, reg := testutil.StartRegistry(t)
+	_, reg := testutil.StartDpmRegistry(t)
 
 	testutil.PushGenericComponentWithCommand(t, reg, "foo", "0.0.1", "foo")
 	testutil.PushGenericComponentWithCommand(t, reg, "foo", "0.0.2", "foo")

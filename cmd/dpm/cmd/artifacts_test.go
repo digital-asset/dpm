@@ -20,17 +20,37 @@ func (suite *RepoSuite) TestPublishDar() {
 	require.NoError(t, err)
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
-	testutil.StartRegistry(t)
+	testutil.StartDpmRegistry(t)
 	destinationRegistry := os.Getenv(assistantconfig.OciRegistryEnvVar)
 
 	pushDar(t, fmt.Sprintf("oci://%s/meep:1.2.3", destinationRegistry))
+}
+
+func pushDar(t *testing.T, uri string, extraTags ...string) {
+	t.Run("push dar", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t)
+		args := []string{
+			"publish", "dar", uri,
+			"-f", testutil.TestdataPath(t, "test-dar"),
+		}
+
+		for _, t := range extraTags {
+			args = append(args, "--extra-tags", t)
+		}
+
+		if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
+			args = append(args, "--insecure")
+		}
+		cmd.SetArgs(args)
+		require.NoError(t, cmd.Execute())
+	})
 }
 
 func (suite *RepoSuite) TestPublishLicenselessDar() {
 	t := suite.T()
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 
-	testutil.StartRegistry(t)
+	testutil.StartDpmRegistry(t)
 
 	tmpDamlHome, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
@@ -71,7 +91,7 @@ func (suite *RepoSuite) TestPublishLicenselessDar() {
 
 func (suite *RepoSuite) TestPublishThirdPartyComponents() {
 	t := suite.T()
-	_, _ = testutil.StartRegistry(t)
+	_, _ = testutil.StartDpmRegistry(t)
 	uri := fmt.Sprintf("%s/x/y/z", os.Getenv(assistantconfig.OciRegistryEnvVar))
 
 	args := []string{"publish", "component", fmt.Sprintf("oci://%s/meep:1.2.3", uri),
@@ -101,7 +121,7 @@ func (suite *RepoSuite) TestPublishThirdPartyComponents() {
 
 func (suite *RepoSuite) TestComponentTags() {
 	t := suite.T()
-	_, reg := testutil.StartRegistry(t)
+	_, reg := testutil.StartDpmRegistry(t)
 
 	args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "meepy-component", testutil.OS))
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
@@ -125,7 +145,7 @@ func (suite *RepoSuite) TestComponentTags() {
 func (suite *RepoSuite) TestDarTags() {
 	t := suite.T()
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
-	_, reg := testutil.StartRegistry(t)
+	_, reg := testutil.StartDpmRegistry(t)
 
 	args := testutil.PushDarUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "test-dar"))
 	require.NoError(t, createStdTestRootCmd(t, args...).Execute())

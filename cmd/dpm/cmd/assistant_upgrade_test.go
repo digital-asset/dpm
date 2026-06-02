@@ -4,13 +4,14 @@
 package cmd
 
 import (
-	"daml.com/x/assistant/pkg/assembler"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"daml.com/x/assistant/pkg/assembler"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/sdkmanifest"
@@ -26,7 +27,7 @@ import (
 func (suite *MainSuite) TestAssistantUpgrade() {
 	t := suite.T()
 	ctx := testutil.Context(t)
-	_, reg := testutil.StartRegistry(t)
+	_, reg := testutil.StartDpmRegistry(t)
 
 	sdkVersion := "0.0.1-whatever"
 	newerSdkVersion, err := semver.NewVersion("0.0.3")
