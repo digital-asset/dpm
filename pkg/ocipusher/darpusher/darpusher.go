@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/opencontainers/go-digest"
 	"maps"
+	"oras.land/oras-go/v2/content/memory"
 	"os"
 	"path/filepath"
 
@@ -32,10 +33,11 @@ type DarOpts struct {
 }
 
 type DarPushOperation struct {
-	fs                       *file.Store
-	manifestDesc, configDesc *v1.Descriptor
-	repoName                 string
-	rawTag                   string
+	fs           *file.Store
+	ms           *memory.Store
+	manifestDesc *v1.Descriptor
+	repoName     string
+	rawTag       string
 }
 
 func (op *DarPushOperation) Tag() string {
@@ -49,6 +51,7 @@ func (op *DarPushOperation) DarDestination(registry string) string {
 func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 	repoName := opts.Artifact.RepoName()
 
+	ms := memory.New()
 	fs, err := file.New(opts.Dir)
 	if err != nil {
 		return nil, err
@@ -73,13 +76,21 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		fileInfoAnnotations := fileinfo.New(osFileInfo).AsAnnotations()
 		appendAnnotations(fileDescriptor, fileInfoAnnotations)
 
+		fileBytes, err := os.ReadFile(filepath.Join(opts.Dir, de.Name()))
+		if err != nil {
+			return nil, err
+		}
+
+		if err := ms.Push(ctx, fileDescriptor, bytes.NewReader(fileBytes)); err != nil {
+			return nil, err
+		}
 		fileDescriptors = append(fileDescriptors, fileDescriptor)
 	}
 
 	darFilePath := filepath.Join(opts.Dir, consts.DarManifestName)
 	_, err = os.Stat(darFilePath)
 	if err != nil {
-		DarManifest, err := darManifest(ctx, fs, opts)
+		DarManifest, err := darManifest(ctx, ms, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -92,18 +103,20 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		Layers:              fileDescriptors,
 		ManifestAnnotations: annotations,
 	}
-	manifestDescriptor, err := oras.PackManifest(ctx, fs, oras.PackManifestVersion1_1, opts.Artifact.ArtifactType(), packOpts)
+	manifestDescriptor, err := oras.PackManifest(ctx, ms, oras.PackManifestVersion1_1, opts.Artifact.ArtifactType(), packOpts)
 	if err != nil {
 		return nil, err
 	}
 
 	op := &DarPushOperation{
-		repoName: repoName,
-		rawTag:   opts.RawTag,
-		fs:       fs,
+		repoName:     repoName,
+		rawTag:       opts.RawTag,
+		fs:           fs,
+		ms:           ms,
+		manifestDesc: &manifestDescriptor,
 	}
 
-	if err := fs.Tag(ctx, manifestDescriptor, op.Tag()); err != nil {
+	if err := ms.Tag(ctx, manifestDescriptor, op.Tag()); err != nil {
 		return nil, err
 	}
 
@@ -120,7 +133,9 @@ func (op *DarPushOperation) DarDo(ctx context.Context, client *assistantremote.R
 	}
 	repo.Client = client
 	repo.PlainHTTP = client.Insecure
-	d, err := oras.Copy(ctx, op.fs, op.Tag(), repo, op.Tag(), oras.DefaultCopyOptions)
+
+	d, err := oras.Copy(ctx, op.ms, op.Tag(), repo, op.Tag(), oras.DefaultCopyOptions)
+
 	if err != nil {
 		return nil, err
 	}
@@ -132,14 +147,14 @@ func (op *DarPushOperation) DarDo(ctx context.Context, client *assistantremote.R
 }
 
 func createDarManifest(dir string) []byte {
-	yamlData := fmt.Sprintf(`
+	manifestData := fmt.Sprintf(`
 apiVersion: digitalasset.com/v1
 kind: Dar
 spec: 
 	paths:
 		- %s
 `, filepath.Join(dir, consts.DarManifestName))
-	darByte := []byte(yamlData)
+	darByte := []byte(manifestData)
 	return darByte
 }
 
@@ -150,7 +165,7 @@ func appendAnnotations(descriptor v1.Descriptor, annotations map[string]string) 
 	maps.Copy(descriptor.Annotations, annotations)
 }
 
-func darManifest(ctx context.Context, store *file.Store, opts DarOpts) (*v1.Descriptor, error) {
+func darManifest(ctx context.Context, mem *memory.Store, opts DarOpts) (*v1.Descriptor, error) {
 	darByte := createDarManifest(opts.Dir)
 	blobReader := bytes.NewReader(darByte)
 
@@ -163,7 +178,7 @@ func darManifest(ctx context.Context, store *file.Store, opts DarOpts) (*v1.Desc
 		},
 	}
 
-	if err := store.Push(ctx, desc, blobReader); err != nil {
+	if err := mem.Push(ctx, desc, blobReader); err != nil {
 		return nil, err
 	}
 
