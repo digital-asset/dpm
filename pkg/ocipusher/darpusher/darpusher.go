@@ -94,20 +94,20 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		}
 		fileDescriptors = append(fileDescriptors, fileDescriptor)
 	}
+	if darName == "" {
+		slog.ErrorContext(ctx, "No file ending in .dar found")
+		return nil, fmt.Errorf("missing .dar file")
+	}
 
 	darManifestFilePath := filepath.Join(opts.Dir, consts.DarManifestName)
 	_, err = os.Stat(darManifestFilePath)
+	
 	if err != nil {
-		if darName != "" {
-			DarManifest, err := darManifest(ctx, ms, opts, darName)
-			if err != nil {
-				return nil, err
-			}
-			fileDescriptors = append(fileDescriptors, *DarManifest)
-		} else {
-			slog.ErrorContext(ctx, "No file ending in .dar found")
-			return nil, fmt.Errorf("missing .dar file")
+		DarManifest, err := darManifest(ctx, ms, opts, darName)
+		if err != nil {
+			return nil, err
 		}
+		fileDescriptors = append(fileDescriptors, *DarManifest)
 	}
 
 	annotations := map[string]string{}
