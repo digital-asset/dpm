@@ -95,9 +95,6 @@ func (suite *RepoSuite) TestPublishDarGenerateManifest() {
 	require.NoError(t, err)
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 	destinationRegistry := os.Getenv(assistantconfig.OciRegistryEnvVar)
-	tmpDamlHome, err = os.MkdirTemp("", "")
-	require.NoError(t, err)
-	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
 	t.Run("Ensure manifest created", func(t *testing.T) {
 		cmd := createStdTestRootCmd(t)
