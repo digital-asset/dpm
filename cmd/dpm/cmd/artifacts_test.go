@@ -130,6 +130,7 @@ func (suite *RepoSuite) TestPublishDarGenerateManifest() {
 			}
 		}
 		assert.True(t, darManifestCreated, "Expected at least one layer with dar.yaml manifest, but none found")
+		assert.NoFileExists(t, testutil.TestdataPath(t, "test-dar", assistantconfig.DarManifestName), "Expected dar.yaml manifest to not be present in the original directory, but it was")
 	})
 
 }
