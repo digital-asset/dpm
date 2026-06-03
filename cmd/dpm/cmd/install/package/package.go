@@ -14,6 +14,7 @@ import (
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/utils"
+	"github.com/samber/lo"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
@@ -53,14 +54,20 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 					}
 				}
 
-				installOverrides(ctx, cmd, config, multiPackagePath, false)
+				if err := installOverrides(ctx, cmd, config, multiPackagePath, false); err != nil {
+					return err
+				}
 				pkgs := multiDamlPackage.AbsolutePackages()
 
 				for _, p := range pkgs {
 					cmd.Printf("Processing package %q...\n", p)
 					damlPackagePath := filepath.Join(p, assistantconfig.DamlPackageFilename)
-					processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath)
-					installOverrides(ctx, cmd, config, damlPackagePath, true)
+					if err := processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath); err != nil {
+						return err
+					}
+					if err := installOverrides(ctx, cmd, config, damlPackagePath, true); err != nil {
+						return err
+					}
 				}
 
 			} else {
@@ -71,7 +78,9 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				if !isDamlPackage {
 					return fmt.Errorf("not in a package directory or subdirectory")
 				}
-				processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath)
+				if err := processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath); err != nil {
+					return err
+				}
 				return installOverrides(ctx, cmd, config, damlPackagePath, false)
 			}
 			return nil
@@ -94,7 +103,42 @@ func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assista
 			return err
 		}
 	}
+
+	if assistantconfig.DpmDarsEnabled() {
+		if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.Dependencies)); err != nil {
+			return err
+		}
+		if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.DataDependencies)); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+func installDars(ctx context.Context, config *assistantconfig.Config, dars []*damlpackage.ParsedDarDependency) error {
+	for _, d := range dars {
+		if err := installDar(ctx, config, d); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func installDar(ctx context.Context, config *assistantconfig.Config, dar *damlpackage.ParsedDarDependency) error {
+	if dar.FullUrl.Scheme != "oci" {
+		return nil
+	}
+
+	client, ref, err := dar.GetOciRemote()
+	if err != nil {
+		return err
+	}
+
+	puller := remotepuller.New(config.OciLayoutCache, client)
+
+	destPath := config.CachePathForDar(ref.Registry, ref.Repository, ref.Reference)
+	return puller.PullDarByFullPath(ctx, ref.Repository, ref.Reference, destPath)
 }
 
 func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, absPath string, sub bool) error {

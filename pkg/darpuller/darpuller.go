@@ -52,7 +52,12 @@ func (a *OciDarPuller) PullDar(ctx context.Context, dar *damlpackage.ParsedDarDe
 }
 
 func (a *OciDarPuller) doPullDar(ctx context.Context, dar *damlpackage.ParsedDarDependency) (*PulledDar, error) {
-	repo, ref, err := dar.GetOciRepo()
+	assistantRemote, ref, err := dar.GetOciRemote()
+	if err != nil {
+		return nil, err
+	}
+
+	repo, err := assistantRemote.Repo(ref.Repository)
 	if err != nil {
 		return nil, err
 	}
