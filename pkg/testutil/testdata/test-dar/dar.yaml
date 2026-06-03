@@ -1,4 +1,0 @@
-apiVersion: v1
-kind: Dar
-spec:
-  path: ./test.dar
