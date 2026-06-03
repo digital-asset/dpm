@@ -111,14 +111,13 @@ func (suite *MainSuite) TestDarInstallWithArtifactLocationAlias() {
 	// install dars
 	ActivateDamlYamlForTest(t, `
 dependencies:
-  - "foo:1.2.3"
+  - "@digital-asset/foo:1.2.3"
 
 data-dependencies:
   - "@my-location/bar:4.5.6"
 
 artifact-locations:
   "@digital-asset":
-    default: true
     url: oci://$DPM_REGISTRY/more/official/dars
     insecure: true
   "@my-location":
