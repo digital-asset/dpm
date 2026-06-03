@@ -94,7 +94,7 @@ func checkDar(t *testing.T, darFile string) {
 	require.NoError(t, err)
 }
 
-func (suite *MainSuite) TestDarInstall() {
+func (suite *MainSuite) TestDarInstallWithArtifactLocationAlias() {
 	t := suite.T()
 	t.Setenv(assistantconfig.DpmDarsEnabledEnvVar, "true")
 
@@ -128,7 +128,7 @@ artifact-locations:
 	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
 
 	// verify installed dars
-	dars := findALlDarsInCache(t, filepath.Join(tmpDpmHome, "cache", "dars"))
+	dars := listAllDarsInCache(t, filepath.Join(tmpDpmHome, "cache", "dars"))
 	assertContainsDar(t, dars, "foo/1.2.3/test.dar")
 	assertContainsDar(t, dars, "bar/4.5.6/test.dar")
 }
@@ -154,26 +154,7 @@ func pushDar(t *testing.T, uri string, extraTags ...string) {
 	require.NoError(t, err)
 }
 
-// TODO replace with this version of pushDar
-//func pushDar(t *testing.T, uri string, extraTags ...string) {
-//	cmd := createStdTestRootCmd(t)
-//	args := []string{
-//		"publish", "dar", uri,
-//		"-f", testutil.TestdataPath(t, "test-dar"),
-//	}
-//
-//	for _, t := range extraTags {
-//		args = append(args, "--extra-tags", t)
-//	}
-//
-//	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
-//		args = append(args, "--insecure")
-//	}
-//	cmd.SetArgs(args)
-//	require.NoError(t, cmd.Execute())
-//}
-
-func findALlDarsInCache(t *testing.T, darsCacheDir string) []string {
+func listAllDarsInCache(t *testing.T, darsCacheDir string) []string {
 	var matches []string
 
 	err := filepath.WalkDir(darsCacheDir, func(path string, d fs.DirEntry, err error) error {
