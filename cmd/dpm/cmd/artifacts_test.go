@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"io"
+	"oras.land/oras-go/v2"
 	"os"
 	"strings"
 	"testing"
@@ -84,9 +88,8 @@ func (suite *RepoSuite) TestPublishLicenselessDar() {
 
 func (suite *RepoSuite) TestPublishDarGenerateManifest() {
 	t := suite.T()
-	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 
-	testutil.StartRegistry(t)
+	c, _ := testutil.StartRegistry(t)
 
 	tmpDamlHome, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
@@ -109,7 +112,24 @@ func (suite *RepoSuite) TestPublishDarGenerateManifest() {
 
 		cmd.SetArgs(args)
 		require.NoError(t, cmd.Execute())
+		repo, err := c.Repo("meep")
+		assert.NoError(t, err)
 
+		desc, bytes, err := oras.FetchBytes(t.Context(), repo, "1.2.3", oras.DefaultFetchBytesOptions)
+		assert.NoError(t, err)
+
+		assert.Equal(t, desc.MediaType, v1.MediaTypeImageManifest)
+
+		manifest := v1.Manifest{}
+		assert.NoError(t, json.Unmarshal(bytes, &manifest))
+		darManifestCreated := false
+		for _, layer := range manifest.Layers {
+			name, ok := layer.Annotations[ocispec.AnnotationTitle]
+			if ok && name == assistantconfig.DarManifestName {
+				darManifestCreated = true
+			}
+		}
+		assert.True(t, darManifestCreated, "Expected at least one layer with dar.yaml manifest, but none found")
 	})
 
 }
