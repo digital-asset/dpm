@@ -13,6 +13,7 @@ import (
 
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
 	"daml.com/x/assistant/pkg/sdkmanifest"
+	"oras.land/oras-go/v2/registry"
 
 	"daml.com/x/assistant/pkg/assistantversion"
 	"daml.com/x/assistant/pkg/utils"
@@ -381,6 +382,6 @@ func DpmDarsEnabled() bool {
 	return os.Getenv(DpmDarsEnabledEnvVar) == "true"
 }
 
-func (c *Config) CachePathForDar(registry, repository, version string) string {
-	return filepath.Join(c.CachePath, "dars", utils.UrlToFilePath(fmt.Sprintf("%s/%s", registry, repository)), version)
+func (c *Config) CachePathForDar(ref *registry.Reference) string {
+	return filepath.Join(c.CachePath, "dars", utils.UrlToFilePath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository)), ref.Reference)
 }

@@ -137,7 +137,7 @@ func installDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 
 	puller := remotepuller.New(config.OciLayoutCache, client)
 
-	destPath := config.CachePathForDar(ref.Registry, ref.Repository, ref.Reference)
+	destPath := config.CachePathForDar(ref)
 	return puller.PullDarByFullPath(ctx, ref.Repository, ref.Reference, destPath)
 }
 

@@ -270,3 +270,13 @@ func PushGenericComponentWithCommand(t *testing.T, reg *httptest.Server, compone
 	require.NoError(t, os.WriteFile(filepath.Join(compDir, "dummy"), []byte{}, 0666))
 	PushComponent(t, ctx, reg, componentName, componentVersion, compDir)
 }
+
+// MkConfig creates a temporary dpm home and returns an assistantconfig.Config that uses it
+func MkConfig(t *testing.T) *assistantconfig.Config {
+	tmpDpmHome, err := os.MkdirTemp("", "")
+	require.NoError(t, err)
+	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDpmHome)
+	config, err := assistantconfig.Get()
+	require.NoError(t, err)
+	return config
+}

@@ -5,10 +5,8 @@ package cmd
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
@@ -98,15 +96,19 @@ func (suite *MainSuite) TestDarInstallWithArtifactLocationAlias() {
 	t := suite.T()
 	t.Setenv(assistantconfig.DpmDarsEnabledEnvVar, "true")
 
-	tmpDpmHome, err := os.MkdirTemp("", "")
-	require.NoError(t, err)
-	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDpmHome)
+	config := testutil.MkConfig(t)
 
 	// push dars
 	testutil.StartRegistry(t)
 	reg := os.Getenv(assistantconfig.OciRegistryEnvVar)
-	pushDar(t, fmt.Sprintf("%s/more/official/dars/foo:1.2.3", reg))
-	pushDar(t, fmt.Sprintf("%s/some/dars/n/stuff/bar:4.5.6", reg))
+
+	fooDarRef, err := registry.ParseReference(fmt.Sprintf("%s/more/official/dars/foo:1.2.3", reg))
+	require.NoError(t, err)
+	barDarRef, err := registry.ParseReference(fmt.Sprintf("%s/some/dars/n/stuff/bar:4.5.6", reg))
+	require.NoError(t, err)
+
+	pushDar(t, fooDarRef)
+	pushDar(t, barDarRef)
 
 	// install dars
 	ActivateDamlYamlForTest(t, `
@@ -127,15 +129,13 @@ artifact-locations:
 	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
 
 	// verify installed dars
-	dars := listAllDarsInCache(t, filepath.Join(tmpDpmHome, "cache", "dars"))
-	assertContainsDar(t, dars, "foo/1.2.3/test.dar")
-	assertContainsDar(t, dars, "bar/4.5.6/test.dar")
+	t.Run("dars downloaded to the dpm cache", func(t *testing.T) {
+		assert.FileExists(t, filepath.Join(config.CachePathForDar(&fooDarRef), "test.dar"))
+		assert.FileExists(t, filepath.Join(config.CachePathForDar(&barDarRef), "test.dar"))
+	})
 }
 
-func pushDar(t *testing.T, uri string, extraTags ...string) {
-	ref, err := registry.ParseReference(uri)
-	require.NoError(t, err)
-
+func pushDar(t *testing.T, ref registry.Reference, extraTags ...string) {
 	pushOp, err := darpusher.DarNew(t.Context(), darpusher.DarOpts{
 		Artifact: &ociconsts.DarArtifact{
 			DarRepo: ref.Repository,
@@ -153,29 +153,6 @@ func pushDar(t *testing.T, uri string, extraTags ...string) {
 	require.NoError(t, err)
 }
 
-func listAllDarsInCache(t *testing.T, darsCacheDir string) []string {
-	var matches []string
+func mkConfig(t *testing.T) {
 
-	err := filepath.WalkDir(darsCacheDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		if strings.HasSuffix(d.Name(), ".dar") {
-			matches = append(matches, filepath.ToSlash(path))
-		}
-		return nil
-	})
-
-	require.NoError(t, err)
-	return matches
-}
-
-func assertContainsDar(t *testing.T, cacheDars []string, darFilePath string) {
-	_, ok := lo.Find(cacheDars, func(f string) bool {
-		return strings.HasSuffix(f, darFilePath)
-	})
-	assert.True(t, ok, "expected to find dar %q in cache", darFilePath)
 }
