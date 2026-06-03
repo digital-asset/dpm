@@ -6,12 +6,15 @@ package darpusher
 import (
 	"bytes"
 	"context"
+	"daml.com/x/assistant/pkg/darmanifest"
 	"fmt"
 	"github.com/opencontainers/go-digest"
+	"log/slog"
 	"maps"
 	"oras.land/oras-go/v2/content/memory"
 	"os"
 	"path/filepath"
+	"strings"
 
 	consts "daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
@@ -63,16 +66,21 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 	}
 
 	var fileDescriptors []v1.Descriptor
+	var darName string
 	for _, de := range dEntries {
 		fileDescriptor, err := fs.Add(ctx, de.Name(), opts.Artifact.FileMediaType(), "")
 		if err != nil {
 			return nil, err
 		}
 
+		if strings.HasSuffix(de.Name(), ".dar") {
+			darName = de.Name()
+		}
 		osFileInfo, err := de.Info()
 		if err != nil {
 			return nil, err
 		}
+
 		fileInfoAnnotations := fileinfo.New(osFileInfo).AsAnnotations()
 		appendAnnotations(fileDescriptor, fileInfoAnnotations)
 
@@ -87,14 +95,19 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		fileDescriptors = append(fileDescriptors, fileDescriptor)
 	}
 
-	darFilePath := filepath.Join(opts.Dir, consts.DarManifestName)
-	_, err = os.Stat(darFilePath)
+	darManifestFilePath := filepath.Join(opts.Dir, consts.DarManifestName)
+	_, err = os.Stat(darManifestFilePath)
 	if err != nil {
-		DarManifest, err := darManifest(ctx, ms, opts)
-		if err != nil {
-			return nil, err
+		if darName != "" {
+			DarManifest, err := darManifest(ctx, ms, opts, darName)
+			if err != nil {
+				return nil, err
+			}
+			fileDescriptors = append(fileDescriptors, *DarManifest)
+		} else {
+			slog.ErrorContext(ctx, "No file ending in .dar found")
+			return nil, fmt.Errorf("missing .dar file")
 		}
-		fileDescriptors = append(fileDescriptors, *DarManifest)
 	}
 
 	annotations := map[string]string{}
@@ -146,14 +159,14 @@ func (op *DarPushOperation) DarDo(ctx context.Context, client *assistantremote.R
 	return &d, err
 }
 
-func createDarManifest(dir string) []byte {
+func createDarManifest(darFileName string) []byte {
 	manifestData := fmt.Sprintf(`
 apiVersion: digitalasset.com/v1
 kind: Dar
-spec: 
-	paths:
-		- %s
-`, filepath.Join(dir, consts.DarManifestName))
+spec:
+  paths:
+    - ./%s
+`, filepath.Join(".", darFileName))
 	darByte := []byte(manifestData)
 	return darByte
 }
@@ -165,8 +178,13 @@ func appendAnnotations(descriptor v1.Descriptor, annotations map[string]string) 
 	maps.Copy(descriptor.Annotations, annotations)
 }
 
-func darManifest(ctx context.Context, mem *memory.Store, opts DarOpts) (*v1.Descriptor, error) {
-	darByte := createDarManifest(opts.Dir)
+func darManifest(ctx context.Context, mem *memory.Store, opts DarOpts, darName string) (*v1.Descriptor, error) {
+	darByte := createDarManifest(darName)
+	_, err := darmanifest.ReadDarManifestContents(darByte)
+	if err != nil {
+		return nil, err
+	}
+
 	blobReader := bytes.NewReader(darByte)
 
 	desc := ocispec.Descriptor{
@@ -177,7 +195,6 @@ func darManifest(ctx context.Context, mem *memory.Store, opts DarOpts) (*v1.Desc
 			ocispec.AnnotationTitle: consts.DarManifestName,
 		},
 	}
-
 	if err := mem.Push(ctx, desc, blobReader); err != nil {
 		return nil, err
 	}

@@ -12,7 +12,7 @@ import (
 const (
 	DarKind          = "Dar"
 	DarSchemaVersion = "v1"
-	DarAPIVersion    = DarSchemaVersion
+	DarAPIVersion    = schema.APIGroup + "/" + DarSchemaVersion
 )
 
 var ErrInvalidDarManifest = fmt.Errorf("invalid dar manifest")

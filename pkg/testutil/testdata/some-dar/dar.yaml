@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: digitalasset.com/v1
 kind: Dar
 spec:
   paths:
