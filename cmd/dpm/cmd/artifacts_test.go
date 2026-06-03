@@ -119,14 +119,17 @@ func (suite *RepoSuite) TestPublishDarGenerateManifest() {
 
 		manifest := v1.Manifest{}
 		assert.NoError(t, json.Unmarshal(bytes, &manifest))
-		darManifestCreated := false
+
+		fileNames := make([]string, 3)
 		for _, layer := range manifest.Layers {
-			name, ok := layer.Annotations[ocispec.AnnotationTitle]
-			if ok && name == assistantconfig.DarManifestName {
-				darManifestCreated = true
-			}
+			name, _ := layer.Annotations[ocispec.AnnotationTitle]
+			fileNames = append(fileNames, name)
 		}
-		assert.True(t, darManifestCreated, "Expected at least one layer with dar.yaml manifest, but none found")
+
+		assert.Contains(t, fileNames, "test.dar", "Expected test.dar layer with test.dar name annotation, but none found")
+		assert.Contains(t, fileNames, "LICENSE", "Expected LICENSE layer with LICENSE name annotation but none found")
+		assert.Contains(t, fileNames, assistantconfig.DarManifestName, "Expected dar.yaml layer with dar.yaml name annotation but none found")
+
 		assert.NoFileExists(t, testutil.TestdataPath(t, "test-dar", assistantconfig.DarManifestName), "Expected dar.yaml manifest to not be present in the original directory, but it was")
 	})
 
