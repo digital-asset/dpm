@@ -82,6 +82,38 @@ func (suite *RepoSuite) TestPublishLicenselessDar() {
 	})
 }
 
+func (suite *RepoSuite) TestPublishDarGenerateManifest() {
+	t := suite.T()
+	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
+
+	testutil.StartRegistry(t)
+
+	tmpDamlHome, err := os.MkdirTemp("", "")
+	require.NoError(t, err)
+	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
+	destinationRegistry := os.Getenv(assistantconfig.OciRegistryEnvVar)
+	tmpDamlHome, err = os.MkdirTemp("", "")
+	require.NoError(t, err)
+	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
+
+	t.Run("Ensure manifest created", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t)
+		args := []string{
+			"publish", "dar", fmt.Sprintf("oci://%s/meep:1.2.3", destinationRegistry),
+			"-f", testutil.TestdataPath(t, "test-dar"),
+		}
+
+		if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
+			args = append(args, "--insecure")
+		}
+
+		cmd.SetArgs(args)
+		require.NoError(t, cmd.Execute())
+
+	})
+
+}
+
 func (suite *RepoSuite) TestPublishThirdPartyComponents() {
 	t := suite.T()
 	_, _ = testutil.StartRegistry(t)

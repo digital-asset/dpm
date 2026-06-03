@@ -158,7 +158,7 @@ func findDar(dir string) (string, error) {
 		return "", fmt.Errorf("couldn't read dar manifest %q: %w", p, err)
 	}
 
-	darPath := utils.ResolvePath(dir, m.Spec.Path)
+	darPath := utils.ResolvePath(dir, m.Spec.Paths[0])
 
 	info, err := os.Stat(darPath)
 	if err != nil {

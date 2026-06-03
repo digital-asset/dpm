@@ -23,7 +23,7 @@ type DarManifest struct {
 }
 
 type Spec struct {
-	Path string `yaml:"path"`
+	Paths []string `yaml:"paths"`
 }
 
 func ReadDarManifest(filePath string) (*DarManifest, error) {
@@ -50,8 +50,8 @@ func ReadDarManifestContents(contents []byte) (*DarManifest, error) {
 		return nil, fmt.Errorf("%w: %s", ErrInvalidDarManifest, err.Error())
 	}
 
-	if d.Spec == nil || d.Spec.Path == "" {
-		return nil, fmt.Errorf("%w: missing required .spec.path field", ErrInvalidDarManifest)
+	if d.Spec == nil || d.Spec.Paths == nil || len(d.Spec.Paths) == 0 {
+		return nil, fmt.Errorf("%w: missing required .spec.paths field", ErrInvalidDarManifest)
 	}
 
 	return &d, nil
