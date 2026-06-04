@@ -833,6 +833,7 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 			require.NoError(t, err)
 
 			contentStr := string(output)
+			test := fmt.Sprintf("%q\n", contentStr)
 			_, err = fmt.Fprintf(os.Stderr, "%q\n", contentStr)
 			if err != nil {
 				return
@@ -846,6 +847,7 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 			if err != nil {
 				return
 			}
+			require.Equal(t, strings.Join(sorted, "\n")+"\n", test)
 
 		})
 	}
