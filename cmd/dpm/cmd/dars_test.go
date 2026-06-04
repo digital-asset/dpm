@@ -10,9 +10,7 @@ import (
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
-	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
-	ociconsts "daml.com/x/assistant/pkg/oci"
-	"daml.com/x/assistant/pkg/ocipusher/darpusher"
+	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/testutil"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -34,6 +32,48 @@ data-dependencies:
 	res := lo.Values(runResolveCommand(t).Packages)[0]
 	assert.Contains(t, res.ResolvedDependencies, "daml-script")
 	assert.Contains(t, res.ResolvedDataDependencies, "foo-script")
+}
+
+func (suite *MainSuite) TestResolutionOfOciDarDependencies() {
+	var res *resolution.Package
+
+	t := suite.T()
+	t.Setenv(assistantconfig.DpmDarsEnabledEnvVar, "true")
+
+	config := testutil.MkConfig(t)
+	t.Chdir(testutil.TestdataPath(t, "oci-dar-deps")) // fixture daml.yaml
+
+	// push dars to test registry
+	testutil.StartRegistry(t)
+
+	reg := os.Getenv(assistantconfig.OciRegistryEnvVar)
+	fooDarRef, err := registry.ParseReference(fmt.Sprintf("%s/more/official/dars/foo:1.2.3", reg))
+	require.NoError(t, err)
+	barDarRef, err := registry.ParseReference(fmt.Sprintf("%s/some/dars/n/stuff/bar:4.5.6", reg))
+	require.NoError(t, err)
+
+	pushDar(t, "oci://"+fooDarRef.String())
+	pushDar(t, "oci://"+barDarRef.String())
+
+	t.Run("dpm install package", func(t *testing.T) {
+		require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
+	})
+
+	t.Run("should execute dpm resolve without errors", func(t *testing.T) {
+		output := runResolveCommand(t)
+		res = lo.Values(output.Packages)[0]
+	})
+
+	t.Run("resolution output should contain dars sourced via OCI", func(t *testing.T) {
+		assert.Contains(t,
+			res.ResolvedDependencies,
+			filepath.Join(config.CachePathForDar(&fooDarRef), "test.dar"),
+		)
+		assert.Contains(t,
+			res.ResolvedDataDependencies,
+			filepath.Join(config.CachePathForDar(&barDarRef), "test.dar"),
+		)
+	})
 }
 
 func (suite *MainSuite) TestResolutionOfFilePathBasedDarDependencies() {
@@ -107,8 +147,8 @@ func (suite *MainSuite) TestDarInstallWithArtifactLocationAlias() {
 	barDarRef, err := registry.ParseReference(fmt.Sprintf("%s/some/dars/n/stuff/bar:4.5.6", reg))
 	require.NoError(t, err)
 
-	pushDar(t, fooDarRef)
-	pushDar(t, barDarRef)
+	pushDar(t, "oci://"+fooDarRef.String())
+	pushDar(t, "oci://"+barDarRef.String())
 
 	// install dars
 	ActivateDamlYamlForTest(t, `
@@ -135,24 +175,20 @@ artifact-locations:
 	})
 }
 
-func pushDar(t *testing.T, ref registry.Reference, extraTags ...string) {
-	pushOp, err := darpusher.DarNew(t.Context(), darpusher.DarOpts{
-		Artifact: &ociconsts.DarArtifact{
-			DarRepo: ref.Repository,
-		},
-		RawTag:              ref.Reference,
-		Dir:                 testutil.TestdataPath(t, "test-dar"),
-		RequiredAnnotations: ociconsts.DescriptorAnnotations{},
-	})
+func pushDar(t *testing.T, uri string, extraTags ...string) {
+	args := []string{
+		"publish", "dar", uri,
+		"-f", testutil.TestdataPath(t, "test-dar"),
+	}
 
-	require.NoError(t, err)
-	client, err := assistantremote.New(ref.Registry, "", true)
-	require.NoError(t, err)
+	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
+		args = append(args, "--insecure")
+	}
 
-	_, err = pushOp.DarDo(t.Context(), client)
-	require.NoError(t, err)
-}
+	for _, tag := range extraTags {
+		args = append(args, "--extra-tags", tag)
+	}
 
-func mkConfig(t *testing.T) {
-
+	cmd := createStdTestRootCmd(t, args...)
+	require.NoError(t, cmd.Execute())
 }

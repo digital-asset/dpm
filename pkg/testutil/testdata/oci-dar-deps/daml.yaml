@@ -1,0 +1,12 @@
+dependencies:
+  - "@digital-asset/foo:1.2.3"
+data-dependencies:
+  - "@my-location/bar:4.5.6"
+
+artifact-locations:
+  "@digital-asset":
+    url: oci://$DPM_REGISTRY/more/official/dars
+    insecure: true
+  "@my-location":
+    url: oci://$DPM_REGISTRY/some/dars/n/stuff
+    insecure: true
