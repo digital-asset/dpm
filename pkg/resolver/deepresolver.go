@@ -16,10 +16,12 @@ import (
 	"daml.com/x/assistant/pkg/assembler/assemblyplan"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/darmanifest"
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/packagelock"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/schema"
+	"daml.com/x/assistant/pkg/utils"
 	"github.com/samber/lo"
 )
 
@@ -167,7 +169,7 @@ func (d *DeepResolver) resolvePackageDars(absPath string) (deps []string, dataDe
 			errs = append(errs, err)
 			continue
 		}
-		deps = append(deps, r)
+		deps = append(deps, r...)
 	}
 
 	for _, dar := range p.ParsedDarDependencies.DataDependencies {
@@ -176,7 +178,7 @@ func (d *DeepResolver) resolvePackageDars(absPath string) (deps []string, dataDe
 			errs = append(errs, err)
 			continue
 		}
-		dataDeps = append(dataDeps, r)
+		dataDeps = append(dataDeps, r...)
 	}
 
 	if err := errors.Join(errs...); err != nil {
@@ -186,33 +188,56 @@ func (d *DeepResolver) resolvePackageDars(absPath string) (deps []string, dataDe
 	return
 }
 
-func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) (string, error) {
+func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]string, error) {
 	scheme := dar.FullUrl.Scheme
 
 	if scheme == "builtin" || scheme == "file" {
-		return strings.TrimPrefix(dar.FullUrl.String(), scheme+"://"), nil
+		return []string{strings.TrimPrefix(dar.FullUrl.String(), scheme+"://")}, nil
 	}
 	if scheme == "file" {
 		f := strings.TrimPrefix(dar.FullUrl.String(), scheme+"://")
 		// verify the file exists
 		if _, err := os.Stat(f); err != nil {
-			return "", fmt.Errorf("dar file doesn't exist: %w", err)
+			return nil, fmt.Errorf("dar file doesn't exist: %w", err)
 		}
 
 		// evaluate symlink (if it is one)
 		evaluatedSymlink, err := filepath.EvalSymlinks(f)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		
-		return evaluatedSymlink, nil
+
+		return []string{evaluatedSymlink}, nil
 	}
 	if scheme == "oci" {
-		// TODO
-		return "", fmt.Errorf("oci dars not yet fully implemented")
+		_, ref, err := dar.GetOciRemote()
+		if err != nil {
+			return nil, err
+		}
+
+		darDir := d.config.CachePathForDar(ref)
+		ok, err := utils.DirExists(darDir)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf("dar %q is not installed", dar.FullUrl))
+		}
+
+		darManifestPath := filepath.Join(darDir, assistantconfig.DarManifestName)
+		darManifest, err := darmanifest.ReadDarManifest(darManifestPath)
+		if err != nil {
+			return nil, err
+		}
+
+		var dars []string
+		for _, p := range darManifest.Spec.Paths {
+			dars = append(dars, utils.ResolvePath(darDir, p))
+		}
+		return dars, nil
 	}
 
-	return "", fmt.Errorf("unsupported schema %s", scheme)
+	return nil, fmt.Errorf("unsupported schema %s", scheme)
 }
 
 func (d *DeepResolver) resolveDefaultSdk(ctx context.Context) resolution.DefaultSDK {
