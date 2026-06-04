@@ -18,6 +18,8 @@ require (
 	oras.land/oras-go/v2 v2.6.0
 )
 
+require github.com/opencontainers/go-digest v1.0.0
+
 require (
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -46,7 +48,6 @@ require (
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mattn/go-runewidth v0.0.24 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
-	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
