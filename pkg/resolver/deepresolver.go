@@ -148,8 +148,9 @@ func (d *DeepResolver) resolvePackage(ctx context.Context, absPath string) (*ass
 		if err != nil {
 			return nil, err
 		}
-		result.ShallowResolution.ResolvedDependencies = resolvedDeps
-		result.ShallowResolution.ResolvedDataDependencies = resolvedDataDeps
+
+		result.ShallowResolution.Imports[resolution.ResolvedDependenciesField] = resolvedDeps
+		result.ShallowResolution.Imports[resolution.ResolvedDataDependenciesField] = resolvedDataDeps
 	}
 
 	return result, nil

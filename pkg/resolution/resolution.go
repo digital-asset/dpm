@@ -28,14 +28,33 @@ type Packages map[string]*Package
 type DefaultSDK map[string]*Package
 
 type Package struct {
-	Errors                   []*resolutionerrors.ResolutionError `yaml:"errors,omitempty"`
-	Components               map[string]string                   `yaml:"components,omitempty"`
-	ComponentsV2             map[string]map[string]string        `yaml:"componentsV2,omitempty"`
-	Imports                  Imports                             `yaml:"imports,omitempty"`
-	SdkVersion               string                              `yaml:"sdk-version"`
-	ResolvedDependencies     []string                            `yaml:"resolved-dependencies"`
-	ResolvedDataDependencies []string                            `yaml:"resolved-data-dependencies"`
+	Errors       []*resolutionerrors.ResolutionError `yaml:"errors,omitempty"`
+	Components   map[string]string                   `yaml:"components,omitempty"`
+	ComponentsV2 map[string]map[string]string        `yaml:"componentsV2,omitempty"`
+	Imports      Imports                             `yaml:"imports,omitempty"`
+	SdkVersion   string                              `yaml:"sdk-version"`
 }
 
 // Imports is export Var -> paths list mapping
 type Imports map[string][]string
+
+const (
+	ResolvedDependenciesField     = "resolved-dependencies"
+	ResolvedDataDependenciesField = "resolved-data-dependencies"
+)
+
+func (pkg *Package) GetResolvedDependencies() []string {
+	result, ok := pkg.Imports[ResolvedDependenciesField]
+	if !ok {
+		return []string{}
+	}
+	return result
+}
+
+func (pkg *Package) GetResolvedDataDependencies() []string {
+	result, ok := pkg.Imports[ResolvedDataDependenciesField]
+	if !ok {
+		return []string{}
+	}
+	return result
+}

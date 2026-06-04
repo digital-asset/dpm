@@ -30,8 +30,8 @@ data-dependencies:
 `)
 
 	res := lo.Values(runResolveCommand(t).Packages)[0]
-	assert.Contains(t, res.ResolvedDependencies, "daml-script")
-	assert.Contains(t, res.ResolvedDataDependencies, "foo-script")
+	assert.Contains(t, res.GetResolvedDependencies(), "daml-script")
+	assert.Contains(t, res.GetResolvedDataDependencies(), "foo-script")
 }
 
 func (suite *MainSuite) TestResolutionOfOciDarDependencies() {
@@ -66,11 +66,11 @@ func (suite *MainSuite) TestResolutionOfOciDarDependencies() {
 
 	t.Run("resolution output should contain dars sourced via OCI", func(t *testing.T) {
 		assert.Contains(t,
-			res.ResolvedDependencies,
+			res.GetResolvedDependencies(),
 			filepath.Join(config.CachePathForDar(&fooDarRef), "test.dar"),
 		)
 		assert.Contains(t,
-			res.ResolvedDataDependencies,
+			res.GetResolvedDataDependencies(),
 			filepath.Join(config.CachePathForDar(&barDarRef), "test.dar"),
 		)
 	})
@@ -94,11 +94,11 @@ data-dependencies:
 
 		res := lo.Values(runResolveCommand(t).Packages)[0]
 
-		assert.Contains(t, res.ResolvedDependencies[0], "relative.dar")
-		checkDar(t, res.ResolvedDependencies[0])
+		assert.Contains(t, res.GetResolvedDependencies()[0], "relative.dar")
+		checkDar(t, res.GetResolvedDependencies()[0])
 
-		assert.Contains(t, res.ResolvedDataDependencies[0], "relative.dar")
-		checkDar(t, res.ResolvedDataDependencies[0])
+		assert.Contains(t, res.GetResolvedDataDependencies()[0], "relative.dar")
+		checkDar(t, res.GetResolvedDataDependencies()[0])
 	})
 
 	t.Run("resolution of absolute file-path dars", func(t *testing.T) {
@@ -111,11 +111,11 @@ data-dependencies:
 `, absoluteDarPath, absoluteDarPath))
 		res := lo.Values(runResolveCommand(t).Packages)[0]
 
-		assert.Contains(t, res.ResolvedDependencies[0], "test.dar")
-		checkDar(t, res.ResolvedDependencies[0])
+		assert.Contains(t, res.GetResolvedDependencies()[0], "test.dar")
+		checkDar(t, res.GetResolvedDependencies()[0])
 
-		assert.Contains(t, res.ResolvedDataDependencies[0], "test.dar")
-		checkDar(t, res.ResolvedDataDependencies[0])
+		assert.Contains(t, res.GetResolvedDataDependencies()[0], "test.dar")
+		checkDar(t, res.GetResolvedDataDependencies()[0])
 	})
 
 	t.Run("resolution of symlink file-path dars", func(t *testing.T) {
@@ -130,7 +130,7 @@ dependencies:
 
 		res := lo.Values(runResolveCommand(t).Packages)[0]
 
-		assert.Contains(t, res.ResolvedDependencies[0], "test.dar")
+		assert.Contains(t, res.GetResolvedDependencies()[0], "test.dar")
 	})
 }
 
