@@ -220,7 +220,7 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]strin
 			return nil, err
 		}
 		if !ok {
-			return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf("dar %q is not installed", dar.FullUrl))
+			return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf("dar %q is not installed. Run 'dpm install package' to install missing dars", dar.FullUrl))
 		}
 
 		darManifestPath := filepath.Join(darDir, assistantconfig.DarManifestName)
