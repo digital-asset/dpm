@@ -821,10 +821,22 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 	require.NoError(t, err)
 	require.Equal(t, strings.Join(sorted, "\n")+"\n", string(output))
 
+	if testutil.OS == "windows" {
+		t.Run("verify windows", func(t *testing.T) {
+			cmd, r, w := createTestRootCmd(t, string(builtincommand.Versions), "--all")
+			require.NoError(t, cmd.Execute())
+			assert.NoError(t, w.Close())
+
+			output, err := io.ReadAll(r)
+			require.NoError(t, err)
+			fmt.Sprintf("testing on windows in here")
+			fmt.Sprintf(string(output))
+
+		})
+	}
 	t.Run("active sdk version err outside project when no sdk installed", func(t *testing.T) {
 		assertNoActiveSdkVersion(t, versions.ErrNoActiveSdk)
 	})
-
 	t.Run("active sdk version err in single package with null sdk-version", func(t *testing.T) {
 		t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "null-sdk-version"))
 		assertNoActiveSdkVersion(t, versions.ErrNoActiveSdk)
