@@ -11,14 +11,13 @@ require (
 	github.com/google/go-containerregistry v0.21.6
 	github.com/jdx/go-netrc v1.0.0
 	github.com/juju/fslock v0.0.0-20160525022230-4d5c94c67b4b
+	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/samber/lo v1.53.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	oras.land/oras-go/v2 v2.6.0
 )
-
-require github.com/opencontainers/go-digest v1.0.0
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
