@@ -129,6 +129,7 @@ func installDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 	if dar.FullUrl.Scheme != "oci" {
 		return nil
 	}
+	fmt.Printf("installing dar %q...\n", dar.FullUrl.String())
 
 	client, ref, err := dar.GetOciRemote()
 	if err != nil {
@@ -136,9 +137,18 @@ func installDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 	}
 
 	puller := remotepuller.New(config.OciLayoutCache, client)
+	darDir := config.CachePathForDar(ref)
 
-	destPath := config.CachePathForDar(ref)
-	return puller.PullDarByFullPath(ctx, ref.Repository, ref.Reference, destPath)
+	ok, err := utils.DirExists(darDir)
+	if err != nil {
+		return err
+	}
+	if ok {
+		fmt.Println("Dar already installed.")
+		return nil
+	}
+
+	return puller.PullDarByFullPath(ctx, ref.Repository, ref.Reference, darDir)
 }
 
 func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, absPath string, sub bool) error {
