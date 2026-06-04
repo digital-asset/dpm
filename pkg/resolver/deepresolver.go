@@ -143,15 +143,13 @@ func (d *DeepResolver) resolvePackage(ctx context.Context, absPath string) (*ass
 		return nil, err
 	}
 
-	if assistantconfig.DpmDarsEnabled() {
-		resolvedDeps, resolvedDataDeps, err := d.resolvePackageDars(absPath)
-		if err != nil {
-			return nil, err
-		}
-
-		result.ShallowResolution.Imports[resolution.ResolvedDependenciesField] = resolvedDeps
-		result.ShallowResolution.Imports[resolution.ResolvedDataDependenciesField] = resolvedDataDeps
+	resolvedDeps, resolvedDataDeps, err := d.resolvePackageDars(absPath)
+	if err != nil {
+		return nil, err
 	}
+
+	result.ShallowResolution.Imports[resolution.ResolvedDependenciesField] = resolvedDeps
+	result.ShallowResolution.Imports[resolution.ResolvedDataDependenciesField] = resolvedDataDeps
 
 	return result, nil
 }

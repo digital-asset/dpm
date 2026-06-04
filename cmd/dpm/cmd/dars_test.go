@@ -20,7 +20,6 @@ import (
 
 func (suite *MainSuite) TestResolutionOfBuiltInDarDependencies() {
 	t := suite.T()
-	t.Setenv(assistantconfig.DpmDarsEnabledEnvVar, "true")
 
 	ActivateDamlYamlForTest(t, `
 dependencies:
@@ -38,7 +37,6 @@ func (suite *MainSuite) TestResolutionOfOciDarDependencies() {
 	var res *resolution.Package
 
 	t := suite.T()
-	t.Setenv(assistantconfig.DpmDarsEnabledEnvVar, "true")
 
 	config := testutil.MkConfig(t)
 	t.Chdir(testutil.TestdataPath(t, "oci-dar-deps")) // fixture daml.yaml
@@ -78,7 +76,6 @@ func (suite *MainSuite) TestResolutionOfOciDarDependencies() {
 
 func (suite *MainSuite) TestResolutionOfFilePathBasedDarDependencies() {
 	t := suite.T()
-	t.Setenv(assistantconfig.DpmDarsEnabledEnvVar, "true")
 
 	t.Run("resolution of relative file-path dars", func(t *testing.T) {
 		packageDir := ActivateDamlYamlForTest(t, fmt.Sprintf(`
@@ -149,7 +146,6 @@ func checkDar(t *testing.T, darFile string) {
 
 func (suite *MainSuite) TestDarInstallWithArtifactLocationAlias() {
 	t := suite.T()
-	t.Setenv(assistantconfig.DpmDarsEnabledEnvVar, "true")
 
 	config := testutil.MkConfig(t)
 

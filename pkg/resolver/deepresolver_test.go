@@ -4,6 +4,9 @@
 package resolver
 
 import (
+	"os"
+	"testing"
+
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/resolution"
@@ -12,8 +15,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
 )
 
 func TestSinglePackage(t *testing.T) {
@@ -28,7 +29,7 @@ func TestSinglePackage(t *testing.T) {
 		assert.Len(t, result.Packages, 1)
 		assert.Contains(t, lo.Keys(result.Packages)[0], packagePath)
 		assert.Len(t, lo.Values(result.Packages)[0].Components, 2)
-		assert.Len(t, lo.Values(result.Packages)[0].Imports, 2)
+		assert.Len(t, lo.Values(result.Packages)[0].Imports, 4)
 		assert.Equal(t, resolution.Kind, result.Kind)
 		assert.Equal(t, resolution.ApiVersion, result.APIVersion)
 	})
@@ -48,7 +49,7 @@ func TestMultiPackage(t *testing.T) {
 		assert.Len(t, result.Packages, 1)
 		assert.Contains(t, lo.Keys(result.Packages)[0], packagePath)
 		assert.Len(t, lo.Values(result.Packages)[0].Components, 3)
-		assert.Len(t, lo.Values(result.Packages)[0].Imports, 2)
+		assert.Len(t, lo.Values(result.Packages)[0].Imports, 4)
 		assert.Equal(t, resolution.Kind, result.Kind)
 		assert.Equal(t, resolution.ApiVersion, result.APIVersion)
 	})

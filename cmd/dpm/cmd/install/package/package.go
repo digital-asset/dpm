@@ -104,13 +104,11 @@ func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assista
 		}
 	}
 
-	if assistantconfig.DpmDarsEnabled() {
-		if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.Dependencies)); err != nil {
-			return err
-		}
-		if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.DataDependencies)); err != nil {
-			return err
-		}
+	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.Dependencies)); err != nil {
+		return err
+	}
+	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.DataDependencies)); err != nil {
+		return err
 	}
 
 	return nil

@@ -90,7 +90,7 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 		ExpectedResolution{
 			someSdkVersion,
 			[]string{someSdkComponent},
-			2,
+			4,
 			"",
 			1,
 			nil})

@@ -8,7 +8,6 @@ import (
 	"maps"
 	"os"
 
-	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/componentlist"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"github.com/goccy/go-yaml"
@@ -81,24 +80,22 @@ func ReadFromContents(contents []byte, absoluteFilePath string) (*DamlPackage, e
 		obj.DeprecatedOverrideComponents = nil
 	}
 
-	if assistantconfig.DpmDarsEnabled() || assistantconfig.DpmLockfileEnabled() {
-		_, defaultLocation, err := obj.ArtifactLocations.GetDefaultLocation()
-		if err != nil {
-			return nil, fmt.Errorf("invalid artifact locations: %w", err)
-		}
+	_, defaultLocation, err := obj.ArtifactLocations.GetDefaultLocation()
+	if err != nil {
+		return nil, fmt.Errorf("invalid artifact locations: %w", err)
+	}
 
-		obj.ParsedDarDependencies = &ParsedDarDependencies{}
-		if len(obj.Dependencies) > 0 {
-			obj.ParsedDarDependencies.Dependencies, err = obj.parseLocations(obj.Dependencies, obj.ArtifactLocations, defaultLocation)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse provided dependencies: %w", err)
-			}
+	obj.ParsedDarDependencies = &ParsedDarDependencies{}
+	if len(obj.Dependencies) > 0 {
+		obj.ParsedDarDependencies.Dependencies, err = obj.parseLocations(obj.Dependencies, obj.ArtifactLocations, defaultLocation)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse provided dependencies: %w", err)
 		}
-		if len(obj.DataDependencies) > 0 {
-			obj.ParsedDarDependencies.DataDependencies, err = obj.parseLocations(obj.DataDependencies, obj.ArtifactLocations, defaultLocation)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse provided data-dependencies: %w", err)
-			}
+	}
+	if len(obj.DataDependencies) > 0 {
+		obj.ParsedDarDependencies.DataDependencies, err = obj.parseLocations(obj.DataDependencies, obj.ArtifactLocations, defaultLocation)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse provided data-dependencies: %w", err)
 		}
 	}
 

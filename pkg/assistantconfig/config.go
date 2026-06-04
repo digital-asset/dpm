@@ -378,10 +378,6 @@ func DpmLockfileEnabled() bool {
 	return os.Getenv(DpmLockfileEnabledEnvVar) == "true"
 }
 
-func DpmDarsEnabled() bool {
-	return os.Getenv(DpmDarsEnabledEnvVar) == "true"
-}
-
 func (c *Config) CachePathForDar(ref *registry.Reference) string {
 	return filepath.Join(c.CachePath, "dars", utils.UrlToFilePath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository)), ref.Reference)
 }

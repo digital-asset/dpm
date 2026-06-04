@@ -2,16 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/packagelock"
-	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/testutil"
-	"github.com/goccy/go-yaml"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -91,31 +88,6 @@ func (suite *MainSuite) TestLockfileUpdate() {
 			d = get(t, bLock, fmt.Sprintf("oci://%s/components/meep:2.0.0", os.Getenv(assistantconfig.OciRegistryEnvVar)))
 			assert.NotEmpty(t, d.Digest)
 		})
-	})
-
-	t.Run("dars in resolution", func(t *testing.T) {
-		cmd, r, w := createTestRootCmd(t, "resolve")
-		require.NoError(t, cmd.Execute())
-		require.NoError(t, w.Close())
-
-		output, err := io.ReadAll(r)
-		require.NoError(t, err)
-
-		deepResolution := resolution.Resolution{}
-		require.NoError(t, yaml.Unmarshal(output, &deepResolution))
-
-		aRes := deepResolution.Packages[filepath.Join(multiPackageDir, "a")].Imports[resolution.DarImportsFields]
-		assert.Len(t, aRes, 2)
-		assert.Len(t,
-			deepResolution.Packages[filepath.Join(multiPackageDir, "b")].Imports[resolution.DarImportsFields],
-			2,
-		)
-
-		assert.Contains(t, aRes, "daml-script")
-
-		dar, err := os.ReadFile(aRes[1])
-		require.NoError(t, err)
-		assert.Contains(t, string(dar), "haha not a real dar")
 	})
 }
 
