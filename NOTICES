@@ -1,6 +1,6 @@
 Copyright 2026
 
-[digital-asset/dpm : deps-fields-in-resolution]
+[digital-asset/dpm : go-mod-nudging]
 
 Phase: DEVELOPMENT
 Distribution: EXTERNAL
@@ -74,7 +74,7 @@ kr/pretty v0.3.1: https://github.com/kr/pretty : MIT License
 Masterminds-semver v3.5.0: https://github.com/Masterminds/semver : MIT License
 mattn-go-colorable v0.1.15: http://godoc.org/github.com/mattn/go-colorable : MIT License
 mattn-go-isatty v0.0.22: http://godoc.org/github.com/mattn/go-isatty : MIT License
-mattn-go-runewidth v0.0.24: https://github.com/mattn/go-runewidth : Unknown License
+mattn-go-runewidth v0.0.24: https://github.com/mattn/go-runewidth : MIT License
 mergo v1.0.2: https://github.com/imdario/mergo : BSD 3-clause "New" or "Revised" License
 Microsoft-go-winio v0.6.2: https://github.com/Microsoft/go-winio/ : MIT License
 muesli/termenv v0.16.0: https://github.com/muesli/termenv : MIT License
@@ -1401,7 +1401,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 ---
 
 MIT License
-(aymanbagabas/go-osc52 v2.0.1, charmbracelet/lipgloss v1.1.0, clipperhouse/uax29 v2.7.0, cpuguy83-go-md2man 2.0.7, fatih-color 1.19.0, github.com/charmbracelet/colorprofile v0.4.3, github.com/charmbracelet/x 20240806-snapshot-69247e0a, github.com/charmbracelet/x ansi/v0.11.7, github.com/charmbracelet/x cellbuf/v0.0.15, github.com/charmbracelet/x term/v0.2.2, github.com/jdx/go-netrc v1.0.0, github.com/rivo/uniseg v0.4.7, github.com/samber/lo v1.53.0, Go Logrus v1.9.4, Go Testify v1.11.1, go-colorful v1.4.0, go.yaml.in/yaml/v2 v3.0.4, goccy/go-yaml v1.19.2, gomega 1.34.1, kevinburke/ssh_config v1.6.0, klauspost-cpuid v2.3.0, kr/pretty v0.3.1, Masterminds-semver v3.5.0, mattn-go-colorable v0.1.15, mattn-go-isatty v0.0.22, Microsoft-go-winio v0.6.2, muesli/termenv v0.16.0, sergi/go-diff v1.4.0, xo/terminfo 20220910-snapshot-abceb7e1, yaml for Go v3.0.1)
+(aymanbagabas/go-osc52 v2.0.1, charmbracelet/lipgloss v1.1.0, clipperhouse/uax29 v2.7.0, cpuguy83-go-md2man 2.0.7, fatih-color 1.19.0, github.com/charmbracelet/colorprofile v0.4.3, github.com/charmbracelet/x 20240806-snapshot-69247e0a, github.com/charmbracelet/x ansi/v0.11.7, github.com/charmbracelet/x cellbuf/v0.0.15, github.com/charmbracelet/x term/v0.2.2, github.com/jdx/go-netrc v1.0.0, github.com/rivo/uniseg v0.4.7, github.com/samber/lo v1.53.0, Go Logrus v1.9.4, Go Testify v1.11.1, go-colorful v1.4.0, go.yaml.in/yaml/v2 v3.0.4, goccy/go-yaml v1.19.2, gomega 1.34.1, kevinburke/ssh_config v1.6.0, klauspost-cpuid v2.3.0, kr/pretty v0.3.1, Masterminds-semver v3.5.0, mattn-go-colorable v0.1.15, mattn-go-isatty v0.0.22, mattn-go-runewidth v0.0.24, Microsoft-go-winio v0.6.2, muesli/termenv v0.16.0, sergi/go-diff v1.4.0, xo/terminfo 20220910-snapshot-abceb7e1, yaml for Go v3.0.1)
 
 The MIT License
 ===============
