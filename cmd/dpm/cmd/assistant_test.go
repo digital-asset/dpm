@@ -823,7 +823,7 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 
 	contentStr := string(output)
 	fmt.Printf("%q\n", contentStr)
-	if testutil.OS != "windows" {
+	if testutil.OS == "windows" {
 		t.Run("verify windows", func(t *testing.T) {
 			cmd, r, w := createTestRootCmd(t, string(builtincommand.Versions), "--all")
 			require.NoError(t, cmd.Execute())
