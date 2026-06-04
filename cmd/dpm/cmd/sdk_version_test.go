@@ -36,7 +36,7 @@ type SdkVersionTestCase struct {
 var expectedSdkResolution = ExpectedResolution{
 	globalSdkVersion,
 	[]string{someSdkComponent},
-	4,
+	2,
 	"", 1, nil}
 
 var sdkVersionTestCases = []SdkVersionTestCase{
@@ -62,7 +62,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		ExpectedResolution: ExpectedResolution{
 			globalSdkVersion,
 			[]string{someOtherSdkComponent},
-			4,
+			2,
 			someSdkVersion, 1, nil},
 	},
 	{
@@ -73,7 +73,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		ExpectedResolution: ExpectedResolution{
 			globalSdkVersion,
 			[]string{someOtherSdkComponent},
-			4,
+			2,
 			someOtherSdkVersion, 1, nil},
 	},
 	{
@@ -112,7 +112,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		ExpectedResolution: ExpectedResolution{
 			globalSdkVersion,
 			[]string{},
-			2,
+			0,
 			globalSdkVersion,
 			1,
 			versions.ErrNoActiveSdk},
@@ -125,7 +125,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		ExpectedResolution: ExpectedResolution{
 			globalSdkVersion,
 			[]string{},
-			2,
+			0,
 			"null", 1, versions.ErrNoActiveSdk},
 	},
 	{
@@ -136,7 +136,7 @@ var sdkVersionTestCases = []SdkVersionTestCase{
 		ExpectedResolution: ExpectedResolution{
 			globalSdkVersion,
 			[]string{},
-			2,
+			0,
 			globalSdkVersion,
 			0, nil},
 	},

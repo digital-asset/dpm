@@ -4,6 +4,8 @@
 package resolution
 
 import (
+	"maps"
+
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
 	"daml.com/x/assistant/pkg/schema"
 )
@@ -56,5 +58,13 @@ func (pkg *Package) GetResolvedDataDependencies() []string {
 	if !ok {
 		return []string{}
 	}
+	return result
+}
+
+func (pkg *Package) GetNonDarDependenciesImports() Imports {
+	result := make(Imports)
+	maps.Copy(result, pkg.Imports)
+	delete(result, ResolvedDependenciesField)
+	delete(result, ResolvedDataDependenciesField)
 	return result
 }

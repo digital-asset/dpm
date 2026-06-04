@@ -90,7 +90,7 @@ func (suite *MainSuite) TestResolveMultiPackageRoot() {
 		ExpectedResolution{
 			someSdkVersion,
 			[]string{someSdkComponent},
-			4,
+			2,
 			"",
 			1,
 			nil})
@@ -220,7 +220,7 @@ func testResolution(t *testing.T, expectedResolution ExpectedResolution) {
 	assert.Len(t, deepResolution.Packages, expectedResolution.ExpectedPackages)
 	if expectedResolution.ExpectedPackages != 0 {
 		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, len(expectedResolution.ExpectedComponents))
-		assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, expectedResolution.ExpectedImports)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].GetNonDarDependenciesImports(), expectedResolution.ExpectedImports)
 		assert.ElementsMatch(t, lo.Keys(lo.Values(deepResolution.Packages)[0].ComponentsV2), expectedResolution.ExpectedComponents)
 	}
 
@@ -236,7 +236,7 @@ func testResolution(t *testing.T, expectedResolution ExpectedResolution) {
 		assert.Len(t, deepResolution.DefaultSDK, 1)
 		assert.Equal(t, expectedResolution.ExpectedDefaultSdkVersion, deepResolution.DefaultSDK[expectedResolution.ExpectedDefaultSdkVersion].SdkVersion)
 		assert.Len(t, deepResolution.DefaultSDK[expectedResolution.ExpectedDefaultSdkVersion].Components, 1)
-		assert.Len(t, deepResolution.DefaultSDK[expectedResolution.ExpectedDefaultSdkVersion].Imports, 2)
+		assert.Len(t, deepResolution.DefaultSDK[expectedResolution.ExpectedDefaultSdkVersion].GetNonDarDependenciesImports(), 2)
 		assert.True(t, true)
 	})
 
@@ -924,7 +924,7 @@ func (suite *MainSuite) TestNullableSdkVersionInDamlYaml() {
 		deepResolution := runResolveCommand(t)
 		assert.Len(t, deepResolution.Packages, 1)
 		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
-		assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, -0)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].GetNonDarDependenciesImports(), -0)
 		assert.Equal(t, resolution.Kind, deepResolution.Kind)
 		assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
 
@@ -964,7 +964,7 @@ func (suite *MainSuite) TestResolutionOfSymlinkPackages() {
 		deepResolution := runResolveCommand(t)
 		assert.Len(t, deepResolution.Packages, 1)
 		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
-		assert.Len(t, lo.Values(deepResolution.Packages)[0].Imports, -0)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].GetNonDarDependenciesImports(), -0)
 		assert.Equal(t, resolution.Kind, deepResolution.Kind)
 		assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
 
