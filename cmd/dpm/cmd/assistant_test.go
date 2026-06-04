@@ -829,8 +829,15 @@ func (suite *MainSuite) TestSdkVersionCommand() {
 
 			output, err := io.ReadAll(r)
 			require.NoError(t, err)
-			println("testing on windows in here")
-			println(string(output))
+
+			_, err = os.Stderr.WriteString("testing on windows in here")
+			if err != nil {
+				return
+			}
+			_, err = os.Stderr.WriteString(string(output))
+			if err != nil {
+				return
+			}
 
 		})
 	}
