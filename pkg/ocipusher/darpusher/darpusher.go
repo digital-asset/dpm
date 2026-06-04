@@ -101,7 +101,6 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 
 	darManifestFilePath := filepath.Join(opts.Dir, consts.DarManifestName)
 	_, err = os.Stat(darManifestFilePath)
-
 	if err != nil {
 		DarManifest, err := darManifest(ctx, ms, opts, darName)
 		if err != nil {
