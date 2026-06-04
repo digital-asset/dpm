@@ -104,10 +104,9 @@ func (p *DarPublisher) prepareDar(ctx context.Context, dir string) (*darpusher.D
 		if err := checkHasLicense(dir); err != nil {
 			return nil, err
 		}
+		p.printer.Printf("License file included ✅\n")
+		p.printer.Println()
 	}
-	p.printer.Printf("License file included ✅\n")
-	p.printer.Println()
-
 	return p.prepare(ctx, dir)
 }
 

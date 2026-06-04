@@ -48,7 +48,7 @@ func (op *DarPushOperation) Tag() string {
 }
 
 func (op *DarPushOperation) DarDestination(registry string) string {
-	return fmt.Sprintf("%s:%s", registry, op.Tag())
+	return fmt.Sprintf("%s:%s:%s", registry, op.repoName, op.Tag())
 }
 
 func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
@@ -101,7 +101,7 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 
 	darManifestFilePath := filepath.Join(opts.Dir, consts.DarManifestName)
 	_, err = os.Stat(darManifestFilePath)
-	
+
 	if err != nil {
 		DarManifest, err := darManifest(ctx, ms, opts, darName)
 		if err != nil {
