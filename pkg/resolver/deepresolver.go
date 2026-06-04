@@ -191,7 +191,7 @@ func (d *DeepResolver) resolvePackageDars(absPath string) (deps []string, dataDe
 func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]string, error) {
 	scheme := dar.FullUrl.Scheme
 
-	if scheme == "builtin" || scheme == "file" {
+	if scheme == "builtin" {
 		return []string{strings.TrimPrefix(dar.FullUrl.String(), scheme+"://")}, nil
 	}
 	if scheme == "file" {
