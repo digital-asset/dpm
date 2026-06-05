@@ -3,6 +3,13 @@ description: Setup Nix
 runs:
   using: composite
   steps:
+    - name: Install Nix
+      uses: NixOS/nix-installer-action@main
+
+    - name: Verify Nix installation
+      run: nix --version
+      shell: bash
+      
     - name: 'Nix Setup'
       run: 'nix --extra-experimental-features "nix-command flakes" print-dev-env .#ci > nix.source'
       shell: bash
