@@ -18,7 +18,7 @@ env:
 
 jobs:
   scan:
-    runs-on: digital-asset-dpm
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write    
