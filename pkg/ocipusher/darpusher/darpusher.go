@@ -110,7 +110,7 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 	}
 
 	annotations := map[string]string{}
-	opts.RequiredAnnotations.AppendToMap(annotations)
+	annotations[v1.AnnotationVersion] = opts.RawTag
 
 	packOpts := oras.PackManifestOptions{
 		Layers:              fileDescriptors,
