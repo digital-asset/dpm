@@ -80,20 +80,15 @@ func ReadFromContents(contents []byte, absoluteFilePath string) (*DamlPackage, e
 		obj.DeprecatedOverrideComponents = nil
 	}
 
-	_, defaultLocation, err := obj.ArtifactLocations.GetDefaultLocation()
-	if err != nil {
-		return nil, fmt.Errorf("invalid artifact locations: %w", err)
-	}
-
 	obj.ParsedDarDependencies = &ParsedDarDependencies{}
 	if len(obj.Dependencies) > 0 {
-		obj.ParsedDarDependencies.Dependencies, err = obj.parseLocations(obj.Dependencies, obj.ArtifactLocations, defaultLocation)
+		obj.ParsedDarDependencies.Dependencies, err = obj.parseLocations(obj.Dependencies, obj.ArtifactLocations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse provided dependencies: %w", err)
 		}
 	}
 	if len(obj.DataDependencies) > 0 {
-		obj.ParsedDarDependencies.DataDependencies, err = obj.parseLocations(obj.DataDependencies, obj.ArtifactLocations, defaultLocation)
+		obj.ParsedDarDependencies.DataDependencies, err = obj.parseLocations(obj.DataDependencies, obj.ArtifactLocations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse provided data-dependencies: %w", err)
 		}
