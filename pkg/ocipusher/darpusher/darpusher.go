@@ -185,13 +185,13 @@ func darManifest(ctx context.Context, mem *memory.Store, opts DarOpts, darName s
 	}
 
 	blobReader := bytes.NewReader(darByte)
-
 	desc := ocispec.Descriptor{
 		MediaType: opts.Artifact.FileMediaType(),
 		Digest:    digest.FromBytes(darByte),
 		Size:      int64(len(darByte)),
 		Annotations: map[string]string{
-			ocispec.AnnotationTitle: consts.DarManifestName,
+			ocispec.AnnotationTitle:   consts.DarManifestName,
+			ocispec.AnnotationVersion: opts.RawTag,
 		},
 	}
 	if err := mem.Push(ctx, desc, blobReader); err != nil {
