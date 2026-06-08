@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"maps"
 	"os"
 
@@ -19,7 +20,6 @@ import (
 	"daml.com/x/assistant/pkg/ocipusher/darpusher"
 	"daml.com/x/assistant/pkg/publish"
 	"daml.com/x/assistant/pkg/utils"
-	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -123,10 +123,9 @@ func (p *DarPublisher) prepare(ctx context.Context, dir string) (*darpusher.DarP
 	artifact = &ociconsts.DarArtifact{DarRepo: p.config.Destination.Artifact.RepoName()}
 
 	opts := darpusher.DarOpts{
-		Artifact:            artifact,
-		RawTag:              p.config.Version.String(),
-		Dir:                 dir,
-		RequiredAnnotations: p.config.RequiredAnnotations(),
+		Artifact: artifact,
+		RawTag:   p.config.Version.String(),
+		Dir:      dir,
 	}
 
 	pushOp, err := darpusher.DarNew(ctx, opts)
@@ -187,13 +186,6 @@ func (p *DarPublisher) checkVersionExists(ctx context.Context, op *darpusher.Dar
 		}
 	}
 	return false, nil
-}
-
-func (config *DarConfig) RequiredAnnotations() ociconsts.DescriptorAnnotations {
-	return ociconsts.DescriptorAnnotations{
-		Name:    config.Name,
-		Version: config.Version,
-	}
 }
 
 func collectGitAnnotations() (map[string]string, error) {

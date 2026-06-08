@@ -30,9 +30,8 @@ import (
 )
 
 type DarOpts struct {
-	Artifact            oci.Artifact
-	RawTag, Dir         string
-	RequiredAnnotations oci.DescriptorAnnotations
+	Artifact    oci.Artifact
+	RawTag, Dir string
 }
 
 type DarPushOperation struct {
@@ -116,6 +115,7 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		Layers:              fileDescriptors,
 		ManifestAnnotations: annotations,
 	}
+
 	manifestDescriptor, err := oras.PackManifest(ctx, ms, oras.PackManifestVersion1_1, opts.Artifact.ArtifactType(), packOpts)
 	if err != nil {
 		return nil, err
