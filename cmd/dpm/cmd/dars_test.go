@@ -82,7 +82,7 @@ func (suite *MainSuite) TestResolutionOfFilePathBasedDarDependencies() {
 dependencies:
   - ./relative.dar
 data-dependencies:
-  - ./relative.dar
+  - relative.dar
 `))
 		os.WriteFile(
 			filepath.Join(packageDir, "relative.dar"),
