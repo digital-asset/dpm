@@ -12,6 +12,7 @@ import (
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assembler/assemblyplan"
 	"daml.com/x/assistant/pkg/multipackage"
+	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/samber/lo"
@@ -132,6 +133,10 @@ func installDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 	client, ref, err := dar.GetOciRemote()
 	if err != nil {
 		return err
+	}
+
+	if ocilister.IsFloaty(ref.Reference) {
+		return fmt.Errorf("tag not allowed in %q: only strict semver OCI tags are supported currently", dar.FullUrl.String())
 	}
 
 	puller := remotepuller.New(config.OciLayoutCache, client)
