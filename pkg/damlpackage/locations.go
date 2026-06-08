@@ -77,7 +77,7 @@ func (p *DamlPackage) parseLocations(ds []string, artifactLocations ArtifactLoca
 			// TODO
 			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: http dependencies not yet supported", d))
 			continue
-		} else if isFilePath(d) {
+		} else if strings.HasSuffix(d, ".dar") {
 			absPath := utils.ResolvePath(filepath.Dir(p.AbsolutePath), d)
 			u, err := url.Parse("file://" + filepath.ToSlash(absPath))
 			if err != nil {
@@ -139,10 +139,4 @@ func (p *DamlPackage) parseLocations(ds []string, artifactLocations ArtifactLoca
 	}
 
 	return parsedLocations, nil
-}
-
-func isFilePath(s string) bool {
-	return strings.HasPrefix(s, ".") ||
-		strings.HasPrefix(s, "/") ||
-		strings.Index(s, ":") == 1
 }
