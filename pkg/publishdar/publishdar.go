@@ -124,7 +124,7 @@ func (p *DarPublisher) prepare(ctx context.Context, dir string) (*darpusher.DarP
 
 	opts := darpusher.DarOpts{
 		Artifact: artifact,
-		RawTag:   p.config.Version.String(),
+		Version:  *p.config.Version,
 		Dir:      dir,
 	}
 
