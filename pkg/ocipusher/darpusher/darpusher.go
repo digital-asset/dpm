@@ -8,6 +8,7 @@ import (
 	"context"
 	"daml.com/x/assistant/pkg/darmanifest"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"github.com/opencontainers/go-digest"
 	"log/slog"
 	"maps"
@@ -30,9 +31,9 @@ import (
 )
 
 type DarOpts struct {
-	Artifact            oci.Artifact
-	RawTag, Dir         string
-	RequiredAnnotations oci.DescriptorAnnotations
+	Artifact oci.Artifact
+	Version  semver.Version
+	Dir      string
 }
 
 type DarPushOperation struct {
@@ -110,11 +111,13 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 	}
 
 	annotations := map[string]string{}
+	annotations[v1.AnnotationVersion] = opts.Version.String()
 
 	packOpts := oras.PackManifestOptions{
 		Layers:              fileDescriptors,
 		ManifestAnnotations: annotations,
 	}
+
 	manifestDescriptor, err := oras.PackManifest(ctx, ms, oras.PackManifestVersion1_1, opts.Artifact.ArtifactType(), packOpts)
 	if err != nil {
 		return nil, err
@@ -122,7 +125,7 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 
 	op := &DarPushOperation{
 		repoName:     repoName,
-		rawTag:       opts.RawTag,
+		rawTag:       opts.Version.String(),
 		fs:           fs,
 		ms:           ms,
 		manifestDesc: &manifestDescriptor,
@@ -185,7 +188,6 @@ func darManifest(ctx context.Context, mem *memory.Store, opts DarOpts, darName s
 	}
 
 	blobReader := bytes.NewReader(darByte)
-
 	desc := ocispec.Descriptor{
 		MediaType: opts.Artifact.FileMediaType(),
 		Digest:    digest.FromBytes(darByte),

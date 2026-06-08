@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"maps"
 	"os"
 
@@ -19,7 +20,6 @@ import (
 	"daml.com/x/assistant/pkg/ocipusher/darpusher"
 	"daml.com/x/assistant/pkg/publish"
 	"daml.com/x/assistant/pkg/utils"
-	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -124,7 +124,7 @@ func (p *DarPublisher) prepare(ctx context.Context, dir string) (*darpusher.DarP
 
 	opts := darpusher.DarOpts{
 		Artifact: artifact,
-		RawTag:   p.config.Version.String(),
+		Version:  *p.config.Version,
 		Dir:      dir,
 	}
 
@@ -186,14 +186,6 @@ func (p *DarPublisher) checkVersionExists(ctx context.Context, op *darpusher.Dar
 		}
 	}
 	return false, nil
-}
-
-// TODO : Currently not attaching annotations below, to be added in follow up PR
-func (config *DarConfig) RequiredAnnotations() ociconsts.DescriptorAnnotations {
-	return ociconsts.DescriptorAnnotations{
-		Name:    config.Name,
-		Version: config.Version,
-	}
 }
 
 func collectGitAnnotations() (map[string]string, error) {

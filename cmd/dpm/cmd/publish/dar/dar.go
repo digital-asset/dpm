@@ -40,6 +40,9 @@ func Cmd() *cobra.Command {
 			}
 
 			version, err := semver.StrictNewVersion(ref.Reference)
+			if err != nil {
+				return fmt.Errorf("invalid version formatting, requires strict semver, got: %s", ref.Reference)
+			}
 			name, _ := lo.Last(strings.Split(ref.Repository, "/"))
 
 			destination := &publish.Destination{
