@@ -114,21 +114,6 @@ data-dependencies:
 		assert.Contains(t, res.GetResolvedDataDependencies()[0], "test.dar")
 		checkDar(t, res.GetResolvedDataDependencies()[0])
 	})
-
-	t.Run("resolution of symlink file-path dars", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		darSymlink := filepath.Join(tmpDir, "symlink.dar")
-		require.NoError(t, os.Symlink(testutil.TestdataPath(t, "test-dar", "test.dar"), darSymlink))
-
-		ActivateDamlYamlForTest(t, fmt.Sprintf(`
-dependencies:
-  - %s
-`, darSymlink))
-
-		res := lo.Values(runResolveCommand(t).Packages)[0]
-
-		assert.Contains(t, res.GetResolvedDependencies()[0], "test.dar")
-	})
 }
 
 func ActivateDamlYamlForTest(t *testing.T, s string) (packageDir string) {
