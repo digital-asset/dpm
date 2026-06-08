@@ -18,7 +18,6 @@ type ArtifactLocations map[string]*ArtifactLocation
 
 type ArtifactLocation struct {
 	Url      string `yaml:"url"`
-	Default  bool   `yaml:"default"`
 	Auth     string `yaml:"auth"`
 	Insecure bool   `yaml:"insecure"`
 
@@ -61,20 +60,7 @@ func (d *ParsedDarDependency) GetOciRemote() (*assistantremote.Remote, *registry
 
 var regex = regexp.MustCompile(`^(@[a-zA-Z0-9_-]+)/`)
 
-func (ls ArtifactLocations) GetDefaultLocation() (name string, location *ArtifactLocation, err error) {
-	for s, l := range ls {
-		if l.Default {
-			if name != "" {
-				return "", nil, fmt.Errorf("only one artifact location can be set as default")
-			}
-			name = s
-			location = l
-		}
-	}
-	return
-}
-
-func (p *DamlPackage) parseLocations(ds []string, artifactLocations ArtifactLocations, defaultLocation *ArtifactLocation) (map[string]*ParsedDarDependency, error) {
+func (p *DamlPackage) parseLocations(ds []string, artifactLocations ArtifactLocations) (map[string]*ParsedDarDependency, error) {
 	parsedLocations := map[string]*ParsedDarDependency{}
 
 	var errs []error
@@ -130,21 +116,8 @@ func (p *DamlPackage) parseLocations(ds []string, artifactLocations ArtifactLoca
 				FullUrl:  u,
 			}
 		} else if strings.Contains(d, ":") {
-			if defaultLocation == nil {
-				errs = append(errs, fmt.Errorf("failed to resolve dependency's artifact location for %q: no default artifact location is specified", d))
-				continue
-			}
-
-			rawUrl := fmt.Sprintf("%s/%s", defaultLocation.Url, d)
-			u, err := url.Parse(rawUrl)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("couldn't parse full url %q for dependency %q: ", rawUrl, d))
-				continue
-			}
-			parsedLocations[d] = &ParsedDarDependency{
-				Location: defaultLocation,
-				FullUrl:  u,
-			}
+			errs = append(errs, fmt.Errorf("error parsing dependency %q: OCI dependencies must start with oci://", d))
+			continue
 		} else {
 			// builtin libs (like "daml-script")
 
