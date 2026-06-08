@@ -110,6 +110,7 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 	}
 
 	annotations := map[string]string{}
+	opts.RequiredAnnotations.AppendToMap(annotations)
 
 	packOpts := oras.PackManifestOptions{
 		Layers:              fileDescriptors,
@@ -190,8 +191,7 @@ func darManifest(ctx context.Context, mem *memory.Store, opts DarOpts, darName s
 		Digest:    digest.FromBytes(darByte),
 		Size:      int64(len(darByte)),
 		Annotations: map[string]string{
-			ocispec.AnnotationTitle:   consts.DarManifestName,
-			ocispec.AnnotationVersion: opts.RawTag,
+			ocispec.AnnotationTitle: consts.DarManifestName,
 		},
 	}
 	if err := mem.Push(ctx, desc, blobReader); err != nil {

@@ -123,9 +123,10 @@ func (p *DarPublisher) prepare(ctx context.Context, dir string) (*darpusher.DarP
 	artifact = &ociconsts.DarArtifact{DarRepo: p.config.Destination.Artifact.RepoName()}
 
 	opts := darpusher.DarOpts{
-		Artifact: artifact,
-		RawTag:   p.config.Version.String(),
-		Dir:      dir,
+		Artifact:            artifact,
+		RawTag:              p.config.Version.String(),
+		Dir:                 dir,
+		RequiredAnnotations: p.config.RequiredAnnotations(),
 	}
 
 	pushOp, err := darpusher.DarNew(ctx, opts)
@@ -188,7 +189,6 @@ func (p *DarPublisher) checkVersionExists(ctx context.Context, op *darpusher.Dar
 	return false, nil
 }
 
-// TODO : Currently not attaching annotations below, to be added in follow up PR
 func (config *DarConfig) RequiredAnnotations() ociconsts.DescriptorAnnotations {
 	return ociconsts.DescriptorAnnotations{
 		Name:    config.Name,
