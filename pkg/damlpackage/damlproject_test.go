@@ -18,16 +18,14 @@ func TestDarDependencies(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, p.Dependencies, 4)
-	assert.True(t, p.ArtifactLocations["@digital-asset"].Default)
-	assert.False(t, p.ArtifactLocations["@my-location"].Default)
 
 	assert.Len(t, p.ParsedDarDependencies.Dependencies, len(p.Dependencies))
 
-	assert.NotNil(t, p.ParsedDarDependencies.Dependencies["foo:devnet"].Location)
+	assert.NotNil(t, p.ParsedDarDependencies.Dependencies["@digital-asset/foo:devnet"].Location)
 	assert.NotNil(t, p.ParsedDarDependencies.Dependencies["@my-location/foo:4.5.6"].Location)
 	assert.Nil(t, p.ParsedDarDependencies.Dependencies["oci://localhost:5000/some/dars/foo:1.2.3"].Location)
 
-	assert.Equal(t, p.ParsedDarDependencies.Dependencies["foo:devnet"].FullUrl.String(), "oci://localhost:5000/more/official/dars/foo:devnet")
+	assert.Equal(t, p.ParsedDarDependencies.Dependencies["@digital-asset/foo:devnet"].FullUrl.String(), "oci://localhost:5000/more/official/dars/foo:devnet")
 	assert.Equal(t, p.ParsedDarDependencies.Dependencies["oci://localhost:5000/some/dars/foo:1.2.3"].FullUrl.String(), "oci://localhost:5000/some/dars/foo:1.2.3")
 	assert.Equal(t, p.ParsedDarDependencies.Dependencies["@my-location/foo:4.5.6"].FullUrl.String(), "oci://localhost:5000/some/dars/n/stuff/foo:4.5.6")
 

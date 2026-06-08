@@ -5,6 +5,5 @@ dependencies:
 
 artifact-locations:
   "@digital-asset":
-    default: true
     insecure: true
     url: oci://$DPM_REGISTRY/components

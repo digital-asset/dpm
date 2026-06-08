@@ -190,23 +190,8 @@ func (d *DeepResolver) resolvePackageDars(absPath string) (deps []string, dataDe
 func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]string, error) {
 	scheme := dar.FullUrl.Scheme
 
-	if scheme == "builtin" {
+	if scheme == "builtin" || scheme == "file" {
 		return []string{strings.TrimPrefix(dar.FullUrl.String(), scheme+"://")}, nil
-	}
-	if scheme == "file" {
-		f := strings.TrimPrefix(dar.FullUrl.String(), scheme+"://")
-		// verify the file exists
-		if _, err := os.Stat(f); err != nil {
-			return nil, fmt.Errorf("dar file doesn't exist: %w", err)
-		}
-
-		// evaluate symlink (if it is one)
-		evaluatedSymlink, err := filepath.EvalSymlinks(f)
-		if err != nil {
-			return nil, err
-		}
-
-		return []string{evaluatedSymlink}, nil
 	}
 	if scheme == "oci" {
 		_, ref, err := dar.GetOciRemote()
