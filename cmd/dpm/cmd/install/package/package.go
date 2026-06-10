@@ -5,17 +5,22 @@ package project
 
 import (
 	"context"
+	ociconsts "daml.com/x/assistant/pkg/oci"
+	"daml.com/x/assistant/pkg/sdkmanifest"
 	"errors"
 	"fmt"
+	"maps"
 	"path/filepath"
+	"strings"
 
-	"daml.com/x/assistant/pkg/assembler"
-	"daml.com/x/assistant/pkg/assembler/assemblyplan"
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
+	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/samber/lo"
+	"oras.land/oras-go/v2/registry"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
@@ -36,6 +41,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			modifiedConfig := config
 			modifiedConfig.AutoInstall = true
 			multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
+			shas := make(map[string]string)
 			if err != nil {
 				return err
 			}
@@ -55,9 +61,12 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 					}
 				}
 
-				if err := installOverrides(ctx, cmd, config, multiPackagePath, false); err != nil {
+				multiPkgSHAs, err := resolveOCIs(ctx, cmd, config, multiPackagePath, true)
+				if err != nil {
 					return err
 				}
+				maps.Copy(shas, *multiPkgSHAs)
+
 				pkgs := multiDamlPackage.AbsolutePackages()
 
 				for _, p := range pkgs {
@@ -66,9 +75,11 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 					if err := processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath); err != nil {
 						return err
 					}
-					if err := installOverrides(ctx, cmd, config, damlPackagePath, true); err != nil {
-						return err
+					subPkgSHAs, err := resolveOCIs(ctx, cmd, config, damlPackagePath, false)
+					if err != nil {
+						return nil
 					}
+					maps.Copy(shas, *subPkgSHAs)
 				}
 
 			} else {
@@ -82,7 +93,11 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				if err := processDamlPackage(ctx, cmd, modifiedConfig, damlPackagePath); err != nil {
 					return err
 				}
-				return installOverrides(ctx, cmd, config, damlPackagePath, false)
+				pkgSHAs, err := resolveOCIs(ctx, cmd, config, damlPackagePath, false)
+				if err != nil {
+					return nil
+				}
+				maps.Copy(shas, *pkgSHAs)
 			}
 			return nil
 		},
@@ -90,6 +105,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 
 	return cmd
 }
+
 func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, damlPath string) error {
 	damlPackage, err := damlpackage.Read(damlPath)
 	if err != nil {
@@ -113,6 +129,96 @@ func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assista
 	}
 
 	return nil
+}
+
+func resolveOCIs(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, damlPath string, multi bool) (*map[string]string, error) {
+	// puller, err := remotepuller.NewFromRemoteConfig(config)
+	ocis := make(map[string]string)
+	var components map[string]*sdkmanifest.Component
+
+	if multi {
+		multiPackage, err := multipackage.Read(damlPath)
+		if err != nil {
+			return nil, err
+		}
+		components = multiPackage.Components
+	} else {
+		damlPackage, err := damlpackage.Read(damlPath)
+		if err != nil {
+			return nil, err
+		}
+		components = damlPackage.Components
+	}
+	if len(components) == 0 {
+		cmd.Printf("No packages to install for %s\n", damlPath)
+	}
+
+	for _, comp := range components {
+		if comp.LocalPath != nil {
+			continue
+		} else if comp.Uri != nil {
+			fullURI := comp.Uri
+
+			ref, err := registry.ParseReference(strings.TrimPrefix(*fullURI, "oci://"))
+			if err != nil {
+				return nil, err
+			}
+
+			version, err := semver.StrictNewVersion(ref.Reference)
+			if err != nil {
+				return nil, err
+			}
+
+			destPath := ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), version.String(), config)
+			ok, err := utils.DirExists(destPath)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				fmt.Printf("pulling sdk component %s ...\n", *fullURI)
+				customRemote, err := assistantremote.New(ref.Registry, config.RegistryAuthPath, config.Insecure)
+				if err != nil {
+					return nil, err
+				}
+
+				platform := simpleplatform.CurrentPlatform()
+				customPuller := remotepuller.New(config.OciLayoutCache, customRemote)
+				desc, err := customPuller.PullComponentSHAByFullPath(ctx, ref.Repository, version.String(), destPath, platform)
+				if err != nil {
+					return nil, err
+				}
+				ocis[fmt.Sprintf("%s/%s", ref.Registry, ref.Repository)] = desc.Digest.String()
+			}
+		} else {
+			// This code path handles the imageVersion case, pull component and save repo + digest for use in nudging to pinning
+			destPath := ociComponentPath(comp.Name, comp.Version.Value().String(), config)
+
+			// TODO - Copied ComputeTagOrDigest function from assembler, need to flesh out
+			tag := comp.Version.Value().String()
+
+			puller, err := remotepuller.NewFromRemoteConfig(config)
+			// check if component is already in the cache
+			ok, err := utils.DirExists(destPath)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				platform := simpleplatform.CurrentPlatform()
+				fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
+				desc, err := puller.PullComponentSHA(ctx, comp.Name, tag, destPath, platform)
+				if err != nil {
+					return nil, err
+				}
+				ocis[fmt.Sprintf("%s/%s", config.Registry, ociconsts.ComponentRepoPrefix+comp.Name)] = desc.Digest.String()
+			}
+		}
+	}
+	return &ocis, nil
+
+}
+
+func ociComponentPath(componentUri string, tag string, config *assistantconfig.Config) string {
+	return filepath.Join(config.CachePath, "components", utils.UrlToFilePath(componentUri), tag)
 }
 
 func installDars(ctx context.Context, config *assistantconfig.Config, dars []*damlpackage.ParsedDarDependency) error {
@@ -152,35 +258,6 @@ func installDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 	}
 
 	return puller.PullDarByFullPath(ctx, ref.Repository, ref.Reference, darDir)
-}
-
-func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, absPath string, sub bool) error {
-	puller, err := remotepuller.NewFromRemoteConfig(config)
-	if err != nil {
-		return err
-	}
-	a := assembler.New(config, puller)
-	assemblyPlan, err := assemblyplan.NewShallow(ctx, config, a, absPath)
-	if err != nil {
-		return err
-	}
-	if sub {
-		assemblyPlan.MultiPackage = nil
-	}
-	if !assemblyPlan.HasOverrides() {
-		cmd.Println("No opt-in components to install")
-		return nil
-	}
-	cmd.Println("Installing components...")
-	err = utils.WithInstallLock(ctx, config.InstallLocalFilePath, func() error {
-		_, err := assemblyPlan.Assemble(ctx)
-		return err
-	})
-	if err != nil {
-		return err
-	}
-	cmd.Println("Successfully installed opt-in components")
-	return nil
 }
 
 func installSdk(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, sdkVersion *semver.Version) error {
