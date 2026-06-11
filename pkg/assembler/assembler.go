@@ -384,14 +384,14 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 	prefixTrimmedOCI := strings.TrimPrefix(*comp.Uri, "oci://")
 	trimmedURI, _, hasDigest := strings.Cut(prefixTrimmedOCI, "@")
 
+	ref, err := registry.ParseReference(prefixTrimmedOCI)
+	if err != nil {
+		return "", err
+	}
 	// TODO - Move all this into the digest or version function after component refactor
 	var digest string
 	if hasDigest {
-		refDigest, err := registry.ParseReference(prefixTrimmedOCI)
-		if err != nil {
-			return "", err
-		}
-		digest = refDigest.Reference
+		digest = ref.Reference
 	}
 
 	// returns empty if no tag
@@ -412,7 +412,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		}
 		versionString = version.String()
 	}
-
+	componentReference := ref.Reference
 	// tag and digest provided, need to resolve
 	if versionString != "" && digest != "" {
 		if err := a.verifyReferenceMatch(ctx, digest, versionString, refWithTag); err != nil {
@@ -444,10 +444,8 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 
 		// Passing in old config layoutCache
 		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
-		if versionString == "" {
-			versionString = digest
-		}
-		if err := customPuller.PullComponentByFullPath(ctx, refWithTag.Repository, versionString, destPath, platform); err != nil {
+
+		if err := customPuller.PullComponentByFullPath(ctx, refWithTag.Repository, componentReference, destPath, platform); err != nil {
 			return "", err
 		}
 	}

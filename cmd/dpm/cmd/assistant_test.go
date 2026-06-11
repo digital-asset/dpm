@@ -844,7 +844,6 @@ func (suite *MainSuite) TestInstallPackageWithPinning() {
 
 	deepResolution := runResolveCommand(t)
 	assert.Len(t, deepResolution.Packages, 1)
-
 	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 3)
 
 	checkComponent := func(name, version string) {
@@ -858,6 +857,16 @@ func (suite *MainSuite) TestInstallPackageWithPinning() {
 	checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
 	// and use the shorthand for non `oci://` components
 	checkComponent("javabro", "6.7.8")
+
+	t.Run("test that moving the ", func(t *testing.T) {
+		args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "components", "rando"))
+		require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+		cmd := createStdTestRootCmd(t, "install", "package")
+		require.NoError(t, cmd.Execute())
+		// assert meep component not overwritten
+		require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
+		checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
+	})
 
 }
 
