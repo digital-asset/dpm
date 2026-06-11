@@ -1,6 +1,4 @@
 components:
-  - ${TEST_DPM_REGISTRY}/foo/bar/meep:1.2.3
-  - ${TEST_ALT_DPM_REGISTRY}/bar/foo/rando:1.2.4
+  - ${TEST_DPM_REGISTRY}/foo/bar/meep:1.2.3@${TEST_MEEP_SHA}
+  - ${TEST_DPM_REGISTRY}/bar/foo/rando@${TEST_RANDO_SHA}
   - javabro:6.7.8
-  - name: my-local-component
-    path: ../../another-generic-component
