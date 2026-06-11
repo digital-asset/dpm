@@ -23,7 +23,7 @@ type DarManifest struct {
 }
 
 type Spec struct {
-	Dars []Dar `yaml:"paths"`
+	Dars []Dar `yaml:"dars"`
 }
 
 type Dar struct {
