@@ -795,6 +795,72 @@ func (suite *MainSuite) TestInstallPackageMultipleRegistries() {
 	assert.Equal(t, testutil.TestdataPath(t, "another-generic-component"), lo.Values(deepResolution.Packages)[0].ComponentsV2["my-local-component"]["path"])
 }
 
+func (suite *MainSuite) TestInstallPackageWithPinning() {
+	t := suite.T()
+
+	dpmHome := t.TempDir()
+	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
+
+	ctx := testutil.Context(t)
+	client, reg := testutil.StartRegistry(t)
+
+	regURL := strings.TrimPrefix(reg.URL, "http://")
+
+	t.Setenv("TEST_DPM_REGISTRY", "oci://"+regURL)
+
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+	args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+	args = testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "bar/foo", "rando", "1.2.4"), testutil.TestdataPath(t, "components", "rando"))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+	// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
+	testutil.PushComponent(t, ctx, reg, "javabro", "6.7.8", testutil.TestdataPath(t, "javabro-component"))
+
+	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-pinning", testutil.OS)))
+
+	// retrieve sha to use in damls
+	repo, err := client.Repo("foo/bar/meep")
+	require.NoError(t, err)
+	meepDescriptor, err := repo.Resolve(ctx, "1.2.3")
+	require.NoError(t, err)
+	meepSHA := meepDescriptor.Digest.String()
+	t.Setenv("TEST_MEEP_SHA", meepSHA)
+
+	repoRando, err := client.Repo("bar/foo/rando")
+	require.NoError(t, err)
+	randoDescriptor, err := repoRando.Resolve(ctx, "1.2.4")
+	require.NoError(t, err)
+	randoSHA := randoDescriptor.Digest.String()
+	t.Setenv("TEST_RANDO_SHA", randoSHA)
+
+	cmd := createStdTestRootCmd(t, "install", "package")
+
+	require.NoError(t, cmd.Execute())
+	require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
+
+	deepResolution := runResolveCommand(t)
+	assert.Len(t, deepResolution.Packages, 1)
+
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 3)
+
+	checkComponent := func(name, version string) {
+		// Test that the cache and dpm resolve use the full URI for `oci://` based components
+		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2[name]
+		assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", utils.UrlToFilePath(name), comp["version"]))
+		assert.Equal(t, version, comp["version"])
+	}
+
+	// Test that the cache and dpm resolve use the full URI for `oci://` based components
+	checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
+	// and use the shorthand for non `oci://` components
+	checkComponent("javabro", "6.7.8")
+
+}
+
 func (suite *MainSuite) TestSdkVersionCommand() {
 	t := suite.T()
 	ctx := testutil.Context(t)

@@ -360,18 +360,53 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 }
 
 func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+	removedOCI := strings.TrimPrefix(*comp.Uri, "oci://")
+	trimmedURI, _, hasDigest := strings.Cut(removedOCI, "@")
 
-	ref, err := registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
+	//simple check for digest, oras drops tag if digest/tag are present
+	var digest string
+	if hasDigest {
+		refDigest, err := registry.ParseReference(removedOCI)
+		if err != nil {
+			return "", err
+		}
+		digest = refDigest.Reference
+	}
+
+	// will pass if there is a version
+	refWithTag, err := registry.ParseReference(trimmedURI)
 	if err != nil {
 		return "", err
 	}
 
-	version, err := semver.StrictNewVersion(ref.Reference)
+	version, err := semver.StrictNewVersion(refWithTag.Reference)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", ref.Reference, *comp.Uri, err)
+		return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", refWithTag.Reference, *comp.Uri, err)
 	}
 
-	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), version.String())
+	// tag and digest provided, need to resolve
+	if version.String() != "" && digest != "" {
+		fmt.Printf("Resolving sha %s for tag %s", digest, version.String())
+		customRemote, err := assistantremote.New(refWithTag.Registry, a.config.RegistryAuthPath, a.config.Insecure)
+		if err != nil {
+			return "", err
+		}
+		repoResolve, err := customRemote.Repo(refWithTag.Repository)
+		if err != nil {
+			return "", err
+		}
+		resolvedDigest, err := repoResolve.Resolve(ctx, refWithTag.Reference)
+		if err != nil {
+			return "", err
+		}
+
+		pulledDigest := string(resolvedDigest.Digest)
+		if strings.ToLower(pulledDigest) != strings.ToLower(digest) {
+			return "", fmt.Errorf("failed resolving %q with tag %q, resolved to %q", digest, version.String(), pulledDigest)
+		}
+	}
+
+	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", refWithTag.Registry, refWithTag.Repository), version.String())
 
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
@@ -388,15 +423,14 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		}
 		fmt.Printf("pulling sdk component %s %s ...\n", comp.Name, *comp.Uri)
 
-		customRemote, err := assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
+		customRemote, err := assistantremote.New(refWithTag.Registry, a.config.RegistryAuthPath, a.config.Insecure)
 		if err != nil {
 			return "", err
 		}
 
 		// Passing in old config layoutCache
 		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
-
-		if err := customPuller.PullComponentByFullPath(ctx, ref.Repository, version.String(), destPath, platform); err != nil {
+		if err := customPuller.PullComponentByFullPath(ctx, refWithTag.Repository, version.String(), destPath, platform); err != nil {
 			return "", err
 		}
 	}
