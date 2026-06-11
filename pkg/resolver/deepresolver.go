@@ -215,8 +215,8 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]strin
 		}
 
 		var dars []string
-		for _, p := range darManifest.Spec.Paths {
-			dars = append(dars, utils.ResolvePath(darDir, p))
+		for _, obj := range darManifest.Spec.Dars {
+			dars = append(dars, utils.ResolvePath(darDir, obj.Path))
 		}
 		return dars, nil
 	}

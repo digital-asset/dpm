@@ -1,5 +1,6 @@
 apiVersion: digitalasset.com/v1
 kind: Dar
 spec:
-  paths:
-    - ./meep.dar
+  dars:
+    - path: ./meep.dar
+    - main-dalf: 0984ff5e3082add400bfcc6e3244bf9822ca5a617cfd92429e3fbce58058dbfa
