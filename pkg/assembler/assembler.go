@@ -394,7 +394,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		digest = ref.Reference
 	}
 
-	// returns empty if no tag
+	// returns empty if no tag - only for tag parsing
 	refWithTag, err := registry.ParseReference(trimmedURI)
 	if err != nil {
 		return "", err
@@ -420,7 +420,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		}
 	}
 
-	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", refWithTag.Registry, refWithTag.Repository), versionString)
+	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), versionString)
 
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
@@ -437,7 +437,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		}
 		fmt.Printf("pulling sdk component %s %s ...\n", comp.Name, *comp.Uri)
 
-		customRemote, err := assistantremote.New(refWithTag.Registry, a.config.RegistryAuthPath, a.config.Insecure)
+		customRemote, err := assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
 		if err != nil {
 			return "", err
 		}
@@ -445,7 +445,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		// Passing in old config layoutCache
 		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
 
-		if err := customPuller.PullComponentByFullPath(ctx, refWithTag.Repository, componentReference, destPath, platform); err != nil {
+		if err := customPuller.PullComponentByFullPath(ctx, ref.Repository, componentReference, destPath, platform); err != nil {
 			return "", err
 		}
 	}
