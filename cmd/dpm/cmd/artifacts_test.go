@@ -3,13 +3,14 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"io"
-	"oras.land/oras-go/v2"
 	"os"
 	"strings"
 	"testing"
+
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"oras.land/oras-go/v2"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/testutil"
@@ -26,11 +27,7 @@ func (suite *RepoSuite) TestPublishDar() {
 	require.NoError(t, err)
 	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 	destinationRegistry := os.Getenv(assistantconfig.OciRegistryEnvVar)
-	tmpDamlHome, err = os.MkdirTemp("", "")
-	require.NoError(t, err)
-	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
 
-	cmd := createStdTestRootCmd(t)
 	args := []string{
 		"publish", "dar", fmt.Sprintf("oci://%s/meep:1.2.3", destinationRegistry),
 		"-f", testutil.TestdataPath(t, "test-dar"),
@@ -39,8 +36,16 @@ func (suite *RepoSuite) TestPublishDar() {
 	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
 		args = append(args, "--insecure")
 	}
-	cmd.SetArgs(args)
+
+	cmd, r, w := createTestRootCmd(t, args...)
 	require.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+
+	output, err := io.ReadAll(r)
+	assert.NoError(t, err)
+
+	expectedPacakgeHashAnnotation := `"network.canton.dpm.main.dalf.hash": "0984ff5e3082add400bfcc6e3244bf9822ca5a617cfd92429e3fbce58058dbfa"`
+	assert.Contains(t, string(output), expectedPacakgeHashAnnotation)
 }
 
 func (suite *RepoSuite) TestPublishLicenselessDar() {

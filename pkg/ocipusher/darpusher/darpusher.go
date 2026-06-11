@@ -6,16 +6,17 @@ package darpusher
 import (
 	"bytes"
 	"context"
-	"daml.com/x/assistant/pkg/darmanifest"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
-	"github.com/opencontainers/go-digest"
 	"log/slog"
 	"maps"
-	"oras.land/oras-go/v2/content/memory"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"daml.com/x/assistant/pkg/darmanifest"
+	"github.com/Masterminds/semver/v3"
+	"github.com/opencontainers/go-digest"
+	"oras.land/oras-go/v2/content/memory"
 
 	consts "daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
@@ -75,6 +76,9 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		}
 
 		if strings.HasSuffix(de.Name(), ".dar") {
+			if darName != "" {
+				return nil, fmt.Errorf("found multiple dars in the given directory. Currently only one dar is support")
+			}
 			darName = de.Name()
 		}
 		osFileInfo, err := de.Info()
@@ -110,8 +114,14 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		fileDescriptors = append(fileDescriptors, *DarManifest)
 	}
 
+	mainDalfHash, err := GetMainDalfHash(filepath.Join(opts.Dir, darName))
+	if err != nil {
+		return nil, err
+	}
+
 	annotations := map[string]string{}
 	annotations[v1.AnnotationVersion] = opts.Version.String()
+	annotations[oci.DescriptorMainDalfHashAnnotation] = mainDalfHash
 
 	packOpts := oras.PackManifestOptions{
 		Layers:              fileDescriptors,
