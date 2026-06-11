@@ -360,8 +360,6 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 }
 
 func (a *Assembler) resolveSHA(ctx context.Context, digest string, tag string, reference registry.Reference) error {
-
-	fmt.Printf("Resolving sha %s for tag %s", digest, tag)
 	customRemote, err := assistantremote.New(reference.Registry, a.config.RegistryAuthPath, a.config.Insecure)
 	if err != nil {
 		return err
