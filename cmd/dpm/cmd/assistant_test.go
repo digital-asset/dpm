@@ -858,7 +858,7 @@ func (suite *MainSuite) TestInstallPackageWithPinning() {
 	// and use the shorthand for non `oci://` components
 	checkComponent("javabro", "6.7.8")
 
-	t.Run("test that moving the ", func(t *testing.T) {
+	t.Run("test that moving tag to new sha doesn't break pinning", func(t *testing.T) {
 		args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "components", "rando"))
 		require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 		cmd := createStdTestRootCmd(t, "install", "package")
