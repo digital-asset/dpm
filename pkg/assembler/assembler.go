@@ -386,7 +386,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 	prefixTrimmedOCI := strings.TrimPrefix(*comp.Uri, "oci://")
 	trimmedURI, _, hasDigest := strings.Cut(prefixTrimmedOCI, "@")
 
-	//simple check for digest, oras drops tag if digest/tag are present
+	// TODO - Move all this into the digest or version function after component refactor
 	var digest string
 	if hasDigest {
 		refDigest, err := registry.ParseReference(prefixTrimmedOCI)
