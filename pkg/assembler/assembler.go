@@ -359,7 +359,7 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 	return utils.ResolvePath(basePath, componentPath)
 }
 
-func (a *Assembler) resolveSHA(ctx context.Context, digest string, tag string, reference registry.Reference) error {
+func (a *Assembler) verifyReferenceMatch(ctx context.Context, digest string, tag string, reference registry.Reference) error {
 	customRemote, err := assistantremote.New(reference.Registry, a.config.RegistryAuthPath, a.config.Insecure)
 	if err != nil {
 		return err
@@ -415,7 +415,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 
 	// tag and digest provided, need to resolve
 	if versionString != "" && digest != "" {
-		if err := a.resolveSHA(ctx, digest, versionString, refWithTag); err != nil {
+		if err := a.verifyReferenceMatch(ctx, digest, versionString, refWithTag); err != nil {
 			return "", err
 		}
 	}
