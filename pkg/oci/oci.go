@@ -36,8 +36,6 @@ const (
 	DpmAnnotationPrefix      = "network.canton.dpm."
 	DescriptorNameAnnotation = DpmAnnotationPrefix + "name"
 
-	DescriptorMainDalfHashAnnotation = DpmAnnotationPrefix + "main.dalf.hash"
-
 	// SkipLegacyOciAnnotationsEnvVar will skip attaching legacy annotations when publishing oci manifests
 	SkipLegacyOciAnnotationsEnvVar = "SKIP_LEGACY_OCI_ANNOTATIONS"
 )

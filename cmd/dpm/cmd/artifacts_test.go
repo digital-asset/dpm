@@ -8,9 +8,11 @@ import (
 	"strings"
 	"testing"
 
+	"daml.com/x/assistant/pkg/darmanifest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
+	"oras.land/oras-go/v2/registry"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/testutil"
@@ -21,31 +23,32 @@ import (
 func (suite *RepoSuite) TestPublishDar() {
 	t := suite.T()
 
-	testutil.StartRegistry(t)
+	config := testutil.MkConfig(t)
 
-	tmpDamlHome, err := os.MkdirTemp("", "")
+	testutil.StartRegistry(t)
+	reg := os.Getenv(assistantconfig.OciRegistryEnvVar)
+
+	darRef, err := registry.ParseReference(fmt.Sprintf("%s/meep:1.2.3", reg))
 	require.NoError(t, err)
-	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
-	destinationRegistry := os.Getenv(assistantconfig.OciRegistryEnvVar)
 
 	args := []string{
-		"publish", "dar", fmt.Sprintf("oci://%s/meep:1.2.3", destinationRegistry),
+		"publish", "dar", "oci://" + darRef.String(),
 		"-f", testutil.TestdataPath(t, "test-dar"),
 	}
-
 	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
 		args = append(args, "--insecure")
 	}
-
-	cmd, r, w := createTestRootCmd(t, args...)
+	cmd := createStdTestRootCmd(t, args...)
 	require.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
 
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
+	t.Run("publishes valid dar manifest", func(t *testing.T) {
+		darManifestPath := config.CachePathForDar(&darRef)
+		m, err := darmanifest.ReadDarManifest(darManifestPath)
+		require.NoError(t, err)
 
-	expectedPacakgeHashAnnotation := `"network.canton.dpm.main.dalf.hash": "0984ff5e3082add400bfcc6e3244bf9822ca5a617cfd92429e3fbce58058dbfa"`
-	assert.Contains(t, string(output), expectedPacakgeHashAnnotation)
+		assert.Equal(t, m.Spec.Dars[0].Path, "./test.dar")
+		assert.Equal(t, m.Spec.Dars[0].MainDalf, "0984ff5e3082add400bfcc6e3244bf9822ca5a617cfd92429e3fbce58058dbfa")
+	})
 }
 
 func (suite *RepoSuite) TestPublishLicenselessDar() {
