@@ -1,6 +1,7 @@
 package yamledit
 
 import (
+	"fmt"
 	"testing"
 
 	"daml.com/x/assistant/pkg/componentlist"
@@ -29,4 +30,19 @@ func TestAppendToYaml(t *testing.T) {
 		output := AppendToYaml(testdata.InputEmptyList, "components", string(item))
 		assert.Equal(t, string(testdata.ExpectedEmptyList), output)
 	})
+}
+
+func TestUpdateItemInList(t *testing.T) {
+	item, err := yaml.Marshal(componentlist.ComponentList{
+		&componentlist.ComponentEntry{FileBased: &componentlist.FileBased{
+			Name: "/newly-updated",
+			Path: "/newly/updated",
+		},
+		},
+	})
+	require.NoError(t, err)
+
+	output := ReplaceItemInList(testdata.InputReplace, "components", 0, string(item))
+	fmt.Println(output)
+	assert.Equal(t, string(testdata.ExpectedReplace), output)
 }

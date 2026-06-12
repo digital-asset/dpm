@@ -13,3 +13,9 @@ var InputEmptyList []byte
 
 //go:embed empty/expected.yaml
 var ExpectedEmptyList []byte
+
+//go:embed replace/input.yaml
+var InputReplace []byte
+
+//go:embed replace/expected.yaml
+var ExpectedReplace []byte
