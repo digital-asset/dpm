@@ -3,6 +3,8 @@ blah: blah
 
 # some components stuffz
 components:
+  - name: newly-added
+    path: /newly/added
   # hehehe
   - name: oci://okay.com/cool:1.1.2-maybe
     path: /dev/null
@@ -14,9 +16,6 @@ components:
   - some: oci://okay.com/whatever:9.9.9
     # another comment
     object: /dev/null
-  - name: newly-added
-    path: /new/added
-
 
 # whatever
 whatever: whatever

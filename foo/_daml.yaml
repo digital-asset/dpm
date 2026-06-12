@@ -1,9 +1,0 @@
-# hello
-blah: blah
-
-# some components stuffz
-components:
-  - oci://foo.com/foo:1.2.3
-  # this is a meep
-  - oci://foo.com/meep:1.2.3-meep
-  - oci://foo.com/bar:1.2.3-whatever

@@ -1,6 +1,7 @@
 package yamledit
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
@@ -9,19 +10,20 @@ import (
 	"github.com/samber/lo"
 )
 
-// AppendToYaml adds item to targetField.
+// AppendToYaml adds item to the given target field.
 // item can be a simple value or a whole object
-func AppendToYaml(yamlFileContents []byte, targetField, item string) string {
+func AppendToYaml(yamlFileContents []byte, targetFieldName, item string) string {
 	// indent all lines of the item,
 	// in case the item is not a single-line value but a whole object
 	item = indentYaml(item)
 	lines := strings.SplitAfter(string(yamlFileContents), "\n")
 
 	file, _ := parser.ParseBytes(yamlFileContents, 0)
-	components := findField(file.Docs[0], targetField)
+	components := findField(file.Docs[0], targetFieldName)
 
 	if components == nil {
-		return strings.Join(append(lines, "\n\ncomponents:\n", item, "\n"), "")
+		fieldLine := fmt.Sprintf("\n\n%s:\n", targetFieldName)
+		return strings.Join(append(lines, fieldLine, item, "\n"), "")
 	}
 
 	insertAt := components.GetToken().Position.Line
