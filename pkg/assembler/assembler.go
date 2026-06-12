@@ -402,10 +402,15 @@ func (a *Assembler) calculateReference(ctx context.Context, uri string) (*regist
 
 func (a *Assembler) verifyReferenceMatch(ctx context.Context, digest string, tag string, reference registry.Reference) error {
 
-	if digest != "" && tag != "" && !ocilister.IsFloaty(tag) {
+	if digest == "" {
 		return nil
 	}
-
+	if tag == "" {
+		return nil
+	}
+	if ocilister.IsFloaty(tag) {
+		return nil
+	}
 	customRemote, err := assistantremote.New(reference.Registry, a.config.RegistryAuthPath, a.config.Insecure)
 	if err != nil {
 		return err
