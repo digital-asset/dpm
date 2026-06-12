@@ -1,0 +1,11 @@
+# hello
+blah: blah
+
+# whatever
+whatever: whatever
+
+
+components:
+  - name: newly-added
+    path: /newly/added
+
