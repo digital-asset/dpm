@@ -48,42 +48,71 @@ func addToPackage(path, component string) error {
 		return err
 	}
 
+	//item, err := yaml.Marshal(componentlist.ComponentList{
+	//	&componentlist.ComponentEntry{StringBased: &component},
+	//})
+
 	item, err := yaml.Marshal(componentlist.ComponentList{
-		&componentlist.ComponentEntry{StringBased: &component},
+		&componentlist.ComponentEntry{FileBased: &componentlist.FileBased{
+			Name: component,
+			Path: "/dev/null",
+		},
+		},
 	})
 	if err != nil {
 		return err
 	}
 
-	out := appendToYaml(b, strings.TrimRight(string(item), "\n"))
-	return os.WriteFile(path, out, 0644)
+	out := AppendToYaml(b, "components", string(item))
+	return os.WriteFile(path, []byte(out), 0644)
 }
 
-func appendToYaml(b []byte, item string) []byte {
-	item = "  " + item + "\n"
-
-	file, _ := parser.ParseBytes(b, 0)
-	components := findField(file.Docs[0], "components")
+// AppendToYaml adds item to targetField.
+// item can be a simple value or a whole object
+func AppendToYaml(b []byte, targetField, item string) string {
+	// indent all lines of the item,
+	// in case the item is not a single-line value but a whole object
+	item = indentYaml(item)
 	lines := strings.SplitAfter(string(b), "\n")
 
+	file, _ := parser.ParseBytes(b, 0)
+	components := findField(file.Docs[0], targetField)
+
 	if components == nil {
-		return []byte(strings.Join(append(lines, "components:\n", item), ""))
+		return strings.Join(append(lines, "\n\ncomponents:\n", item, "\n"), "")
 	}
 
 	insertAt := components.GetToken().Position.Line
-	if len(components.Entries) > 0 {
-		last := components.Entries[len(components.Entries)-1]
-		insertAt = last.GetToken().Position.Line
-	}
-
 	lines = slices.Insert(lines, insertAt, item)
-	return []byte(strings.Join(lines, ""))
+	return strings.Join(lines, "")
 }
 
-func findField(doc *ast.DocumentNode, field string) *ast.SequenceNode {
-	body := doc.Body.(*ast.MappingNode)
+func findField(doc *ast.DocumentNode, field string) *ast.MappingValueNode {
+	if doc == nil || doc.Body == nil {
+		return nil
+	}
+
+	body, ok := doc.Body.(*ast.MappingNode)
+	if !ok {
+		return nil
+	}
+
 	r, _ := lo.Find(body.Values, func(n *ast.MappingValueNode) bool {
 		return n.Key.String() == field
 	})
-	return r.Value.(*ast.SequenceNode)
+	return r
+}
+
+func indentYaml(item string) string {
+	item = strings.TrimSpace(item)
+	if item == "" {
+		return ""
+	}
+
+	lines := strings.Split(item, "\n")
+	for i := range lines {
+		lines[i] = "  " + lines[i]
+	}
+
+	return strings.Join(lines, "\n") + "\n"
 }

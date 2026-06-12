@@ -1,10 +1,22 @@
+
 # hello
 blah: blah
 
 # some components stuffz
 components:
+  # hehehe
+  - name: oci://okay.com/cool:1.1.2-maybe
+    path: /dev/null
   - oci://foo.com/foo:1.2.3
+  - name: oci://okay.com/cool:1.1.2-whatever
+    path: /dev/null
+  - name: oci://okay.com/cool:1.1.2
+    path: /dev/null
   # this is a meep
   - oci://foo.com/meep:1.2.3-meep
   - oci://foo.com/bar:1.2.3-whatever
-  - oci://okay.com/cool:9.9.9
+  - name: oci://okay.com/cool:9.9.9
+    path: /dev/null
+
+# whatever
+whatever: whatever
