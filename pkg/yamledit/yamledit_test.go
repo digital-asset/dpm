@@ -3,30 +3,38 @@ package yamledit
 import (
 	"testing"
 
-	"daml.com/x/assistant/pkg/componentlist"
 	"daml.com/x/assistant/pkg/yamledit/testdata"
-	"github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestAppendToYaml(t *testing.T) {
-	item, err := yaml.Marshal(componentlist.ComponentList{
-		&componentlist.ComponentEntry{FileBased: &componentlist.FileBased{
-			Name: "newly-added",
-			Path: "/newly/added",
-		},
-		},
-	})
-	require.NoError(t, err)
+const item = `- name: newly-added
+  path: /newly/added`
 
+func TestAppendToYaml(t *testing.T) {
 	t.Run("non-empty list", func(t *testing.T) {
-		output := AppendToYaml(testdata.InputNonEmptyList, "components", string(item))
+		output, err := AppendToYaml(testdata.InputNonEmptyList, "components", item)
+		require.NoError(t, err)
 		assert.Equal(t, string(testdata.ExpectedNonEmptyList), output)
 	})
 
 	t.Run("empty list", func(t *testing.T) {
-		output := AppendToYaml(testdata.InputEmptyList, "components", string(item))
+		output, err := AppendToYaml(testdata.InputEmptyList, "components", item)
+		require.NoError(t, err)
 		assert.Equal(t, string(testdata.ExpectedEmptyList), output)
+	})
+}
+
+func TestUpdateItemInList(t *testing.T) {
+	t.Run("last item", func(t *testing.T) {
+		output, err := ReplaceItemInList(testdata.InputReplaceLast, "components", 2, item)
+		require.NoError(t, err)
+		assert.Equal(t, string(testdata.ExpectedReplaceLast), output)
+	})
+
+	t.Run("not last item", func(t *testing.T) {
+		output, err := ReplaceItemInList(testdata.InputReplaceNotLast, "components", 0, item)
+		require.NoError(t, err)
+		assert.Equal(t, string(testdata.ExpectedReplaceNotLast), output)
 	})
 }
