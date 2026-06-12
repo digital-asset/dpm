@@ -5,7 +5,6 @@ package assembler
 
 import (
 	"context"
-	"daml.com/x/assistant/pkg/ocilister"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -24,7 +23,6 @@ import (
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
-	"github.com/Masterminds/semver/v3"
 	"github.com/samber/lo"
 	"oras.land/oras-go/v2/registry"
 )
@@ -360,80 +358,9 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 	return utils.ResolvePath(basePath, componentPath)
 }
 
-func (a *Assembler) calculateReference(ctx context.Context, uri string) (*registry.Reference, error) {
-	prefixTrimmedOCI := strings.TrimPrefix(uri, "oci://")
-	ref, err := registry.ParseReference(prefixTrimmedOCI)
-	if err != nil {
-		return nil, err
-	}
-
-	trimmedURI, _, hasDigest := strings.Cut(prefixTrimmedOCI, "@")
-	// TODO - Move all this into the digest or version function after component refactor
-	var digest string
-	if hasDigest {
-		digest = ref.Reference
-	}
-
-	// returns empty if no tag - only for tag parsing
-	refWithTag, err := registry.ParseReference(trimmedURI)
-	if err != nil {
-		return nil, err
-	}
-
-	if refWithTag.Reference == "" && digest == "" {
-		return nil, fmt.Errorf("no tag or sha provided for %q", prefixTrimmedOCI)
-	}
-
-	var versionString string
-	if refWithTag.Reference != "" {
-		version, err := semver.NewVersion(refWithTag.Reference)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", refWithTag.Reference, uri, err)
-		}
-		versionString = version.String()
-	}
-
-	if err := a.verifyReferenceMatch(ctx, digest, versionString, ref); err != nil {
-		return nil, err
-	}
-
-	return &ref, nil
-}
-
-func (a *Assembler) verifyReferenceMatch(ctx context.Context, digest string, tag string, reference registry.Reference) error {
-
-	if digest == "" {
-		return nil
-	}
-	if tag == "" {
-		return nil
-	}
-	if ocilister.IsFloaty(tag) {
-		return nil
-	}
-	customRemote, err := assistantremote.New(reference.Registry, a.config.RegistryAuthPath, a.config.Insecure)
-	if err != nil {
-		return err
-	}
-	repoResolve, err := customRemote.Repo(reference.Repository)
-	if err != nil {
-		return err
-	}
-	resolvedDigest, err := repoResolve.Resolve(ctx, reference.Reference)
-	if err != nil {
-		return err
-	}
-
-	pulledDigest := string(resolvedDigest.Digest)
-	if strings.ToLower(pulledDigest) != strings.ToLower(digest) {
-		return fmt.Errorf("failed resolving %q with tag %q, resolved to %q", digest, tag, pulledDigest)
-	}
-	return nil
-}
-
 func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
-
-	ref, err := a.calculateReference(ctx, *comp.Uri)
+	prefixTrimmedOCI := strings.TrimPrefix(*comp.Uri, "oci://")
+	ref, err := registry.ParseReference(prefixTrimmedOCI)
 	if err != nil {
 		return "", err
 	}
