@@ -55,6 +55,9 @@ func addComponent(path, component string) error {
 		return err
 	}
 
-	out := yamledit.AppendToYaml(b, "components", string(item))
+	out, err := yamledit.AppendToYaml(b, "components", string(item))
+	if err != nil {
+		return err
+	}
 	return os.WriteFile(path, []byte(out), 0644)
 }
