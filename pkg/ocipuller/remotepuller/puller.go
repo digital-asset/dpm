@@ -46,8 +46,8 @@ func (a *RemoteOciPuller) PullComponent(ctx context.Context, componentName, tag,
 	return a.pull(ctx, ociconsts.ComponentRepoPrefix+componentName, tag, destPath, platform)
 }
 
-func (a *RemoteOciPuller) PullComponentByFullPath(ctx context.Context, componentPath, tag, destPath string, platform simpleplatform.Platform) error {
-	return a.pull(ctx, componentPath, tag, destPath, platform)
+func (a *RemoteOciPuller) PullComponentByFullPath(ctx context.Context, componentPath, reference, destPath string, platform simpleplatform.Platform) error {
+	return a.pull(ctx, componentPath, reference, destPath, platform)
 }
 
 func (a *RemoteOciPuller) PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) error {
@@ -62,7 +62,7 @@ func (a *RemoteOciPuller) PullAssembly(ctx context.Context, edition sdkmanifest.
 	return a.pull(ctx, repo, tag, destPath, platform)
 }
 
-func (a *RemoteOciPuller) pull(ctx context.Context, repo, tag, destPath string, platform simpleplatform.Platform) error {
+func (a *RemoteOciPuller) pull(ctx context.Context, repo, reference, destPath string, platform simpleplatform.Platform) error {
 	src, err := a.cachedRepo(fmt.Sprintf("%s/%s", a.remote.Registry, repo))
 	if err != nil {
 		return err
@@ -76,7 +76,7 @@ func (a *RemoteOciPuller) pull(ctx context.Context, repo, tag, destPath string, 
 	dest.DisableOverwrite = true
 	opts := ocipuller.ApplyFileInfoCopyOptions(destPath)
 	if nonGeneric, ok := platform.(*simpleplatform.NonGeneric); ok {
-		index, _, err := ociindex.FetchIndex(ctx, a.remote, repo, tag)
+		index, _, err := ociindex.FetchIndex(ctx, a.remote, repo, reference)
 		if err != nil {
 			return err
 		}
@@ -89,7 +89,7 @@ func (a *RemoteOciPuller) pull(ctx context.Context, repo, tag, destPath string, 
 		opts.WithTargetPlatform(descriptor.Platform)
 	}
 
-	_, err = oras.Copy(ctx, src, tag, dest, tag, opts)
+	_, err = oras.Copy(ctx, src, reference, dest, reference, opts)
 	return err
 }
 
