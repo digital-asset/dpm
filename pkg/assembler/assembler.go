@@ -501,8 +501,8 @@ func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
 	return comp.Version.Value().String()
 }
 
-func (a *Assembler) ociComponentPath(componentUri string, tag string) string {
-	return filepath.Join(a.config.CachePath, "components", utils.UrlToFilePath(componentUri), tag)
+func (a *Assembler) ociComponentPath(componentUri string, reference string) string {
+	return filepath.Join(a.config.CachePath, "components", utils.UrlToFilePath(componentUri), strings.ReplaceAll(reference, ":", "_"))
 }
 
 // computeImports merges all components' component.Exports, taking into account their conflict strategy,

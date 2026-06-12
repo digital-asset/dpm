@@ -854,7 +854,7 @@ func (suite *MainSuite) TestInstallPackageWithPinning() {
 	}
 
 	// Test that the cache and dpm resolve use the full URI for `oci://` based components
-	checkComponent(regURL+"/"+"foo/bar/meep", meepSHA)
+	checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
 	// and use the shorthand for non `oci://` components
 	checkComponent("javabro", "6.7.8")
 
@@ -865,7 +865,7 @@ func (suite *MainSuite) TestInstallPackageWithPinning() {
 		require.NoError(t, cmd.Execute())
 		// assert meep component not overwritten
 		require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
-		checkComponent(regURL+"/"+"foo/bar/meep", meepSHA)
+		checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
 	})
 
 }
