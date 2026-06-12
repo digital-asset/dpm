@@ -5,6 +5,7 @@ package assembler
 
 import (
 	"context"
+	"daml.com/x/assistant/pkg/ocilister"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -359,7 +360,52 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 	return utils.ResolvePath(basePath, componentPath)
 }
 
+func (a *Assembler) calculateReference(ctx context.Context, uri string) (*registry.Reference, error) {
+	prefixTrimmedOCI := strings.TrimPrefix(uri, "oci://")
+	ref, err := registry.ParseReference(prefixTrimmedOCI)
+	if err != nil {
+		return nil, err
+	}
+
+	trimmedURI, _, hasDigest := strings.Cut(prefixTrimmedOCI, "@")
+	// TODO - Move all this into the digest or version function after component refactor
+	var digest string
+	if hasDigest {
+		digest = ref.Reference
+	}
+
+	// returns empty if no tag - only for tag parsing
+	refWithTag, err := registry.ParseReference(trimmedURI)
+	if err != nil {
+		return nil, err
+	}
+
+	if refWithTag.Reference == "" && digest == "" {
+		return nil, fmt.Errorf("no tag or sha provided for %q", prefixTrimmedOCI)
+	}
+
+	var versionString string
+	if refWithTag.Reference != "" {
+		version, err := semver.NewVersion(refWithTag.Reference)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", refWithTag.Reference, uri, err)
+		}
+		versionString = version.String()
+	}
+
+	if err := a.verifyReferenceMatch(ctx, digest, versionString, ref); err != nil {
+		return nil, err
+	}
+
+	return &ref, nil
+}
+
 func (a *Assembler) verifyReferenceMatch(ctx context.Context, digest string, tag string, reference registry.Reference) error {
+
+	if digest != "" && tag != "" && !ocilister.IsFloaty(tag) {
+		return nil
+	}
+
 	customRemote, err := assistantremote.New(reference.Registry, a.config.RegistryAuthPath, a.config.Insecure)
 	if err != nil {
 		return err
@@ -381,46 +427,13 @@ func (a *Assembler) verifyReferenceMatch(ctx context.Context, digest string, tag
 }
 
 func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
-	prefixTrimmedOCI := strings.TrimPrefix(*comp.Uri, "oci://")
-	trimmedURI, _, hasDigest := strings.Cut(prefixTrimmedOCI, "@")
 
-	ref, err := registry.ParseReference(prefixTrimmedOCI)
-	if err != nil {
-		return "", err
-	}
-	// TODO - Move all this into the digest or version function after component refactor
-	var digest string
-	if hasDigest {
-		digest = ref.Reference
-	}
-
-	// returns empty if no tag - only for tag parsing
-	refWithTag, err := registry.ParseReference(trimmedURI)
+	ref, err := a.calculateReference(ctx, *comp.Uri)
 	if err != nil {
 		return "", err
 	}
 
-	if refWithTag.Reference == "" && digest == "" {
-		return "", fmt.Errorf("no tag or sha provided for %q", prefixTrimmedOCI)
-	}
-
-	var versionString string
-	if refWithTag.Reference != "" {
-		version, err := semver.StrictNewVersion(refWithTag.Reference)
-		if err != nil {
-			return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", refWithTag.Reference, *comp.Uri, err)
-		}
-		versionString = version.String()
-	}
-	componentReference := ref.Reference
-	// tag and digest provided, need to resolve
-	if versionString != "" && digest != "" {
-		if err := a.verifyReferenceMatch(ctx, digest, versionString, refWithTag); err != nil {
-			return "", err
-		}
-	}
-
-	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), versionString)
+	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), ref.Reference)
 
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
@@ -445,7 +458,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		// Passing in old config layoutCache
 		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
 
-		if err := customPuller.PullComponentByFullPath(ctx, ref.Repository, componentReference, destPath, platform); err != nil {
+		if err := customPuller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform); err != nil {
 			return "", err
 		}
 	}
