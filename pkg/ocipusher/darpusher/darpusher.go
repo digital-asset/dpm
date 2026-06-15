@@ -106,7 +106,7 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		return nil, fmt.Errorf("missing .dar file")
 	}
 
-	mainDalfHash, err := GetMainDalfHash(filepath.Join(opts.Dir, darName))
+	mainDalfHash, err := GetMainPackageId(filepath.Join(opts.Dir, darName))
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		},
 		Spec: &darmanifest.Spec{
 			Dars: []darmanifest.Dar{
-				{Path: darName, MainDalf: mainDalfHash},
+				{Path: darName, MainPackageId: mainDalfHash},
 			},
 		},
 	}

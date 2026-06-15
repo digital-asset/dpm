@@ -10,7 +10,8 @@ import (
 	"github.com/samber/lo"
 )
 
-func GetMainDalfHash(darPath string) (string, error) {
+// GetMainPackageId unpacks a dar and extracts its main-package-id
+func GetMainPackageId(darPath string) (string, error) {
 	manifest, err := readDar(darPath)
 	if err != nil {
 		return "", err
