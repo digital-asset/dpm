@@ -3,4 +3,4 @@ kind: Dar
 spec:
   dars:
     - path: ./meep.dar
-    - main-dalf: 0984ff5e3082add400bfcc6e3244bf9822ca5a617cfd92429e3fbce58058dbfa
+    - main-package-id: 0984ff5e3082add400bfcc6e3244bf9822ca5a617cfd92429e3fbce58058dbfa

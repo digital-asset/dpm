@@ -27,8 +27,8 @@ type Spec struct {
 }
 
 type Dar struct {
-	Path     string `yaml:"path"`
-	MainDalf string `yaml:"main-dalf"`
+	Path          string `yaml:"path"`
+	MainPackageId string `yaml:"main-package-id"`
 }
 
 func ReadDarManifest(filePath string) (*DarManifest, error) {
