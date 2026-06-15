@@ -172,7 +172,10 @@ func (suite *CommonSetupSuite) SetupTest() {
 	}
 	suite.T().Setenv(assistantconfig.DpmHomeEnvVar, tmpDpmHome)
 	suite.T().Cleanup(func() {
-		deleteFn()
+		err := deleteFn()
+		if err != nil {
+			return
+		}
 	})
 }
 
