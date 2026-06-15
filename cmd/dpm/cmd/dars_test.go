@@ -165,11 +165,11 @@ artifact-locations:
 `)
 	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
 
-	t.Run("dar manifest includes main-dalf", func(t *testing.T) {
+	t.Run("dar manifest includes main-package-id", func(t *testing.T) {
 		darManifestPath := filepath.Join(config.CachePathForDar(&fooDarRef), assistantconfig.DarManifestName)
 		m, err := darmanifest.ReadDarManifest(darManifestPath)
 		require.NoError(t, err)
-		assert.Equal(t, "0984ff5e3082add400bfcc6e3244bf9822ca5a617cfd92429e3fbce58058dbfa", m.Spec.Dars[0].MainDalf)
+		assert.Equal(t, "0984ff5e3082add400bfcc6e3244bf9822ca5a617cfd92429e3fbce58058dbfa", m.Spec.Dars[0].MainPackageId)
 	})
 
 	// verify installed dars
