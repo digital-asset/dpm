@@ -174,7 +174,6 @@ func (suite *MainSuite) TestCacheResolution() {
 	installSdk(t, []string{someSdkVersion})
 
 	c, err := assistantconfig.Get()
-	//err = os.WriteFile(filepath.Join(c.CachePath, "components", "meep", "1.2.3", "meep.yaml"), []byte(``), 0666)
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "resolve-test", testutil.OS)))
 
 	deepResolution := runResolveCommand(t)
