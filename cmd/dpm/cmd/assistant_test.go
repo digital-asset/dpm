@@ -184,7 +184,42 @@ func (suite *MainSuite) TestResolveWithDpmSdkVersionEnvVar() {
 	})
 }
 
-func (suite *MainSuite) TestSdkCommandsFlagParsing() {
+func (suite *MainSuite) TestResolutionOfSymlinkPackages() {
+	t := suite.T()
+
+	symlink := testutil.TestdataPath(t, "symlinked-package")
+	resolvedSymlink := testutil.TestdataPath(t, "null-sdk-version")
+
+	require.NoError(t, os.Symlink(resolvedSymlink, symlink))
+	t.Cleanup(func() { assert.NoError(t, os.Remove(symlink)) })
+
+	t.Setenv(assistantconfig.DamlProjectEnvVar, symlink)
+
+	output := runHelpCommand(t)
+	assert.Contains(t, output, "hello-from-null-sdk-daml-yaml")
+
+	t.Run("resolution", func(t *testing.T) {
+		deepResolution := runResolveCommand(t)
+		assert.Len(t, deepResolution.Packages, 1)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].GetNonDarDependenciesImports(), -0)
+		assert.Equal(t, resolution.Kind, deepResolution.Kind)
+		assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
+
+		t.Run("correct package paths", func(t *testing.T) {
+			assert.NotContains(t, deepResolution.Packages, symlink)
+			assert.Contains(t, deepResolution.Packages, resolvedSymlink)
+
+			for pkgPath := range deepResolution.Packages {
+				assert.True(t, filepath.IsAbs(pkgPath))
+				_, err := os.ReadFile(filepath.Join(pkgPath, "daml.yaml"))
+				require.NoError(t, err)
+			}
+		})
+	})
+}
+
+func (suite *MainSuite) TestMeepCommand() {
 	t := suite.T()
 	t.Setenv("DPM_ASSEMBLY", testutil.TestdataPath(t, "local-with-java", testutil.OS, "sdk-manifest.yaml"))
 	testMeepyComponent(t)
@@ -204,38 +239,6 @@ func (suite *MainSuite) TestJavaCommand() {
 	assert.NoError(t, err)
 	assert.Contains(t, string(output), "i am a fake java!")
 	assert.Contains(t, string(output), "fake.jar banananas --some-flag")
-}
-
-func (suite *MainSuite) TestSdkCommandsLoading() {
-	t := suite.T()
-	t.Setenv("DPM_ASSEMBLY", testutil.TestdataPath(t, "local-with-java", testutil.OS, "sdk-manifest.yaml"))
-	testcases := []struct {
-		Name    string
-		CmdArgs []string
-	}{
-		{"Loads SDK commands with --help flag", []string{"--help"}},
-		{"Loads SDK commands with no args", []string{}},
-	}
-
-	for _, testcase := range testcases {
-		tc := testcase
-		t.Run(tc.Name, func(t *testing.T) {
-			cmd, r, w := createTestRootCmd(t, tc.CmdArgs...)
-			assert.NoError(t, cmd.Execute())
-			assert.NoError(t, w.Close())
-
-			output, err := io.ReadAll(r)
-			assert.NoError(t, err)
-			assert.Contains(t, string(output), "meep")
-			assert.Contains(t, string(output), "javux")
-			assert.Contains(t, string(output), "needy")
-
-			sdkCommands := lo.Filter(cmd.Commands(), func(subCmd *cobra.Command, _ int) bool {
-				return subCmd.GroupID == sdkGroupId
-			})
-			assert.Len(t, sdkCommands, 4)
-		})
-	}
 }
 
 func (suite *MainSuite) TestComponentDependencyPaths() {
@@ -305,15 +308,28 @@ func (suite *MainSuite) TestComponentPublishDryRun() {
 	})
 }
 
-func (suite *MainSuite) TestAssistantVersionCommand() {
+func (suite *MainSuite) TestSdkInstallCommand() {
 	t := suite.T()
-	cmd, r, w := createTestRootCmd(t, "--version")
-	assert.NoError(t, cmd.Execute())
-	assert.NoError(t, w.Close())
 
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
-	assert.Contains(t, string(output), "version: unknown\nbuild: unknown\nbuildDate: unknown")
+	cases := []struct {
+		Name, Version, InstallArg string
+	}{
+		{
+			"via semver", someSdkVersion, someSdkVersion,
+		},
+		{
+			"via some other semver", someOtherSdkVersion, someOtherSdkVersion,
+		},
+		{
+			"via latest tag", someOtherSdkVersion, "latest",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.Name, func(t *testing.T) {
+			installFloatySdk(t, c.Version, c.InstallArg)
+		})
+	}
 }
 
 func (suite *MainSuite) TestSdkUnInstallCommand() {
@@ -346,31 +362,7 @@ func (suite *MainSuite) TestSdkUnInstallCommand() {
 	assert.NotContains(t, string(output), sdkVersion)
 }
 
-func (suite *MainSuite) TestSdkInstallCommand() {
-	t := suite.T()
-
-	cases := []struct {
-		Name, Version, InstallArg string
-	}{
-		{
-			"via semver", someSdkVersion, someSdkVersion,
-		},
-		{
-			"via some other semver", someOtherSdkVersion, someOtherSdkVersion,
-		},
-		{
-			"via latest tag", someOtherSdkVersion, "latest",
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.Name, func(t *testing.T) {
-			installFloatySdk(t, c.Version, c.InstallArg)
-		})
-	}
-}
-
-func (suite *MainSuite) TestAutoInstallDefaultDisabled() {
+func (suite *MainSuite) TestSdkAutoInstallDefaultDisabled() {
 	t := suite.T()
 
 	tmpDir := t.TempDir()
@@ -380,6 +372,38 @@ func (suite *MainSuite) TestAutoInstallDefaultDisabled() {
 	da := assistant.DamlAssistant{OsArgs: []string{DpmName}}
 	_, err := RootCmd(t.Context(), &da)
 	require.ErrorIs(t, err, assistantconfig.ErrTargetSdkNotInstalled)
+}
+
+func (suite *MainSuite) TestHelpBasic() {
+	t := suite.T()
+	t.Setenv("DPM_ASSEMBLY", testutil.TestdataPath(t, "local-with-java", testutil.OS, "sdk-manifest.yaml"))
+	testcases := []struct {
+		Name    string
+		CmdArgs []string
+	}{
+		{"Loads SDK commands with --help flag", []string{"--help"}},
+		{"Loads SDK commands with no args", []string{}},
+	}
+
+	for _, testcase := range testcases {
+		tc := testcase
+		t.Run(tc.Name, func(t *testing.T) {
+			cmd, r, w := createTestRootCmd(t, tc.CmdArgs...)
+			assert.NoError(t, cmd.Execute())
+			assert.NoError(t, w.Close())
+
+			output, err := io.ReadAll(r)
+			assert.NoError(t, err)
+			assert.Contains(t, string(output), "meep")
+			assert.Contains(t, string(output), "javux")
+			assert.Contains(t, string(output), "needy")
+
+			sdkCommands := lo.Filter(cmd.Commands(), func(subCmd *cobra.Command, _ int) bool {
+				return subCmd.GroupID == sdkGroupId
+			})
+			assert.Len(t, sdkCommands, 4)
+		})
+	}
 }
 
 func (suite *MainSuite) TestHelpCommandUsesShallowResolution() {
@@ -412,6 +436,17 @@ func (suite *MainSuite) TestHelpCommandUsesShallowResolution() {
 
 }
 
+func (suite *MainSuite) TestHelpSdkless() {
+	t := suite.T()
+	t.Chdir(testutil.TestdataPath(t, "multi-package-no-sdk", testutil.OS))
+
+	output := runHelpCommand(t)
+	assert.Contains(t, output, "meep")
+
+	testMeepyComponent(t)
+
+}
+
 func (suite *MainSuite) TestLegacyDamlProjectEnvVar() {
 	t := suite.T()
 	t.Setenv(assistantconfig.DamlPackageEnvVar, testutil.TestdataPath(t, "daml-package", testutil.OS))
@@ -424,7 +459,7 @@ func (suite *MainSuite) TestLegacyDamlPackageEnvVar() {
 	assert.NoError(t, createStdTestRootCmd(t, "meep").Execute())
 }
 
-func (suite *MainSuite) TestDeepResolutionForSdkCommands() {
+func (suite *MainSuite) TestLegacyDamlProjectPackageEnvVarDeepResolution() {
 	t := suite.T()
 	t.Run("using DAML_PACKAGE", func(t *testing.T) {
 		testDeepResolutionForSdkCommands(t, assistantconfig.DamlPackageEnvVar)
@@ -432,6 +467,17 @@ func (suite *MainSuite) TestDeepResolutionForSdkCommands() {
 	t.Run("using DAML_PROJECT", func(t *testing.T) {
 		testDeepResolutionForSdkCommands(t, assistantconfig.DamlProjectEnvVar)
 	})
+}
+
+func (suite *MainSuite) TestAssistantVersionCommand() {
+	t := suite.T()
+	cmd, r, w := createTestRootCmd(t, "--version")
+	assert.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+
+	output, err := io.ReadAll(r)
+	assert.NoError(t, err)
+	assert.Contains(t, string(output), "version: unknown\nbuild: unknown\nbuildDate: unknown")
 }
 
 func (suite *MainSuite) TestSdkVersionCommand() {
@@ -569,41 +615,6 @@ func (suite *MainSuite) TestNullableSdkVersionInDamlYaml() {
 
 }
 
-func (suite *MainSuite) TestResolutionOfSymlinkPackages() {
-	t := suite.T()
-
-	symlink := testutil.TestdataPath(t, "symlinked-package")
-	resolvedSymlink := testutil.TestdataPath(t, "null-sdk-version")
-
-	require.NoError(t, os.Symlink(resolvedSymlink, symlink))
-	t.Cleanup(func() { assert.NoError(t, os.Remove(symlink)) })
-
-	t.Setenv(assistantconfig.DamlProjectEnvVar, symlink)
-
-	output := runHelpCommand(t)
-	assert.Contains(t, output, "hello-from-null-sdk-daml-yaml")
-
-	t.Run("resolution", func(t *testing.T) {
-		deepResolution := runResolveCommand(t)
-		assert.Len(t, deepResolution.Packages, 1)
-		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
-		assert.Len(t, lo.Values(deepResolution.Packages)[0].GetNonDarDependenciesImports(), -0)
-		assert.Equal(t, resolution.Kind, deepResolution.Kind)
-		assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
-
-		t.Run("correct package paths", func(t *testing.T) {
-			assert.NotContains(t, deepResolution.Packages, symlink)
-			assert.Contains(t, deepResolution.Packages, resolvedSymlink)
-
-			for pkgPath := range deepResolution.Packages {
-				assert.True(t, filepath.IsAbs(pkgPath))
-				_, err := os.ReadFile(filepath.Join(pkgPath, "daml.yaml"))
-				require.NoError(t, err)
-			}
-		})
-	})
-}
-
 func (suite *MainSuite) TestComponentSubdirFilesPerm() {
 	t := suite.T()
 	// chmod here because w bits don't get preserved by git
@@ -678,17 +689,6 @@ func (suite *MainSuite) TestComponentInitFail() {
 	cmd, _, _ := createTestRootCmd(t, "component", "init")
 
 	require.Error(t, cmd.Execute())
-
-}
-
-func (suite *MainSuite) TestSdklessHelp() {
-	t := suite.T()
-	t.Chdir(testutil.TestdataPath(t, "multi-package-no-sdk", testutil.OS))
-
-	output := runHelpCommand(t)
-	assert.Contains(t, output, "meep")
-
-	testMeepyComponent(t)
 
 }
 
