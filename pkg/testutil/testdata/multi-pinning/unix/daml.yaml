@@ -1,4 +1,4 @@
 components:
     - ${TEST_DPM_REGISTRY}/foo/bar/meep:1.2.3@${TEST_MEEP_SHA}
     - ${TEST_DPM_REGISTRY}/bar/foo/rando@${TEST_RANDO_SHA}
-    - javabro:6.7.8
+    - javabro:6.7.8@${TEST_JAVA_SHA}
