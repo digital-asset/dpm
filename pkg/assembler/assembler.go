@@ -368,7 +368,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 
 	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), ref.Reference)
 
-	if index := strings.IndexByte(ref.Reference, ':'); index == -1 {
+	if !strings.Contains(ref.Reference, "sha256:") {
 		_, err := semver.StrictNewVersion(ref.Reference)
 		if err != nil {
 			return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", ref.Reference, *comp.Uri, err)
