@@ -118,6 +118,13 @@ func (suite *MainSuite) TestInstallPackage() {
 		randoSHA := randoDescriptor.Digest.String()
 		t.Setenv("TEST_RANDO_SHA", randoSHA)
 
+		repoJava, err := client.Repo("components/javabro")
+		require.NoError(t, err)
+		javaDescriptor, err := repoJava.Resolve(ctx, "6.7.8")
+		require.NoError(t, err)
+		javaSHA := javaDescriptor.Digest.String()
+		t.Setenv("TEST_JAVA_SHA", javaSHA)
+
 		cmd := createStdTestRootCmd(t, "install", "package")
 
 		require.NoError(t, cmd.Execute())
@@ -134,10 +141,10 @@ func (suite *MainSuite) TestInstallPackage() {
 			assert.Equal(t, version, comp["version"])
 		}
 
-		// Test that the cache and dpm resolve use the full URI for `oci://` based components
+		// Test that the cache and dpm resolve use the full URsI for `oci://` based components
 		checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
 		// and use the shorthand for non `oci://` components
-		checkComponent("javabro", "6.7.8")
+		checkComponent("javabro", strings.ReplaceAll(javaSHA, ":", "_"))
 
 		t.Run("test that moving tag to new sha doesn't break pinning", func(t *testing.T) {
 			args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "components", "rando"))
@@ -149,6 +156,32 @@ func (suite *MainSuite) TestInstallPackage() {
 			checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
 		})
 	})
+}
+
+func (suite *MainSuite) TestCacheResolution() {
+	t := suite.T()
+
+	dpmHome := t.TempDir()
+	t.Chdir(dpmHome)
+	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
+
+	cwd, err := os.Getwd()
+
+	require.NoError(t, err)
+
+	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+
+	installSdk(t, []string{someSdkVersion})
+
+	c, err := assistantconfig.Get()
+	//err = os.WriteFile(filepath.Join(c.CachePath, "components", "meep", "1.2.3", "meep.yaml"), []byte(``), 0666)
+	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "resolve-test", testutil.OS)))
+
+	deepResolution := runResolveCommand(t)
+	comp := lo.Values(deepResolution.Packages)[0].ComponentsV2["meep"]
+	assert.Len(t, deepResolution.Packages, 1)
+	assert.Equal(t, comp["path"], filepath.Join(c.CachePath, "components", "meep", comp["version"]))
+	assert.Equal(t, "1.2.3", comp["version"])
 }
 
 func checkComponent(t *testing.T, deepResolution *resolution.Resolution, dpmHome string) func(name string, version string) {
