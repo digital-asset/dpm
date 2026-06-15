@@ -72,23 +72,23 @@ func pushIndex(ctx context.Context, repo oras.Target, tag string, manifests []v1
 	return &indexDesc, err
 }
 
-func FetchIndex(ctx context.Context, client *assistantremote.Remote, repoName, tag string) (*v1.Index, []byte, error) {
+func FetchIndex(ctx context.Context, client *assistantremote.Remote, repoName, reference string) (*v1.Index, []byte, error) {
 	repo, err := client.Repo(repoName)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return FetchIndexFromTarget(ctx, repo, repoName, tag)
+	return FetchIndexFromTarget(ctx, repo, repoName, reference)
 }
 
-func FetchIndexFromTarget(ctx context.Context, repo oras.ReadOnlyTarget, repoName, tag string) (*v1.Index, []byte, error) {
-	desc, bytes, err := oras.FetchBytes(ctx, repo, tag, oras.DefaultFetchBytesOptions)
+func FetchIndexFromTarget(ctx context.Context, repo oras.ReadOnlyTarget, repoName, reference string) (*v1.Index, []byte, error) {
+	desc, bytes, err := oras.FetchBytes(ctx, repo, reference, oras.DefaultFetchBytesOptions)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if desc.MediaType != v1.MediaTypeImageIndex {
-		return nil, nil, fmt.Errorf("reference \"%s:%s\" is %q and not an image index", repoName, tag, desc.MediaType)
+		return nil, nil, fmt.Errorf("reference \"%s:%s\" is %q and not an image index", repoName, reference, desc.MediaType)
 	}
 
 	index := v1.Index{}
