@@ -32,13 +32,14 @@ Options
 
   -a, --annotations stringToString   annotations to include in the published OCI artifact (default [])
       --auth string                  path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json
+  -f, --dar stringArray              REQUIRED path to the dar file to publish
   -d, --dry-run                      don't actually push to the registry
       --exclude-license              FOR NON-PRODUCTION USE: disable license file requirement for DAR publishing
   -t, --extra-tags strings           publish extra tags besides the semver
-  -f, --file string                  REQUIRED path to the dar file to publish
   -h, --help                         help for dar
   -g, --include-git-info             include git info as annotations on the published manifest
       --insecure                     use http instead of https for OCI registry
+  -l, --license string               path to LICENSE file
 
 SEE ALSO
 ~~~~~~~~

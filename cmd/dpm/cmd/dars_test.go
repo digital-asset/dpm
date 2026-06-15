@@ -182,7 +182,8 @@ artifact-locations:
 func pushDar(t *testing.T, uri string, extraTags ...string) {
 	args := []string{
 		"publish", "dar", uri,
-		"-f", testutil.TestdataPath(t, "test-dar"),
+		"-f", testutil.TestdataPath(t, "test-dar", "test.dar"),
+		"--license", testutil.TestdataPath(t, "test-dar", "LICENSE"),
 	}
 
 	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
