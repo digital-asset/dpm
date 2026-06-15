@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 
+	"daml.com/x/assistant/cmd/dpm/cmd/add"
 	"daml.com/x/assistant/cmd/dpm/cmd/publish"
+	"daml.com/x/assistant/cmd/dpm/cmd/tags"
 	"daml.com/x/assistant/cmd/dpm/cmd/uninstall"
 	"daml.com/x/assistant/cmd/dpm/cmd/update"
 
@@ -18,7 +20,6 @@ import (
 	"daml.com/x/assistant/cmd/dpm/cmd/login"
 	"daml.com/x/assistant/cmd/dpm/cmd/repo"
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve"
-	"daml.com/x/assistant/cmd/dpm/cmd/tags"
 	"daml.com/x/assistant/cmd/dpm/cmd/versions"
 	"daml.com/x/assistant/pkg/assistant"
 	"daml.com/x/assistant/pkg/assistantconfig"
@@ -83,6 +84,7 @@ func RootCmd(ctx context.Context, da *assistant.DamlAssistant) (*cobra.Command, 
 		setCmdMetaGroup(update.Cmd(config)),
 		setCmdMetaGroup(publish.Cmd()),
 		setCmdMetaGroup(tags.Cmd(config)),
+		setCmdMetaGroup(add.Cmd()),
 		componentCmd.Cmd(config),
 	)
 

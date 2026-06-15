@@ -41,6 +41,17 @@ func (e *ComponentEntry) UnmarshalYAML(b []byte) error {
 	return SchemaError
 }
 
+func (e *ComponentEntry) MarshalYAML() (any, error) {
+	switch {
+	case e.StringBased != nil:
+		return *e.StringBased, nil
+	case e.FileBased != nil:
+		return e.FileBased, nil
+	default:
+		return nil, nil
+	}
+}
+
 func (compList ComponentList) ToMap() (map[string]*sdkmanifest.Component, error) {
 	compMap := make(map[string]*sdkmanifest.Component)
 	var errs []error
