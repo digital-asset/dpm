@@ -16,21 +16,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func (suite *MainSuite) TestMultiPackageInstall() {
+func (suite *MainSuite) TestInstallPackage() {
 	t := suite.T()
 
-	sdkVersion := someSdkVersion
-	installSdk(t, []string{sdkVersion})
+	// set dpm home to temp dir
+	dpmHome := t.TempDir()
+	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
+
+	// cleanup
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
 
 	t.Run("multi pkg no override", func(t *testing.T) {
 
-		tmpDir := t.TempDir()
+		// install some sdk version
+		sdkVersion := someSdkVersion
+		installSdk(t, []string{sdkVersion})
 
-		cwd, err := os.Getwd()
-		require.NoError(t, err)
-		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-another"))))
-		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
+		// use multi-package-another testdata which
+		// has a package that depends on the same sdk version
+		// but doesn't override it, so should not cause sdk to be reinstalled
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join(
+			"multi-package-another"))))
 
 		cmd, r, w := createTestRootCmd(t, "install", "package")
 		require.NoError(t, cmd.Execute())
@@ -41,135 +49,123 @@ func (suite *MainSuite) TestMultiPackageInstall() {
 		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
 		assert.Contains(t, string(output), "No opt-in components to install")
 	})
-}
 
-func (suite *MainSuite) TestInstallPackageMultipleRegistries() {
+	t.Run("install package multiple registries", func(t *testing.T) {
+		ctx := testutil.Context(t)
+		_, reg := testutil.StartRegistry(t)
+		_, altReg := testutil.StartRegistry(t)
 
-	t := suite.T()
+		regURL := strings.TrimPrefix(reg.URL, "http://")
+		altURL := strings.TrimPrefix(altReg.URL, "http://")
 
-	dpmHome := t.TempDir()
-	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
+		t.Setenv("TEST_DPM_REGISTRY", "oci://"+regURL)
+		t.Setenv("TEST_ALT_DPM_REGISTRY", "oci://"+altURL)
 
-	ctx := testutil.Context(t)
-	_, reg := testutil.StartRegistry(t)
-	_, altReg := testutil.StartRegistry(t)
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
 
-	regURL := strings.TrimPrefix(reg.URL, "http://")
-	altURL := strings.TrimPrefix(altReg.URL, "http://")
-
-	t.Setenv("TEST_DPM_REGISTRY", "oci://"+regURL)
-	t.Setenv("TEST_ALT_DPM_REGISTRY", "oci://"+altURL)
-
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-
-	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-	args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "meepy-component", testutil.OS))
-	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
-	args = testutil.PushComponentUri(altReg, fmt.Sprintf("%s/%s:%s", "bar/foo", "rando", "1.2.4"), testutil.TestdataPath(t, "components", "rando"))
-	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
-
-	// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
-	testutil.PushComponent(t, ctx, altReg, "javabro", "6.7.8", testutil.TestdataPath(t, "javabro-component"))
-
-	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-registry", testutil.OS)))
-	cmd := createStdTestRootCmd(t, "install", "package")
-
-	require.NoError(t, cmd.Execute())
-
-	require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
-
-	deepResolution := runResolveCommand(t)
-	assert.Len(t, deepResolution.Packages, 1)
-
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 4)
-
-	checkComponent := func(name, version string) {
-		// Test that the cache and dpm resolve use the full URI for `oci://` based components
-		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2[name]
-		assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", utils.UrlToFilePath(name), comp["version"]))
-		assert.Equal(t, version, comp["version"])
-	}
-
-	// Test that the cache and dpm resolve use the full URI for `oci://` based components
-	checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
-	// and use the shorthand for non `oci://` components
-	checkComponent("javabro", "6.7.8")
-
-	assert.Equal(t, testutil.TestdataPath(t, "another-generic-component"), lo.Values(deepResolution.Packages)[0].ComponentsV2["my-local-component"]["path"])
-}
-
-func (suite *MainSuite) TestInstallPackageWithPinning() {
-	t := suite.T()
-
-	dpmHome := t.TempDir()
-	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
-
-	ctx := testutil.Context(t)
-	client, reg := testutil.StartRegistry(t)
-
-	regURL := strings.TrimPrefix(reg.URL, "http://")
-
-	t.Setenv("TEST_DPM_REGISTRY", "oci://"+regURL)
-
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-
-	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-	args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "meepy-component", testutil.OS))
-	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
-	args = testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "bar/foo", "rando", "1.2.4"), testutil.TestdataPath(t, "components", "rando"))
-	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
-
-	// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
-	testutil.PushComponent(t, ctx, reg, "javabro", "6.7.8", testutil.TestdataPath(t, "javabro-component"))
-
-	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-pinning", testutil.OS)))
-
-	// retrieve sha to use in damls
-	repo, err := client.Repo("foo/bar/meep")
-	require.NoError(t, err)
-	meepDescriptor, err := repo.Resolve(ctx, "1.2.3")
-	require.NoError(t, err)
-	meepSHA := meepDescriptor.Digest.String()
-	t.Setenv("TEST_MEEP_SHA", meepSHA)
-
-	repoRando, err := client.Repo("bar/foo/rando")
-	require.NoError(t, err)
-	randoDescriptor, err := repoRando.Resolve(ctx, "1.2.4")
-	require.NoError(t, err)
-	randoSHA := randoDescriptor.Digest.String()
-	t.Setenv("TEST_RANDO_SHA", randoSHA)
-
-	cmd := createStdTestRootCmd(t, "install", "package")
-
-	require.NoError(t, cmd.Execute())
-	require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
-
-	deepResolution := runResolveCommand(t)
-	assert.Len(t, deepResolution.Packages, 1)
-	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 3)
-
-	checkComponent := func(name, version string) {
-		// Test that the cache and dpm resolve use the full URI for `oci://` based components
-		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2[name]
-		assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", utils.UrlToFilePath(name), comp["version"]))
-		assert.Equal(t, version, comp["version"])
-	}
-
-	// Test that the cache and dpm resolve use the full URI for `oci://` based components
-	checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
-	// and use the shorthand for non `oci://` components
-	checkComponent("javabro", "6.7.8")
-
-	t.Run("test that moving tag to new sha doesn't break pinning", func(t *testing.T) {
-		args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "components", "rando"))
+		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+		args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "meepy-component", testutil.OS))
 		require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+		args = testutil.PushComponentUri(altReg, fmt.Sprintf("%s/%s:%s", "bar/foo", "rando", "1.2.4"), testutil.TestdataPath(t, "components", "rando"))
+		require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+		// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
+		testutil.PushComponent(t, ctx, altReg, "javabro", "6.7.8", testutil.TestdataPath(t, "javabro-component"))
+
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-registry", testutil.OS)))
 		cmd := createStdTestRootCmd(t, "install", "package")
+
 		require.NoError(t, cmd.Execute())
-		// assert meep component not overwritten
+
 		require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
-		checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
+
+		deepResolution := runResolveCommand(t)
+		assert.Len(t, deepResolution.Packages, 1)
+
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 4)
+
+		checkComponent := func(name, version string) {
+			// Test that the cache and dpm resolve use the full URI for `oci://` based components
+			comp := lo.Values(deepResolution.Packages)[0].ComponentsV2[name]
+			assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", utils.UrlToFilePath(name), comp["version"]))
+			assert.Equal(t, version, comp["version"])
+		}
+
+		// Test that the cache and dpm resolve use the full URI for `oci://` based components
+		checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
+		// and use the shorthand for non `oci://` components
+		checkComponent("javabro", "6.7.8")
+
+		assert.Equal(t, testutil.TestdataPath(t, "another-generic-component"), lo.Values(deepResolution.Packages)[0].ComponentsV2["my-local-component"]["path"])
 	})
 
+	t.Run("install package with pinning", func(t *testing.T) {
+		ctx := testutil.Context(t)
+		client, reg := testutil.StartRegistry(t)
+
+		regURL := strings.TrimPrefix(reg.URL, "http://")
+
+		t.Setenv("TEST_DPM_REGISTRY", "oci://"+regURL)
+
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+
+		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+		args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "meepy-component", testutil.OS))
+		require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+		args = testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "bar/foo", "rando", "1.2.4"), testutil.TestdataPath(t, "components", "rando"))
+		require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+		// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
+		testutil.PushComponent(t, ctx, reg, "javabro", "6.7.8", testutil.TestdataPath(t, "javabro-component"))
+
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-pinning", testutil.OS)))
+
+		// retrieve sha to use in damls
+		repo, err := client.Repo("foo/bar/meep")
+		require.NoError(t, err)
+		meepDescriptor, err := repo.Resolve(ctx, "1.2.3")
+		require.NoError(t, err)
+		meepSHA := meepDescriptor.Digest.String()
+		t.Setenv("TEST_MEEP_SHA", meepSHA)
+
+		repoRando, err := client.Repo("bar/foo/rando")
+		require.NoError(t, err)
+		randoDescriptor, err := repoRando.Resolve(ctx, "1.2.4")
+		require.NoError(t, err)
+		randoSHA := randoDescriptor.Digest.String()
+		t.Setenv("TEST_RANDO_SHA", randoSHA)
+
+		cmd := createStdTestRootCmd(t, "install", "package")
+
+		require.NoError(t, cmd.Execute())
+		require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
+
+		deepResolution := runResolveCommand(t)
+		assert.Len(t, deepResolution.Packages, 1)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 3)
+
+		checkComponent := func(name, version string) {
+			// Test that the cache and dpm resolve use the full URI for `oci://` based components
+			comp := lo.Values(deepResolution.Packages)[0].ComponentsV2[name]
+			assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", utils.UrlToFilePath(name), comp["version"]))
+			assert.Equal(t, version, comp["version"])
+		}
+
+		// Test that the cache and dpm resolve use the full URI for `oci://` based components
+		checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
+		// and use the shorthand for non `oci://` components
+		checkComponent("javabro", "6.7.8")
+
+		t.Run("test that moving tag to new sha doesn't break pinning", func(t *testing.T) {
+			args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "components", "rando"))
+			require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+			cmd := createStdTestRootCmd(t, "install", "package")
+			require.NoError(t, cmd.Execute())
+			// assert meep component not overwritten
+			require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
+			checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
+		})
+	})
 }
