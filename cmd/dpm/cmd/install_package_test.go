@@ -158,7 +158,7 @@ func (suite *MainSuite) TestInstallPackage() {
 	})
 }
 
-func (suite *MainSuite) TestCacheResolution() {
+func (suite *MainSuite) TestLegacyCacheResolution() {
 	t := suite.T()
 
 	dpmHome := t.TempDir()
