@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"log/slog"
 	"maps"
 	"os"
@@ -366,6 +367,13 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 	}
 
 	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), ref.Reference)
+
+	if index := strings.IndexByte(ref.Reference, ':'); index == -1 {
+		_, err := semver.StrictNewVersion(ref.Reference)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", ref.Reference, *comp.Uri, err)
+		}
+	}
 
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
