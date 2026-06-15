@@ -1003,8 +1003,478 @@ func testDeepResolutionForSdkCommands(t *testing.T, damlPackageEnvVar string) {
 	})
 }
 
+<<<<<<< HEAD
 func testMeepyComponent(t *testing.T) {
 	cmd, r, w := createTestRootCmd(t, "meep", "--some-flag")
+=======
+func (suite *MainSuite) TestMultiPackageInstall() {
+	t := suite.T()
+
+	sdkVersion := someSdkVersion
+	installSdk(t, []string{sdkVersion})
+
+	t.Run("multi pkg no override", func(t *testing.T) {
+
+		tmpDir := t.TempDir()
+
+		cwd, err := os.Getwd()
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join("multi-package-another"))))
+		t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDir)
+
+		cmd, r, w := createTestRootCmd(t, "install", "package")
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
+		assert.Contains(t, string(output), "No opt-in components to install")
+	})
+}
+
+func (suite *MainSuite) TestInstallPackageMultipleRegistries() {
+
+	t := suite.T()
+
+	dpmHome := t.TempDir()
+	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
+
+	ctx := testutil.Context(t)
+	_, reg := testutil.StartRegistry(t)
+	_, altReg := testutil.StartRegistry(t)
+
+	regURL := strings.TrimPrefix(reg.URL, "http://")
+	altURL := strings.TrimPrefix(altReg.URL, "http://")
+
+	t.Setenv("TEST_DPM_REGISTRY", "oci://"+regURL)
+	t.Setenv("TEST_ALT_DPM_REGISTRY", "oci://"+altURL)
+
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+	args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+	args = testutil.PushComponentUri(altReg, fmt.Sprintf("%s/%s:%s", "bar/foo", "rando", "1.2.4"), testutil.TestdataPath(t, "components", "rando"))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+	// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
+	testutil.PushComponent(t, ctx, altReg, "javabro", "6.7.8", testutil.TestdataPath(t, "javabro-component"))
+
+	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-registry", testutil.OS)))
+	cmd := createStdTestRootCmd(t, "install", "package")
+
+	require.NoError(t, cmd.Execute())
+
+	require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
+
+	deepResolution := runResolveCommand(t)
+	assert.Len(t, deepResolution.Packages, 1)
+
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 4)
+
+	checkComponent := func(name, version string) {
+		// Test that the cache and dpm resolve use the full URI for `oci://` based components
+		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2[name]
+		assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", utils.UrlToFilePath(name), comp["version"]))
+		assert.Equal(t, version, comp["version"])
+	}
+
+	// Test that the cache and dpm resolve use the full URI for `oci://` based components
+	checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
+	// and use the shorthand for non `oci://` components
+	checkComponent("javabro", "6.7.8")
+
+	assert.Equal(t, testutil.TestdataPath(t, "another-generic-component"), lo.Values(deepResolution.Packages)[0].ComponentsV2["my-local-component"]["path"])
+}
+
+func (suite *MainSuite) TestInstallPackageWithPinning() {
+	t := suite.T()
+
+	dpmHome := t.TempDir()
+	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
+
+	ctx := testutil.Context(t)
+	client, reg := testutil.StartRegistry(t)
+
+	regURL := strings.TrimPrefix(reg.URL, "http://")
+
+	t.Setenv("TEST_DPM_REGISTRY", "oci://"+regURL)
+
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+
+	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+	args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+	args = testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "bar/foo", "rando", "1.2.4"), testutil.TestdataPath(t, "components", "rando"))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+	// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
+	testutil.PushComponent(t, ctx, reg, "javabro", "6.7.8", testutil.TestdataPath(t, "javabro-component"))
+
+	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-pinning", testutil.OS)))
+
+	// retrieve sha to use in damls
+	repo, err := client.Repo("foo/bar/meep")
+	require.NoError(t, err)
+	meepDescriptor, err := repo.Resolve(ctx, "1.2.3")
+	require.NoError(t, err)
+	meepSHA := meepDescriptor.Digest.String()
+	t.Setenv("TEST_MEEP_SHA", meepSHA)
+
+	repoRando, err := client.Repo("bar/foo/rando")
+	require.NoError(t, err)
+	randoDescriptor, err := repoRando.Resolve(ctx, "1.2.4")
+	require.NoError(t, err)
+	randoSHA := randoDescriptor.Digest.String()
+	t.Setenv("TEST_RANDO_SHA", randoSHA)
+
+	repoJava, err := client.Repo("components/javabro")
+	require.NoError(t, err)
+	javaDescriptor, err := repoJava.Resolve(ctx, "6.7.8")
+	require.NoError(t, err)
+	javaSHA := javaDescriptor.Digest.String()
+	t.Setenv("TEST_JAVA_SHA", javaSHA)
+
+	cmd := createStdTestRootCmd(t, "install", "package")
+
+	require.NoError(t, cmd.Execute())
+	require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
+
+	deepResolution := runResolveCommand(t)
+	assert.Len(t, deepResolution.Packages, 1)
+	assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 3)
+
+	checkComponent := func(name, version string) {
+		// Test that the cache and dpm resolve use the full URI for `oci://` based components
+		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2[name]
+		assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", utils.UrlToFilePath(name), comp["version"]))
+		assert.Equal(t, version, comp["version"])
+	}
+
+	// Test that the cache and dpm resolve use the full URI for `oci://` based components
+	checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
+	// and use the shorthand for non `oci://` components
+	checkComponent("javabro", strings.ReplaceAll(javaSHA, ":", "_"))
+
+	t.Run("test that moving tag to new sha doesn't break pinning", func(t *testing.T) {
+		args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "components", "rando"))
+		require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+		cmd := createStdTestRootCmd(t, "install", "package")
+		require.NoError(t, cmd.Execute())
+		// assert meep component not overwritten
+		require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
+		checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
+	})
+
+}
+
+func (suite *MainSuite) TestCacheResolution() {
+	t := suite.T()
+
+	dpmHome := t.TempDir()
+	t.Chdir(dpmHome)
+	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
+
+	cwd, err := os.Getwd()
+
+	require.NoError(t, err)
+
+	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
+
+	installSdk(t, []string{someSdkVersion})
+
+	c, err := assistantconfig.Get()
+	//err = os.WriteFile(filepath.Join(c.CachePath, "components", "meep", "1.2.3", "meep.yaml"), []byte(``), 0666)
+	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "resolve-test", testutil.OS)))
+
+	deepResolution := runResolveCommand(t)
+	comp := lo.Values(deepResolution.Packages)[0].ComponentsV2["meep"]
+	assert.Len(t, deepResolution.Packages, 1)
+	assert.Equal(t, comp["path"], filepath.Join(c.CachePath, "components", "meep", comp["version"]))
+	assert.Equal(t, "1.2.3", comp["version"])
+}
+
+func (suite *MainSuite) TestSdkVersionCommand() {
+	t := suite.T()
+	ctx := testutil.Context(t)
+	_, reg := testutil.StartRegistry(t)
+
+	sdkVersions := []string{someSdkVersion, "2.0.0-alpha", "1.0.0", "1.0.1", "3.0.0", "1.1.0"}
+	sorted := []string{
+		"  0.0.1-whatever    ",
+		"  1.0.0             ",
+		"  1.0.1             ",
+		"  1.1.0    (latest) ",
+		"  2.0.0-alpha       ",
+		"  3.0.0             ",
+	}
+	lo.ForEach(sdkVersions, func(v string, _ int) {
+		testutil.PushAssembly(t, ctx, sdkmanifest.OpenSource, reg, v, testutil.TestdataPath(t, "remote-components.yaml"))
+	})
+
+	cmd, r, w := createTestRootCmd(t, string(builtincommand.Versions), "--all")
+	require.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+
+	output, err := io.ReadAll(r)
+	require.NoError(t, err)
+	require.Equal(t, strings.Join(sorted, "\n")+"\n", string(output))
+
+	t.Run("active sdk version err outside project when no sdk installed", func(t *testing.T) {
+		assertNoActiveSdkVersion(t, versions.ErrNoActiveSdk)
+	})
+
+	t.Run("active sdk version err in single package with null sdk-version", func(t *testing.T) {
+		t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "null-sdk-version"))
+		assertNoActiveSdkVersion(t, versions.ErrNoActiveSdk)
+	})
+
+	t.Run("active sdk version outside project", func(t *testing.T) {
+		installSdk(t, []string{someSdkVersion})
+		assertActiveSdkVersion(t, someSdkVersion)
+	})
+
+	t.Run("active sdk version from env var not installed", func(t *testing.T) {
+		t.Setenv(assistantconfig.DpmSdkVersionEnvVar, "1.2.3-nonexistent")
+		assertActiveSdkVersion(t, "1.2.3-nonexistent")
+	})
+
+	t.Run("active sdk version from daml.yaml not installed", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		t.Setenv(assistantconfig.DamlPackageEnvVar, tmpDir)
+		err = os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(`sdk-version: 1.2.3-not-installed`), 0666)
+		require.NoError(t, err)
+		assertActiveSdkVersion(t, "1.2.3-not-installed")
+	})
+
+	t.Run("active sdk version of multi-package", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		err = os.WriteFile(filepath.Join(tmpDir, "multi-package.yaml"), []byte(`sdk-version: 1.2.3-multi-package`), 0666)
+		require.NoError(t, err)
+
+		t.Chdir(tmpDir)
+		assertActiveSdkVersion(t, "1.2.3-multi-package")
+
+		t.Run("active sdk version of package takes precedence over multi-package sdk version", func(t *testing.T) {
+			subPackageDir := filepath.Join(tmpDir, "sub-package")
+			require.NoError(t, utils.EnsureDirs(subPackageDir))
+			require.NoError(t, os.WriteFile(
+				filepath.Join(subPackageDir, "daml.yaml"), []byte(`sdk-version: 4.5.6-not-installed`),
+				0666))
+
+			t.Chdir(subPackageDir)
+			assertActiveSdkVersion(t, "4.5.6-not-installed")
+		})
+
+		t.Run("active sdk version of package with null version inherits multi-package version", func(t *testing.T) {
+			subPackageDir := filepath.Join(tmpDir, "sub-package")
+			require.NoError(t, os.RemoveAll(filepath.Join(tmpDir, "sub-package")))
+
+			require.NoError(t, utils.EnsureDirs(subPackageDir))
+			require.NoError(t, os.WriteFile(
+				filepath.Join(subPackageDir, "daml.yaml"), []byte(`sdk-version: null`),
+				0666))
+
+			t.Chdir(subPackageDir)
+			assertActiveSdkVersion(t, "1.2.3-multi-package")
+		})
+	})
+
+	t.Run("active sdk version of multi-package with null sdk defaults to global", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		err = os.WriteFile(filepath.Join(tmpDir, "multi-package.yaml"), []byte(`sdk-version: null`), 0666)
+		require.NoError(t, err)
+
+		t.Chdir(tmpDir)
+		assertNoActiveSdkVersion(t, versions.ErrNoActiveSdk)
+		installSdk(t, []string{someSdkVersion})
+		assertActiveSdkVersion(t, someSdkVersion)
+	})
+}
+
+func assertNoActiveSdkVersion(t *testing.T, expectedError error) {
+	cmd := createStdTestRootCmd(t, string(builtincommand.Version), "--active")
+	require.ErrorIs(t, cmd.Execute(), expectedError)
+}
+
+func assertActiveSdkVersion(t *testing.T, expectedVersion string) {
+	cmd, r, w := createTestRootCmd(t, string(builtincommand.Version), "--active")
+	err := cmd.Execute()
+	assert.NoError(t, w.Close())
+	require.NoError(t, err)
+
+	output, err := io.ReadAll(r)
+	require.NoError(t, err)
+	assert.Equal(t, expectedVersion+"\n", string(output))
+}
+
+func (suite *MainSuite) TestNullableSdkVersionInDamlYaml() {
+	t := suite.T()
+
+	t.Setenv(assistantconfig.DamlProjectEnvVar, testutil.TestdataPath(t, "null-sdk-version"))
+
+	output := runHelpCommand(t)
+	assert.Contains(t, output, "hello-from-null-sdk-daml-yaml")
+
+	t.Run("resolution", func(t *testing.T) {
+		deepResolution := runResolveCommand(t)
+		assert.Len(t, deepResolution.Packages, 1)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].GetNonDarDependenciesImports(), -0)
+		assert.Equal(t, resolution.Kind, deepResolution.Kind)
+		assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
+
+		t.Run("correct package paths", func(t *testing.T) {
+			for pkgPath := range deepResolution.Packages {
+				assert.True(t, filepath.IsAbs(pkgPath))
+				_, err := os.ReadFile(filepath.Join(pkgPath, "daml.yaml"))
+				require.NoError(t, err)
+			}
+		})
+
+		t.Run("default sdk", func(t *testing.T) {
+			assert.Len(t, deepResolution.DefaultSDK, 1)
+			assert.NotNil(t, deepResolution.DefaultSDK["unknown–sdk-version"].Errors)
+			assert.Nil(t, deepResolution.DefaultSDK["unknown–sdk-version"].Components)
+			assert.Nil(t, deepResolution.DefaultSDK["unknown–sdk-version"].Imports)
+		})
+	})
+
+}
+
+func (suite *MainSuite) TestResolutionOfSymlinkPackages() {
+	t := suite.T()
+
+	symlink := testutil.TestdataPath(t, "symlinked-package")
+	resolvedSymlink := testutil.TestdataPath(t, "null-sdk-version")
+
+	require.NoError(t, os.Symlink(resolvedSymlink, symlink))
+	t.Cleanup(func() { assert.NoError(t, os.Remove(symlink)) })
+
+	t.Setenv(assistantconfig.DamlProjectEnvVar, symlink)
+
+	output := runHelpCommand(t)
+	assert.Contains(t, output, "hello-from-null-sdk-daml-yaml")
+
+	t.Run("resolution", func(t *testing.T) {
+		deepResolution := runResolveCommand(t)
+		assert.Len(t, deepResolution.Packages, 1)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 1)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].GetNonDarDependenciesImports(), -0)
+		assert.Equal(t, resolution.Kind, deepResolution.Kind)
+		assert.Equal(t, resolution.ApiVersion, deepResolution.APIVersion)
+
+		t.Run("correct package paths", func(t *testing.T) {
+			assert.NotContains(t, deepResolution.Packages, symlink)
+			assert.Contains(t, deepResolution.Packages, resolvedSymlink)
+
+			for pkgPath := range deepResolution.Packages {
+				assert.True(t, filepath.IsAbs(pkgPath))
+				_, err := os.ReadFile(filepath.Join(pkgPath, "daml.yaml"))
+				require.NoError(t, err)
+			}
+		})
+	})
+}
+
+func (suite *MainSuite) TestComponentSubdirFilesPerm() {
+	t := suite.T()
+	// chmod here because w bits don't get preserved by git
+	p := testutil.TestdataPath(t, "meepy-component", testutil.OS, "just-a-dir", "xyz")
+	f, err := os.Stat(p)
+	require.NoError(t, err)
+	oldMode := f.Mode()
+	t.Cleanup(func() {
+		_ = os.Chmod(p, oldMode)
+	})
+
+	mode := os.FileMode(0777)
+	if testutil.OS == "windows" {
+		mode = os.FileMode(0444)
+	}
+
+	err = os.Chmod(p, mode)
+	require.NoError(t, err)
+
+	installSdk(t, []string{someSdkVersion})
+
+	c, err := assistantconfig.Get()
+	require.NoError(t, err)
+	s, err := os.Stat(filepath.Join(c.CachePath, "components", "meep", "1.2.3", "just-a-dir", "xyz"))
+	require.NoError(t, err)
+
+	assert.Equal(t, mode, s.Mode())
+}
+
+func (suite *MainSuite) TestNoHomeRequired() {
+	t := suite.T()
+	home := os.Getenv("HOME")
+	require.NoError(t, os.Unsetenv("HOME"))
+	t.Cleanup(func() {
+		err := os.Setenv("HOME", home)
+		if err != nil {
+			return
+		}
+	})
+
+	tmpDamlHome := t.TempDir()
+	t.Setenv(assistantconfig.DpmHomeEnvVar, tmpDamlHome)
+
+	cmd := createStdTestRootCmd(t)
+	require.NoError(t, cmd.Execute())
+}
+
+func (suite *MainSuite) TestComponentInit() {
+	t := suite.T()
+	tmpDir := t.TempDir()
+
+	t.Chdir(tmpDir)
+
+	cmd, _, w := createTestRootCmd(t, "component", "init")
+	require.NoError(t, cmd.Execute())
+	assert.NoError(t, w.Close())
+
+	assert.FileExists(t, "daml.yaml")
+	assert.FileExists(t, "component.yaml")
+
+}
+
+func (suite *MainSuite) TestComponentInitFail() {
+	t := suite.T()
+	tmpDir := t.TempDir()
+
+	_ = os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(``), 0666)
+	_ = os.WriteFile(filepath.Join(tmpDir, "component.yaml"), []byte(``), 0666)
+
+	t.Chdir(tmpDir)
+
+	cmd, _, _ := createTestRootCmd(t, "component", "init")
+
+	require.Error(t, cmd.Execute())
+
+}
+
+func (suite *MainSuite) TestSdklessHelp() {
+	t := suite.T()
+	t.Chdir(testutil.TestdataPath(t, "multi-package-no-sdk", testutil.OS))
+
+	output := runHelpCommand(t)
+	assert.Contains(t, output, "meep")
+
+	testMeepyComponent(t)
+
+}
+
+func assertSdkVersion(t *testing.T, sdkVersion string) {
+	cmd, r, w := createTestRootCmd(t, "versions")
+>>>>>>> 69da8af (resolve test)
 	assert.NoError(t, cmd.Execute())
 	assert.NoError(t, w.Close())
 
