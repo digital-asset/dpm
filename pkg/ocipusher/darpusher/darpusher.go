@@ -6,16 +6,19 @@ package darpusher
 import (
 	"bytes"
 	"context"
-	"daml.com/x/assistant/pkg/darmanifest"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
-	"github.com/opencontainers/go-digest"
 	"log/slog"
 	"maps"
-	"oras.land/oras-go/v2/content/memory"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"daml.com/x/assistant/pkg/darmanifest"
+	"daml.com/x/assistant/pkg/schema"
+	"github.com/Masterminds/semver/v3"
+	"github.com/goccy/go-yaml"
+	"github.com/opencontainers/go-digest"
+	"oras.land/oras-go/v2/content/memory"
 
 	consts "daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
@@ -75,6 +78,9 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		}
 
 		if strings.HasSuffix(de.Name(), ".dar") {
+			if darName != "" {
+				return nil, fmt.Errorf("found multiple dars in the given directory. Currently only one dar is support")
+			}
 			darName = de.Name()
 		}
 		osFileInfo, err := de.Info()
@@ -100,15 +106,27 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 		return nil, fmt.Errorf("missing .dar file")
 	}
 
-	darManifestFilePath := filepath.Join(opts.Dir, consts.DarManifestName)
-	_, err = os.Stat(darManifestFilePath)
+	mainDalfHash, err := GetMainPackageId(filepath.Join(opts.Dir, darName))
 	if err != nil {
-		DarManifest, err := darManifest(ctx, ms, opts, darName)
-		if err != nil {
-			return nil, err
-		}
-		fileDescriptors = append(fileDescriptors, *DarManifest)
+		return nil, err
 	}
+	darManifest := darmanifest.DarManifest{
+		ManifestMeta: schema.ManifestMeta{
+			APIVersion: darmanifest.DarAPIVersion,
+			Kind:       darmanifest.DarKind,
+		},
+		Spec: &darmanifest.Spec{
+			Dars: []darmanifest.Dar{
+				{Path: darName, MainPackageId: mainDalfHash},
+			},
+		},
+	}
+
+	darManifestDescriptor, err := createDarManifestDescriptor(ctx, ms, opts, darManifest)
+	if err != nil {
+		return nil, err
+	}
+	fileDescriptors = append(fileDescriptors, *darManifestDescriptor)
 
 	annotations := map[string]string{}
 	annotations[v1.AnnotationVersion] = opts.Version.String()
@@ -161,18 +179,6 @@ func (op *DarPushOperation) DarDo(ctx context.Context, client *assistantremote.R
 	return &d, err
 }
 
-func createDarManifest(darFileName string) []byte {
-	manifestData := fmt.Sprintf(`
-apiVersion: digitalasset.com/v1
-kind: Dar
-spec:
-  paths:
-    - ./%s
-`, filepath.Join(".", darFileName))
-	darByte := []byte(manifestData)
-	return darByte
-}
-
 func appendAnnotations(descriptor v1.Descriptor, annotations map[string]string) {
 	if descriptor.Annotations == nil {
 		descriptor.Annotations = map[string]string{}
@@ -180,9 +186,8 @@ func appendAnnotations(descriptor v1.Descriptor, annotations map[string]string) 
 	maps.Copy(descriptor.Annotations, annotations)
 }
 
-func darManifest(ctx context.Context, mem *memory.Store, opts DarOpts, darName string) (*v1.Descriptor, error) {
-	darByte := createDarManifest(darName)
-	_, err := darmanifest.ReadDarManifestContents(darByte)
+func createDarManifestDescriptor(ctx context.Context, mem *memory.Store, opts DarOpts, manifest darmanifest.DarManifest) (*v1.Descriptor, error) {
+	darByte, err := yaml.Marshal(manifest)
 	if err != nil {
 		return nil, err
 	}

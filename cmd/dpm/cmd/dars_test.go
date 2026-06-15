@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/darmanifest"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/testutil"
 	"github.com/samber/lo"
@@ -163,6 +164,13 @@ artifact-locations:
     insecure: true
 `)
 	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
+
+	t.Run("dar manifest includes main-package-id", func(t *testing.T) {
+		darManifestPath := filepath.Join(config.CachePathForDar(&fooDarRef), assistantconfig.DarManifestName)
+		m, err := darmanifest.ReadDarManifest(darManifestPath)
+		require.NoError(t, err)
+		assert.Equal(t, "0984ff5e3082add400bfcc6e3244bf9822ca5a617cfd92429e3fbce58058dbfa", m.Spec.Dars[0].MainPackageId)
+	})
 
 	// verify installed dars
 	t.Run("dars downloaded to the dpm cache", func(t *testing.T) {
