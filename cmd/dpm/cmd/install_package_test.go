@@ -165,15 +165,10 @@ func (suite *MainSuite) TestLegacyCacheResolution() {
 	t.Chdir(dpmHome)
 	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
 
-	cwd, err := os.Getwd()
-
-	require.NoError(t, err)
-
-	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
-
 	installSdk(t, []string{someSdkVersion})
 
 	c, err := assistantconfig.Get()
+	require.NoError(t, err)
 	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "resolve-test", testutil.OS)))
 
 	deepResolution := runResolveCommand(t)
