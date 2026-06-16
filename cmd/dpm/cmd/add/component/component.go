@@ -1,6 +1,7 @@
 package component
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -25,20 +26,36 @@ func Cmd() *cobra.Command {
 				return err
 			}
 
-			// TODO add support for multi-package too
-			pkgPath, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
+			projectManifest, err := getDamlYamlOrMultiPackageYaml()
 			if err != nil {
 				return err
 			}
-			if ok {
-				return addComponent(pkgPath, component)
-			}
 
-			return nil
+			return addComponent(projectManifest, component)
 		},
 	}
 
 	return cmd
+}
+
+func getDamlYamlOrMultiPackageYaml() (string, error) {
+	p, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
+	if err != nil {
+		return "", err
+	}
+	if ok {
+		return p, nil
+	}
+
+	p, ok, err = assistantconfig.GetMultiPackageAbsolutePath()
+	if err != nil {
+		return "", err
+	}
+	if ok {
+		return p, nil
+	}
+
+	return "", fmt.Errorf("not in a (single-package or multi-package) project directory")
 }
 
 func addComponent(path, component string) error {

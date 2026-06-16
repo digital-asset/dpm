@@ -31,7 +31,7 @@ components:
 	})
 
 	t.Run("add new component in  multi-package project", func(t *testing.T) {
-		testutil.ActivateMultiPackageYamlForTest(t, `
+		projectDir := testutil.ActivateMultiPackageYamlForTest(t, `
 components:
   - damlc:1.2.3
   - oci://example.com/some/component:1.2.3
@@ -40,6 +40,8 @@ components:
 		cmd := createStdTestRootCmd(t, "add", "component", newComponent)
 		require.NoError(t, cmd.Execute())
 
-		t.Skip("dpm add doesn't yet support multi-package")
+		newContent, err := os.ReadFile(filepath.Join(projectDir, "multi-package.yaml"))
+		require.NoError(t, err)
+		assert.Contains(t, string(newContent), "- "+newComponent)
 	})
 }
