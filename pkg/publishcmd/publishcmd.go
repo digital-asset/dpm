@@ -10,7 +10,7 @@ import (
 )
 
 const PlatformFlagName = "platform"
-const FileFlagName = "file"
+const FileFlagName = "dar"
 
 type PublishCmd struct {
 	DryRun, IncludeGitInfo bool
@@ -30,9 +30,10 @@ type PublishDarCmd struct {
 	Name                   string
 	Version                string
 	Annotations            map[string]string
-	File                   string
+	Dars                   []string
 	ExtraTags              []string
 	ExcludeLicense         bool
+	LicenseFile            string
 
 	Insecure     bool
 	Registry     string

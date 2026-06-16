@@ -8,6 +8,7 @@ import (
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"github.com/Masterminds/semver/v3"
 	"github.com/goccy/go-yaml"
+	"github.com/opencontainers/go-digest"
 	"oras.land/oras-go/v2/registry"
 )
 
@@ -104,9 +105,26 @@ func fromStringBasedComponent(c string) (string, *sdkmanifest.Component, error) 
 		name := fmt.Sprintf("%s/%s", u.Registry, u.Repository)
 
 		return name, &sdkmanifest.Component{Name: name, Uri: &c}, nil
+	} else if strings.Contains(c, "@") && !strings.Contains(c, "/") {
+		// e.g "damlc@sha256:abc123" "damlc:123@sha256:abc1234"
+		parts := strings.Split(c, "@")
+
+		name, sha := parts[0], parts[1]
+
+		trimmedName, _, found := strings.Cut(name, ":")
+		if found {
+			// handle damlc:1.2.3@sha256:abc1234 case by trimming the version from the name
+			name = trimmedName
+		}
+
+		dg, err := digest.Parse(sha)
+		if err != nil {
+			return "", nil, fmt.Errorf("couldn't parse component %q: %w", c, err)
+		}
+
+		return name, &sdkmanifest.Component{Name: name, Digest: &dg}, nil
 	} else if strings.Contains(c, ":") && !strings.Contains(c, "/") {
 		// e.g. "damlc:1.2.3"
-
 		parts := strings.Split(c, ":")
 		name, version := parts[0], parts[1]
 

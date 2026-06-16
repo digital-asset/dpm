@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/goccy/go-yaml"
+	"github.com/opencontainers/go-digest"
 )
 
 const AssistantName = "dpm" // this is also the OCI repo name
@@ -62,8 +63,9 @@ func (s *Spec) UnmarshalYAML(bytes []byte) error {
 }
 
 type Component struct {
-	Name    string  `yaml:"-"`
-	Version *SemVer `yaml:"version,omitempty"`
+	Name    string         `yaml:"-"`
+	Version *SemVer        `yaml:"version,omitempty"`
+	Digest  *digest.Digest `yaml:"digest,omitempty"`
 
 	// We don't yet have support for floaty or arbitrary tags (as that requires lockfiles),
 	// but the `dpm resolve-tags` command used in the assembly process for putting together

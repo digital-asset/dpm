@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"log/slog"
 	"maps"
 	"os"
@@ -23,7 +24,6 @@ import (
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
-	"github.com/Masterminds/semver/v3"
 	"github.com/samber/lo"
 	"oras.land/oras-go/v2/registry"
 )
@@ -360,18 +360,20 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 }
 
 func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
-
-	ref, err := registry.ParseReference(strings.TrimPrefix(*comp.Uri, "oci://"))
+	prefixTrimmedOCI := strings.TrimPrefix(*comp.Uri, "oci://")
+	ref, err := registry.ParseReference(prefixTrimmedOCI)
 	if err != nil {
 		return "", err
 	}
 
-	version, err := semver.StrictNewVersion(ref.Reference)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", ref.Reference, *comp.Uri, err)
-	}
+	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), ref.Reference)
 
-	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), version.String())
+	if !strings.Contains(ref.Reference, "sha256:") {
+		_, err := semver.StrictNewVersion(ref.Reference)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", ref.Reference, *comp.Uri, err)
+		}
+	}
 
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
@@ -396,7 +398,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		// Passing in old config layoutCache
 		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
 
-		if err := customPuller.PullComponentByFullPath(ctx, ref.Repository, version.String(), destPath, platform); err != nil {
+		if err := customPuller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform); err != nil {
 			return "", err
 		}
 	}
@@ -404,9 +406,8 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 }
 
 func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
-	destPath := a.ociComponentPath(comp.Name, comp.Version.Value().String())
-	tag := ComputeTagOrDigest(comp)
-
+	reference := ComputeTagOrDigest(comp)
+	destPath := a.ociComponentPath(comp.Name, reference)
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
 	if err != nil {
@@ -420,8 +421,8 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 		if a.overridePlatform != nil {
 			platform = a.overridePlatform
 		}
-		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
-		if err := a.puller.PullComponent(ctx, comp.Name, tag, destPath, platform); err != nil {
+		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, reference)
+		if err := a.puller.PullComponent(ctx, comp.Name, reference, destPath, platform); err != nil {
 			return "", err
 		}
 	}
@@ -430,12 +431,14 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 }
 
 func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
-	// TODO fully flesh this out
+	if comp.Digest != nil {
+		return comp.Digest.String()
+	}
 	return comp.Version.Value().String()
 }
 
-func (a *Assembler) ociComponentPath(componentUri string, tag string) string {
-	return filepath.Join(a.config.CachePath, "components", utils.UrlToFilePath(componentUri), tag)
+func (a *Assembler) ociComponentPath(componentUri string, reference string) string {
+	return filepath.Join(a.config.CachePath, "components", utils.UrlToFilePath(componentUri), strings.ReplaceAll(reference, ":", "_"))
 }
 
 // computeImports merges all components' component.Exports, taking into account their conflict strategy,

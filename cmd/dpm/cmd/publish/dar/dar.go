@@ -52,9 +52,14 @@ func Cmd() *cobra.Command {
 				},
 			}
 
+			if c.LicenseFile == "" && !c.ExcludeLicense {
+				return fmt.Errorf("must include a --license file or explicitly provide --exclude-license")
+			}
+
 			cmd.SilenceUsage = true
 			publishDarConfig := &publishdar.DarConfig{
-				File:           c.File,
+				Dars:           c.Dars,
+				LicenseFile:    c.LicenseFile,
 				Name:           name,
 				Version:        version,
 				DryRun:         c.DryRun,
@@ -64,7 +69,6 @@ func Cmd() *cobra.Command {
 				AuthFilePath:   c.RegistryAuth,
 				Insecure:       c.Insecure,
 				ExtraTags:      c.ExtraTags,
-				ExcludeLicense: c.ExcludeLicense,
 			}
 			return publishdar.New(publishDarConfig, cmd).PublishDar(cmd.Context())
 		},
@@ -73,8 +77,9 @@ func Cmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&c.DryRun, "dry-run", "d", false, "don't actually push to the registry")
 	cmd.Flags().BoolVarP(&c.IncludeGitInfo, "include-git-info", "g", false, "include git info as annotations on the published manifest")
 	cmd.Flags().StringToStringVarP(&c.Annotations, "annotations", "a", map[string]string{}, "annotations to include in the published OCI artifact")
+	cmd.Flags().StringVarP(&c.LicenseFile, "license", "l", "", "path to LICENSE file")
 	cmd.Flags().BoolVar(&c.ExcludeLicense, "exclude-license", false, "FOR NON-PRODUCTION USE: disable license file requirement for DAR publishing")
-	cmd.Flags().StringVarP(&c.File, "file", "f", "", `REQUIRED path to the dar file to publish`)
+	cmd.Flags().StringArrayVarP(&c.Dars, "dar", "f", nil, `REQUIRED path to the dar file to publish`)
 	cmd.MarkFlagRequired(publishcmd.FileFlagName)
 
 	cmd.Flags().StringSliceVarP(&c.ExtraTags, "extra-tags", "t", []string{}, "publish extra tags besides the semver")

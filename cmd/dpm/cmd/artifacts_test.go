@@ -3,13 +3,14 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"io"
-	"oras.land/oras-go/v2"
 	"os"
 	"strings"
 	"testing"
+
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"oras.land/oras-go/v2"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/testutil"
@@ -33,7 +34,8 @@ func (suite *RepoSuite) TestPublishDar() {
 	cmd := createStdTestRootCmd(t)
 	args := []string{
 		"publish", "dar", fmt.Sprintf("oci://%s/meep:1.2.3", destinationRegistry),
-		"-f", testutil.TestdataPath(t, "test-dar"),
+		"-f", testutil.TestdataPath(t, "test-dar", "test.dar"),
+		"--license", testutil.TestdataPath(t, "test-dar", "LICENSE"),
 	}
 
 	if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
@@ -61,7 +63,7 @@ func (suite *RepoSuite) TestPublishLicenselessDar() {
 		cmd := createStdTestRootCmd(t)
 		args := []string{
 			"publish", "dar", fmt.Sprintf("oci://%s/meep:1.2.3", destinationRegistry),
-			"-f", testutil.TestdataPath(t, "licenseless-dar"), "--exclude-license",
+			"-f", testutil.TestdataPath(t, "licenseless-dar", "meep.dar"), "--exclude-license",
 		}
 
 		if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
@@ -100,7 +102,8 @@ func (suite *RepoSuite) TestPublishDarGenerateManifest() {
 		cmd := createStdTestRootCmd(t)
 		args := []string{
 			"publish", "dar", fmt.Sprintf("oci://%s/meep:1.2.3", destinationRegistry),
-			"-f", testutil.TestdataPath(t, "test-dar"),
+			"-f", testutil.TestdataPath(t, "test-dar", "test.dar"),
+			"--license", testutil.TestdataPath(t, "test-dar", "LICENSE"),
 		}
 
 		if os.Getenv(assistantconfig.AllowInsecureRegistryEnvVar) == "true" {
@@ -193,11 +196,9 @@ func (suite *RepoSuite) TestDarTags() {
 	t.Setenv(assistantconfig.DpmLockfileEnabledEnvVar, "true")
 	_, reg := testutil.StartRegistry(t)
 
-	args := testutil.PushDarUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "test-dar"))
-	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
-
-	args = testutil.PushDarUri(reg, fmt.Sprintf("%s/%s:%s", "bar/foo", "meep", "1.2.4"), testutil.TestdataPath(t, "test-dar"))
-	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+	regUrl := os.Getenv(assistantconfig.OciRegistryEnvVar)
+	pushDar(t, fmt.Sprintf("oci://%s/foo/bar/meep:1.2.3", regUrl))
+	pushDar(t, fmt.Sprintf("oci://%s/bar/foo/meep:1.2.4", regUrl))
 
 	t.Run("test tags for arbitrary repo", func(t *testing.T) {
 		res := listArtifactTags(t, "oci://"+strings.TrimPrefix(reg.URL, "http://")+"/foo/bar/meep")

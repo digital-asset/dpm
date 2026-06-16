@@ -38,6 +38,8 @@ const (
 
 	// SkipLegacyOciAnnotationsEnvVar will skip attaching legacy annotations when publishing oci manifests
 	SkipLegacyOciAnnotationsEnvVar = "SKIP_LEGACY_OCI_ANNOTATIONS"
+
+	DescriptorMainPackageIdAnnotation = DpmAnnotationPrefix + "main-package-id"
 )
 
 // DescriptorAnnotations are required annotations to be appended onto image and index manifests.

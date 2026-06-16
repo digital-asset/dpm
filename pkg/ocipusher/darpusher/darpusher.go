@@ -6,16 +6,18 @@ package darpusher
 import (
 	"bytes"
 	"context"
-	"daml.com/x/assistant/pkg/darmanifest"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
-	"github.com/opencontainers/go-digest"
-	"log/slog"
+	"io"
 	"maps"
-	"oras.land/oras-go/v2/content/memory"
 	"os"
 	"path/filepath"
-	"strings"
+
+	"daml.com/x/assistant/pkg/darmanifest"
+	"daml.com/x/assistant/pkg/schema"
+	"github.com/Masterminds/semver/v3"
+	"github.com/goccy/go-yaml"
+	"github.com/opencontainers/go-digest"
+	"oras.land/oras-go/v2/content/memory"
 
 	consts "daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
@@ -26,18 +28,17 @@ import (
 	"daml.com/x/assistant/pkg/utils/fileinfo"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
-	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
 )
 
 type DarOpts struct {
-	Artifact oci.Artifact
-	Version  semver.Version
-	Dir      string
+	Artifact    oci.Artifact
+	Version     semver.Version
+	Dars        []string
+	LicenseFile string
 }
 
 type DarPushOperation struct {
-	fs           *file.Store
 	ms           *memory.Store
 	manifestDesc *v1.Descriptor
 	repoName     string
@@ -56,58 +57,53 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 	repoName := opts.Artifact.RepoName()
 
 	ms := memory.New()
-	fs, err := file.New(opts.Dir)
-	if err != nil {
-		return nil, err
-	}
-
-	dEntries, err := os.ReadDir(opts.Dir)
-	if err != nil {
-		return nil, err
-	}
-
 	var fileDescriptors []v1.Descriptor
-	var darName string
-	for _, de := range dEntries {
-		fileDescriptor, err := fs.Add(ctx, de.Name(), opts.Artifact.FileMediaType(), "")
-		if err != nil {
-			return nil, err
-		}
+	var errs []error
 
-		if strings.HasSuffix(de.Name(), ".dar") {
-			darName = de.Name()
-		}
-		osFileInfo, err := de.Info()
-		if err != nil {
-			return nil, err
-		}
-
-		fileInfoAnnotations := fileinfo.New(osFileInfo).AsAnnotations()
-		appendAnnotations(fileDescriptor, fileInfoAnnotations)
-
-		fileBytes, err := os.ReadFile(filepath.Join(opts.Dir, de.Name()))
-		if err != nil {
-			return nil, err
-		}
-
-		if err := ms.Push(ctx, fileDescriptor, bytes.NewReader(fileBytes)); err != nil {
-			return nil, err
-		}
-		fileDescriptors = append(fileDescriptors, fileDescriptor)
-	}
-	if darName == "" {
-		slog.ErrorContext(ctx, "No file ending in .dar found")
-		return nil, fmt.Errorf("missing .dar file")
+	darManifest := darmanifest.DarManifest{
+		ManifestMeta: schema.ManifestMeta{
+			APIVersion: darmanifest.DarAPIVersion,
+			Kind:       darmanifest.DarKind,
+		},
+		Spec: &darmanifest.Spec{
+			Dars: []darmanifest.Dar{},
+		},
 	}
 
-	darManifestFilePath := filepath.Join(opts.Dir, consts.DarManifestName)
-	_, err = os.Stat(darManifestFilePath)
+	for _, darPath := range opts.Dars {
+		mainPackageId, err := GetMainPackageId(darPath)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		darManifest.Spec.Dars = append(darManifest.Spec.Dars, darmanifest.Dar{
+			Path:          filepath.Base(darPath),
+			MainPackageId: mainPackageId,
+		})
+
+		darFileDescriptor, err := opts.mkDescriptorForFile(ctx, ms, darPath)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		darFileDescriptor.Annotations[oci.DescriptorMainPackageIdAnnotation] = mainPackageId
+
+		fileDescriptors = append(fileDescriptors, darFileDescriptor)
+	}
+
+	darManifestDescriptor, err := createDarManifestDescriptor(ctx, ms, opts, darManifest)
 	if err != nil {
-		DarManifest, err := darManifest(ctx, ms, opts, darName)
+		return nil, err
+	}
+	fileDescriptors = append(fileDescriptors, *darManifestDescriptor)
+
+	// license file
+	if opts.LicenseFile != "" {
+		desc, err := opts.mkDescriptorForFile(ctx, ms, opts.LicenseFile)
 		if err != nil {
 			return nil, err
 		}
-		fileDescriptors = append(fileDescriptors, *DarManifest)
+		fileDescriptors = append(fileDescriptors, desc)
 	}
 
 	annotations := map[string]string{}
@@ -126,7 +122,6 @@ func DarNew(ctx context.Context, opts DarOpts) (*DarPushOperation, error) {
 	op := &DarPushOperation{
 		repoName:     repoName,
 		rawTag:       opts.Version.String(),
-		fs:           fs,
 		ms:           ms,
 		manifestDesc: &manifestDescriptor,
 	}
@@ -155,22 +150,7 @@ func (op *DarPushOperation) DarDo(ctx context.Context, client *assistantremote.R
 		return nil, err
 	}
 
-	if err := op.fs.Close(); err != nil {
-		return nil, err
-	}
 	return &d, err
-}
-
-func createDarManifest(darFileName string) []byte {
-	manifestData := fmt.Sprintf(`
-apiVersion: digitalasset.com/v1
-kind: Dar
-spec:
-  paths:
-    - ./%s
-`, filepath.Join(".", darFileName))
-	darByte := []byte(manifestData)
-	return darByte
 }
 
 func appendAnnotations(descriptor v1.Descriptor, annotations map[string]string) {
@@ -180,9 +160,8 @@ func appendAnnotations(descriptor v1.Descriptor, annotations map[string]string) 
 	maps.Copy(descriptor.Annotations, annotations)
 }
 
-func darManifest(ctx context.Context, mem *memory.Store, opts DarOpts, darName string) (*v1.Descriptor, error) {
-	darByte := createDarManifest(darName)
-	_, err := darmanifest.ReadDarManifestContents(darByte)
+func createDarManifestDescriptor(ctx context.Context, mem *memory.Store, opts DarOpts, manifest darmanifest.DarManifest) (*v1.Descriptor, error) {
+	darByte, err := yaml.Marshal(manifest)
 	if err != nil {
 		return nil, err
 	}
@@ -201,4 +180,43 @@ func darManifest(ctx context.Context, mem *memory.Store, opts DarOpts, darName s
 	}
 
 	return &desc, nil
+}
+
+func (opts DarOpts) mkDescriptorForFile(ctx context.Context, mem *memory.Store, filePath string) (v1.Descriptor, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return v1.Descriptor{}, err
+	}
+	defer func() { _ = f.Close() }()
+
+	fileInfo, err := f.Stat()
+	if err != nil {
+		return v1.Descriptor{}, err
+	}
+
+	if !fileInfo.Mode().IsRegular() {
+		return v1.Descriptor{}, fmt.Errorf("invalid file %q. Only regular files allowed", filePath)
+	}
+
+	content, err := io.ReadAll(f)
+	if err != nil {
+		return v1.Descriptor{}, err
+	}
+
+	desc := ocispec.Descriptor{
+		MediaType: opts.Artifact.FileMediaType(),
+		Digest:    digest.FromBytes(content),
+		Size:      fileInfo.Size(),
+		Annotations: map[string]string{
+			ocispec.AnnotationTitle: filepath.Base(filePath),
+		},
+	}
+
+	fileInfoAnnotations := fileinfo.New(fileInfo).AsAnnotations()
+	appendAnnotations(desc, fileInfoAnnotations)
+
+	if err := mem.Push(ctx, desc, bytes.NewReader(content)); err != nil {
+		return v1.Descriptor{}, err
+	}
+	return desc, nil
 }

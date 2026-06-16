@@ -8,12 +8,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"maps"
-	"os"
+	"strings"
+
+	"github.com/Masterminds/semver/v3"
 
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
-	"daml.com/x/assistant/pkg/licenseutils"
 	ociconsts "daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/ocilister"
@@ -24,18 +24,17 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/samber/lo"
 	"oras.land/oras-go/v2/errdef"
 )
 
 type DarConfig struct {
 	Name                   string
-	File                   string
+	Dars                   []string
 	Version                *semver.Version
 	DryRun, IncludeGitInfo bool
 	Annotations            map[string]string
 	ExtraTags              []string
-	ExcludeLicense         bool
+	LicenseFile            string
 
 	Destination  *publish.Destination
 	AuthFilePath string
@@ -53,7 +52,7 @@ func New(config *DarConfig, printer utils.RawPrinter) *DarPublisher {
 
 func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 	var pushOp *darpusher.DarPushOperation
-	pushOp, err = p.prepareDar(ctx, p.config.File)
+	pushOp, err = p.prepare(ctx)
 	if err != nil {
 		return err
 	}
@@ -96,21 +95,13 @@ func (p *DarPublisher) PublishDar(ctx context.Context) (err error) {
 	return nil
 }
 
-func (p *DarPublisher) prepareDar(ctx context.Context, dir string) (*darpusher.DarPushOperation, error) {
-	if p.config.ExcludeLicense {
-		p.printer.Println("FOR TESTING ONLY: Skipping license file check due to --exclude-license flag being set")
-	} else {
-		p.printer.Printf("📦 Checking %q includes license file...\n", dir)
-		if err := checkHasLicense(dir); err != nil {
-			return nil, err
+func (p *DarPublisher) prepare(ctx context.Context) (*darpusher.DarPushOperation, error) {
+	for _, darFilePath := range p.config.Dars {
+		if !strings.HasSuffix(darFilePath, ".dar") {
+			return nil, fmt.Errorf("provided dar file %q is invalid. Must end with .dar extension", darFilePath)
 		}
-		p.printer.Printf("License file included ✅\n")
-		p.printer.Println()
 	}
-	return p.prepare(ctx, dir)
-}
 
-func (p *DarPublisher) prepare(ctx context.Context, dir string) (*darpusher.DarPushOperation, error) {
 	annotations := maps.Clone(p.config.Annotations)
 	if p.config.IncludeGitInfo {
 		gitAnnotations, err := collectGitAnnotations()
@@ -123,9 +114,10 @@ func (p *DarPublisher) prepare(ctx context.Context, dir string) (*darpusher.DarP
 	artifact = &ociconsts.DarArtifact{DarRepo: p.config.Destination.Artifact.RepoName()}
 
 	opts := darpusher.DarOpts{
-		Artifact: artifact,
-		Version:  *p.config.Version,
-		Dir:      dir,
+		Artifact:    artifact,
+		Version:     *p.config.Version,
+		Dars:        p.config.Dars,
+		LicenseFile: p.config.LicenseFile,
 	}
 
 	pushOp, err := darpusher.DarNew(ctx, opts)
@@ -155,20 +147,6 @@ func (p *DarPublisher) push(ctx context.Context, client *assistantremote.Remote,
 	p.printer.Printf("\n%s\n", string(descriptorJson))
 	p.printer.Println("successfully published " + coloredDest)
 	return descriptor, nil
-}
-
-func checkHasLicense(dir string) error {
-	des, err := os.ReadDir(dir)
-	if err != nil {
-		return err
-	}
-	_, ok := lo.Find(des, func(de os.DirEntry) bool {
-		return de.Name() == licenseutils.ComponentLicenseFilename && de.Type().IsRegular()
-	})
-	if !ok {
-		return fmt.Errorf("required %s file is missing at component root (%q)", licenseutils.ComponentLicenseFilename, dir)
-	}
-	return nil
 }
 
 func (p *DarPublisher) checkVersionExists(ctx context.Context, op *darpusher.DarPushOperation, client *assistantremote.Remote) (bool, error) {
