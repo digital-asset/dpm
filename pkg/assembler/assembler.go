@@ -5,9 +5,11 @@ package assembler
 
 import (
 	"context"
+	ociconsts "daml.com/x/assistant/pkg/oci"
 	"errors"
 	"fmt"
 	"github.com/Masterminds/semver/v3"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"log/slog"
 	"maps"
 	"os"
@@ -345,7 +347,13 @@ func (a *Assembler) collectComponent(ctx context.Context, basePath string, comp 
 		return nil, err
 	}
 
-	version := filepath.Base(absPath)
+	// either resolve or use base
+	var version string
+	if comp.Version != nil {
+		version = comp.Version.Value().String()
+	} else {
+		version = filepath.Base(absPath)
+	}
 
 	return &ResolvedComponent{
 		Component:     parsedComp,
@@ -398,22 +406,48 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		// Passing in old config layoutCache
 		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
 
-		if err := customPuller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform); err != nil {
+		desc, err := customPuller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform)
+		if err != nil {
 			return "", err
+		}
+		v := desc.Annotations
+		if v[v1.AnnotationVersion] != "" {
+			println("here")
 		}
 	}
 	return destPath, nil
 }
 
 func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
-	reference := ComputeTagOrDigest(comp)
+	reference, usingTag := ComputeTagOrDigest(comp)
+
+	//if only tag, check cache for tag, else sha
 	destPath := a.ociComponentPath(comp.Name, reference)
-	// check if component is already in the cache
+
+	// check if component is already in the cache - legacy check
 	ok, err := utils.DirExists(destPath)
 	if err != nil {
 		return "", err
 	}
 	if !ok {
+		// handling legacy case - write to sha instead
+		if usingTag {
+			// want to force tag only usage to use sha
+			digest, err := a.puller.(*remotepuller.RemoteOciPuller).GetDigest(ctx, ociconsts.ComponentRepoPrefix+comp.Name, reference)
+			if err != nil {
+				return "", err
+			}
+			destPath = a.ociComponentPath(comp.Name, digest.String())
+			destOk, err := utils.DirExists(destPath)
+			if err != nil {
+				return "", err
+			}
+			if destOk {
+				return destPath, nil
+			}
+			reference = digest.String()
+		}
+
 		if _, isRemote := a.puller.(*remotepuller.RemoteOciPuller); isRemote && !a.config.AutoInstall {
 			return "", fmt.Errorf("component %q is currently not installed.  Run `dpm install package` to install", comp.String())
 		}
@@ -422,19 +456,25 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 			platform = a.overridePlatform
 		}
 		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, reference)
-		if err := a.puller.PullComponent(ctx, comp.Name, reference, destPath, platform); err != nil {
+		desc, err := a.puller.PullComponent(ctx, comp.Name, reference, destPath, platform)
+		if err != nil {
 			return "", err
+		}
+
+		v := desc.Annotations
+		if v[v1.AnnotationVersion] != "" {
+			println("here")
 		}
 	}
 
 	return destPath, nil
 }
 
-func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
+func ComputeTagOrDigest(comp *sdkmanifest.Component) (string, bool) {
 	if comp.Digest != nil {
-		return comp.Digest.String()
+		return comp.Digest.String(), false
 	}
-	return comp.Version.Value().String()
+	return comp.Version.Value().String(), true
 }
 
 func (a *Assembler) ociComponentPath(componentUri string, reference string) string {

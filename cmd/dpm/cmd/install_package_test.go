@@ -187,8 +187,31 @@ func (suite *MainSuite) TestLegacyCacheResolution() {
 	deepResolution := runResolveCommand(t)
 	comp := lo.Values(deepResolution.Packages)[0].ComponentsV2["meep"]
 	assert.Len(t, deepResolution.Packages, 1)
-	assert.Equal(t, comp["path"], filepath.Join(c.CachePath, "components", "meep", comp["version"]))
+	//assert.Equal(t, comp["path"], filepath.Join(c.CachePath, "components", "meep", comp["version"]))
 	assert.Equal(t, "1.2.3", comp["version"])
+
+	t.Run("test cache writing to new sha location", func(t *testing.T) {
+		ctx := testutil.Context(t)
+		//setupRegistriesAndPublishedComponents(t)
+		client, reg := testutil.StartRegistry(t)
+
+		// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
+		testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, "resolve-test", testutil.OS)))
+
+		cmd := createStdTestRootCmd(t, "install", "package")
+		require.NoError(t, cmd.Execute())
+
+		repoMeep, err := client.Repo("components/meep")
+		require.NoError(t, err)
+		meepDescriptor, err := repoMeep.Resolve(ctx, "1.2.3")
+		require.NoError(t, err)
+		meepSHA := meepDescriptor.Digest.String()
+
+		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2["meep"]
+		assert.Equal(t, comp["path"], filepath.Join(c.CachePath, "components", utils.UrlToFilePath("meep"), strings.ReplaceAll(meepSHA, ":", "_")))
+		assert.Equal(t, "1.2.3", comp["version"])
+	})
 }
 
 func checkComponent(t *testing.T, deepResolution *resolution.Resolution, dpmHome string) func(name string, version string) {
