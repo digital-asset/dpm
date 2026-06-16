@@ -30,7 +30,7 @@ components:
 		assert.Contains(t, string(newContent), "- "+newComponent)
 	})
 
-	t.Run("add new component in  multi-package project", func(t *testing.T) {
+	t.Run("add new component in multi-package project", func(t *testing.T) {
 		projectDir := testutil.ActivateMultiPackageYamlForTest(t, `
 components:
   - damlc:1.2.3
