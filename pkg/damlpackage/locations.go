@@ -31,6 +31,8 @@ type ParsedDarDependency struct {
 
 	// can be nil when the corresponding dependency is already fully qualified and doesn't rely on an artifact-location
 	Location *ArtifactLocation
+
+	MainPackageId *string
 }
 
 func (d *ParsedDarDependency) GetOciRemote() (*assistantremote.Remote, *registry.Reference, error) {
@@ -60,19 +62,25 @@ func (d *ParsedDarDependency) GetOciRemote() (*assistantremote.Remote, *registry
 
 var regex = regexp.MustCompile(`^(@[a-zA-Z0-9_-]+)/`)
 
-func (p *DamlPackage) parseLocations(ds []string, artifactLocations ArtifactLocations) (map[string]*ParsedDarDependency, error) {
+func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations ArtifactLocations) (map[string]*ParsedDarDependency, error) {
 	parsedLocations := map[string]*ParsedDarDependency{}
 
 	var errs []error
 
-	for _, d := range ds {
+	for _, rawDep := range rawDeps {
+		d, err := rawDep.Value()
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
 		if strings.HasPrefix(d, "oci://") {
 			u, err := url.Parse(d)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("couldn't parse dependency url %q: %w", d, err))
 				continue
 			}
-			parsedLocations[d] = &ParsedDarDependency{FullUrl: u}
+			parsedLocations[d] = &ParsedDarDependency{FullUrl: u, MainPackageId: rawDep.GetMainPackageId()}
 		} else if strings.HasPrefix(d, "http://") || strings.HasPrefix(d, "https://") {
 			// TODO
 			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: http dependencies not yet supported", d))
@@ -85,8 +93,9 @@ func (p *DamlPackage) parseLocations(ds []string, artifactLocations ArtifactLoca
 				continue
 			}
 			parsedLocations[d] = &ParsedDarDependency{
-				Location: nil,
-				FullUrl:  u,
+				Location:      nil,
+				FullUrl:       u,
+				MainPackageId: rawDep.GetMainPackageId(),
 			}
 		} else if strings.HasPrefix(d, "@") {
 			parsed := regex.FindStringSubmatch(d)
@@ -112,8 +121,9 @@ func (p *DamlPackage) parseLocations(ds []string, artifactLocations ArtifactLoca
 				continue
 			}
 			parsedLocations[d] = &ParsedDarDependency{
-				Location: location,
-				FullUrl:  u,
+				Location:      location,
+				FullUrl:       u,
+				MainPackageId: rawDep.GetMainPackageId(),
 			}
 		} else if strings.Contains(d, ":") {
 			errs = append(errs, fmt.Errorf("error parsing dependency %q: OCI dependencies must start with oci://", d))
@@ -128,8 +138,9 @@ func (p *DamlPackage) parseLocations(ds []string, artifactLocations ArtifactLoca
 				continue
 			}
 			parsedLocations[d] = &ParsedDarDependency{
-				Location: nil,
-				FullUrl:  u,
+				Location:      nil,
+				FullUrl:       u,
+				MainPackageId: rawDep.GetMainPackageId(),
 			}
 		}
 	}

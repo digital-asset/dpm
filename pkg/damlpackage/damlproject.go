@@ -27,8 +27,8 @@ type DamlPackage struct {
 	// deprecated in favor of Components
 	DeprecatedOverrideComponents map[string]*sdkmanifest.Component `yaml:"override-components,omitempty"`
 
-	Dependencies          []string               `yaml:"dependencies,omitempty"`
-	DataDependencies      []string               `yaml:"data-dependencies,omitempty"`
+	Dependencies          []*RawDependency       `yaml:"dependencies,omitempty"`
+	DataDependencies      []*RawDependency       `yaml:"data-dependencies,omitempty"`
 	ArtifactLocations     ArtifactLocations      `yaml:"artifact-locations,omitempty"`
 	ParsedDarDependencies *ParsedDarDependencies `yaml:"-"`
 
