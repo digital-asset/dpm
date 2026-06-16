@@ -6,17 +6,20 @@ Dpm Install
 dpm install
 -----------
 
-install a dpm-sdk
+install project's dependencies or specific dpm-sdk version
 
 Synopsis
 ~~~~~~~~
 
 
-install a dpm-sdk
+
+When called with no arguments, this behaves an an alias for 'dpm install package'.
+When an sdk-version argument is passed, it installs that sdk-version.
+
 
 ::
 
-  dpm install <version or tag> [flags]
+  dpm install [version or tag] [flags]
 
 Options
 ~~~~~~~

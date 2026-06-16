@@ -22,6 +22,16 @@ import (
 func (suite *MainSuite) TestInstallPackage() {
 	t := suite.T()
 
+	t.Run("install package via alias command", func(t *testing.T) {
+		testInstallPackage(t, []string{"install"})
+	})
+
+	t.Run("install package via full dpm install package command", func(t *testing.T) {
+		testInstallPackage(t, []string{"install", "package"})
+	})
+}
+
+func testInstallPackage(t *testing.T, installCommand []string) {
 	// set dpm home to temp dir
 	dpmHome := t.TempDir()
 	t.Setenv(assistantconfig.DpmHomeEnvVar, dpmHome)
@@ -43,7 +53,7 @@ func (suite *MainSuite) TestInstallPackage() {
 		require.NoError(t, os.Chdir(testutil.TestdataPath(t, filepath.Join(
 			"multi-package-another"))))
 
-		cmd, r, w := createTestRootCmd(t, "install", "package")
+		cmd, r, w := createTestRootCmd(t, installCommand...)
 
 		// assertions
 		require.NoError(t, cmd.Execute())
@@ -59,7 +69,7 @@ func (suite *MainSuite) TestInstallPackage() {
 
 		// run install package
 		require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-registry", testutil.OS)))
-		cmd := createStdTestRootCmd(t, "install", "package")
+		cmd := createStdTestRootCmd(t, installCommand...)
 		require.NoError(t, cmd.Execute())
 
 		// run some command for meep component
@@ -125,7 +135,7 @@ func (suite *MainSuite) TestInstallPackage() {
 		javaSHA := javaDescriptor.Digest.String()
 		t.Setenv("TEST_JAVA_SHA", javaSHA)
 
-		cmd := createStdTestRootCmd(t, "install", "package")
+		cmd := createStdTestRootCmd(t, installCommand...)
 
 		require.NoError(t, cmd.Execute())
 		require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
@@ -149,7 +159,7 @@ func (suite *MainSuite) TestInstallPackage() {
 		t.Run("test that moving tag to new sha doesn't break pinning", func(t *testing.T) {
 			args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "components", "rando"))
 			require.NoError(t, createStdTestRootCmd(t, args...).Execute())
-			cmd := createStdTestRootCmd(t, "install", "package")
+			cmd := createStdTestRootCmd(t, installCommand...)
 			require.NoError(t, cmd.Execute())
 			// assert meep component not overwritten
 			require.NoError(t, createStdTestRootCmd(t, "meep").Execute())

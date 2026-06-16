@@ -26,7 +26,7 @@ SEE ALSO
 
 * :ref:`dpm bootstrap <dpm_bootstrap>` 	 - auxiliary command for installing standalone dpm-sdk bundle
 * :ref:`dpm component <dpm_component>` 	 - commands for component development
-* :ref:`dpm install <dpm_install>` 	 - install a dpm-sdk
+* :ref:`dpm install <dpm_install>` 	 - install project's dependencies or specific dpm-sdk version
 * :ref:`dpm login <dpm_login>` 	 - 
 * :ref:`dpm publish <dpm_publish>` 	 - Commands for publishing artifacts
 * :ref:`dpm repo <dpm_repo>` 	 - 
