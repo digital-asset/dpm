@@ -406,9 +406,8 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 }
 
 func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
-	destPath := a.ociComponentPath(comp.Name, comp.Version.Value().String())
-	tag := ComputeTagOrDigest(comp)
-
+	reference := ComputeTagOrDigest(comp)
+	destPath := a.ociComponentPath(comp.Name, reference)
 	// check if component is already in the cache
 	ok, err := utils.DirExists(destPath)
 	if err != nil {
@@ -422,8 +421,8 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 		if a.overridePlatform != nil {
 			platform = a.overridePlatform
 		}
-		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
-		if err := a.puller.PullComponent(ctx, comp.Name, tag, destPath, platform); err != nil {
+		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, reference)
+		if err := a.puller.PullComponent(ctx, comp.Name, reference, destPath, platform); err != nil {
 			return "", err
 		}
 	}
@@ -432,7 +431,9 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 }
 
 func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
-	// TODO fully flesh this out
+	if comp.Digest != nil {
+		return comp.Digest.String()
+	}
 	return comp.Version.Value().String()
 }
 
