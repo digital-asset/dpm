@@ -18,14 +18,23 @@ import (
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s <version or tag>", string(builtincommand.Install)),
-		Short: "install a dpm-sdk",
+		Use:   fmt.Sprintf("%s [version or tag]", string(builtincommand.Install)),
+		Short: "install project's dependencies or specific dpm-sdk version",
+		Long: `
+When called with no arguments, this behaves an an alias for 'dpm install package'.
+When an sdk-version argument is passed, it installs that sdk-version.
+`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 
-			if len(args) != 1 {
-				return fmt.Errorf("expected a single argument <dpm-sdk version or tag>")
+			if len(args) == 0 {
+				return installPackage.InstallPackage(config, cmd)
 			}
+
+			if len(args) > 1 {
+				return fmt.Errorf("expected at most a single optional [dpm-sdk version or tag] argument")
+			}
+
 			cmd.SilenceUsage = true
 
 			client, err := assistantremote.NewFromConfig(config)
