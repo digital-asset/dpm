@@ -22,7 +22,7 @@ import (
 func (suite *MainSuite) TestResolutionOfBuiltInDarDependencies() {
 	t := suite.T()
 
-	ActivateDamlYamlForTest(t, `
+	testutil.ActivateDamlYamlForTest(t, `
 dependencies:
   - daml-script
 data-dependencies:
@@ -79,7 +79,7 @@ func (suite *MainSuite) TestResolutionOfFilePathBasedDarDependencies() {
 	t := suite.T()
 
 	t.Run("resolution of relative file-path dars", func(t *testing.T) {
-		packageDir := ActivateDamlYamlForTest(t, fmt.Sprintf(`
+		packageDir := testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
 dependencies:
   - ./relative.dar
 data-dependencies:
@@ -101,7 +101,7 @@ data-dependencies:
 
 	t.Run("resolution of absolute file-path dars", func(t *testing.T) {
 		absoluteDarPath, _ := filepath.Abs(testutil.TestdataPath(t, "test-dar", "test.dar"))
-		ActivateDamlYamlForTest(t, fmt.Sprintf(`
+		testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
 dependencies:
   - %s
 data-dependencies:
@@ -115,13 +115,6 @@ data-dependencies:
 		assert.Contains(t, res.GetResolvedDataDependencies()[0], "test.dar")
 		checkDar(t, res.GetResolvedDataDependencies()[0])
 	})
-}
-
-func ActivateDamlYamlForTest(t *testing.T, s string) (packageDir string) {
-	tmpDir := t.TempDir()
-	t.Chdir(tmpDir)
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(s), 0666))
-	return tmpDir
 }
 
 func checkDar(t *testing.T, darFile string) {
@@ -148,7 +141,7 @@ func (suite *MainSuite) TestDarInstallWithArtifactLocationAlias() {
 	pushDar(t, "oci://"+barDarRef.String())
 
 	// install dars
-	ActivateDamlYamlForTest(t, `
+	testutil.ActivateDamlYamlForTest(t, `
 dependencies:
   - "@digital-asset/foo:1.2.3"
 

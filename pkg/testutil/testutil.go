@@ -251,3 +251,21 @@ func MkConfig(t *testing.T) *assistantconfig.Config {
 	require.NoError(t, err)
 	return config
 }
+
+// ActivateDamlYamlForTest creates a daml.yaml with given content and changes dir to activate it for the test,
+// and returns the dir containing it
+func ActivateDamlYamlForTest(t *testing.T, s string) (packageDir string) {
+	tmpDir := t.TempDir()
+	t.Chdir(tmpDir)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "daml.yaml"), []byte(s), 0666))
+	return tmpDir
+}
+
+// ActivateMultiPackageYamlForTest creates a multi-package.yaml with given content and changes dir to activate it for the test
+// and returns the dir containing it
+func ActivateMultiPackageYamlForTest(t *testing.T, s string) (packageDir string) {
+	tmpDir := t.TempDir()
+	t.Chdir(tmpDir)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "multi-package.yaml"), []byte(s), 0666))
+	return tmpDir
+}
