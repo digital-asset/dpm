@@ -67,5 +67,5 @@ const (
 
 	DpmLockfileEnabledEnvVar = "DPM_LOCKFILE_ENABLED"
 
-	DpmFloatiesEnabled = "DPM_FLOATIES_ENABLED"
+	DpmShaPinningEnabled = "DPM_SHA_PINNING_ENABLED"
 )

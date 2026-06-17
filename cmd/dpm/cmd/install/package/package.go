@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assembler/assemblyplan"
@@ -141,6 +142,14 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 
 	if !assistantconfig.ShaPinningEnabled() && ocilister.IsFloaty(ref.Reference) {
 		return fmt.Errorf("tag not allowed in %q: only strict semver OCI tags are supported currently", dar.FullUrl.String())
+	}
+
+	if assistantconfig.ShaPinningEnabled() {
+		if !strings.HasPrefix(ref.Reference, "@sha256:") {
+			// TODO support having `dpm install` resolve to sha256
+			// when the dar uri in daml.yaml doesn't already include it
+			return fmt.Errorf("currently, dar oci URIs in daml.yaml must include @sha256. Prefer 'dpm add dar' command to add dars to your daml.yaml")
+		}
 	}
 
 	puller := remotepuller.New(config.OciLayoutCache, client)
