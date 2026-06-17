@@ -121,14 +121,14 @@ func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assista
 
 func installDars(ctx context.Context, config *assistantconfig.Config, dars []*damlpackage.ParsedDarDependency) error {
 	for _, d := range dars {
-		if err := installDar(ctx, config, d); err != nil {
+		if err := InstallDar(ctx, config, d); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func installDar(ctx context.Context, config *assistantconfig.Config, dar *damlpackage.ParsedDarDependency) error {
+func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpackage.ParsedDarDependency) error {
 	if dar.FullUrl.Scheme != "oci" {
 		return nil
 	}
@@ -139,7 +139,7 @@ func installDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 		return err
 	}
 
-	if ocilister.IsFloaty(ref.Reference) {
+	if !assistantconfig.ShaPinningEnabled() && ocilister.IsFloaty(ref.Reference) {
 		return fmt.Errorf("tag not allowed in %q: only strict semver OCI tags are supported currently", dar.FullUrl.String())
 	}
 

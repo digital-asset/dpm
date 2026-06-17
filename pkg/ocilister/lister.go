@@ -5,6 +5,7 @@ package ocilister
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"regexp"
@@ -14,7 +15,10 @@ import (
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"github.com/Masterminds/semver/v3"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/samber/lo"
+	"oras.land/oras-go/v2/content"
+	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote/errcode"
 )
 
@@ -113,4 +117,33 @@ func Cmp(a, b *semver.Version) int {
 func isErrorCode(err error, code string) bool {
 	var ec errcode.Error
 	return errors.As(err, &ec) && ec.Code == code
+}
+
+func FetchManifest(ctx context.Context, client *assistantremote.Remote, ref registry.Reference) (*v1.Descriptor, error) {
+	repo, err := client.Repo(ref.Repository)
+	if err != nil {
+		return nil, err
+	}
+	desc, err := repo.Resolve(ctx, ref.Reference)
+	if err != nil {
+		return nil, err
+	}
+
+	rc, err := repo.Fetch(ctx, desc)
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
+
+	manifestBytes, err := content.ReadAll(rc, desc)
+	if err != nil {
+		return nil, err
+	}
+
+	var manifest v1.Manifest
+	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+		return nil, err
+	}
+
+	return &desc, nil
 }
