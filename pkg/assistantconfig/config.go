@@ -383,8 +383,9 @@ func ShaPinningEnabled() bool {
 }
 
 func (c *Config) CachePathForDar(ref *registry.Reference) string {
-	if ShaPinningEnabled() && strings.HasPrefix(ref.Reference, "@sha256:") {
-		return filepath.Join(c.CachePath, "dars", "sha256", strings.TrimPrefix(ref.Reference, "@sha256:"))
+	if ShaPinningEnabled() {
+		sha := strings.ReplaceAll(ref.Reference, "sha256:", "")
+		return filepath.Join(c.CachePath, "dars", "sha256", sha)
 	}
 	return filepath.Join(c.CachePath, "dars", utils.UrlToFilePath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository)), ref.Reference)
 }

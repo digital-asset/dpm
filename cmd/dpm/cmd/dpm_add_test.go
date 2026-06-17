@@ -16,7 +16,7 @@ import (
 func (suite *MainSuite) TestDpmAddComponentCommand() {
 	t := suite.T()
 
-	os.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
+	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
 
 	_, reg := testutil.StartRegistry(t)
 	newComponentRepo := "newly/added:4.5.6"
@@ -59,7 +59,7 @@ components:
 func (suite *MainSuite) TestDpmAddDarCommand() {
 	t := suite.T()
 
-	os.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
+	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
 
 	testutil.StartRegistry(t)
 	reg := os.Getenv(assistantconfig.OciRegistryEnvVar)

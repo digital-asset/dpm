@@ -145,10 +145,10 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 	}
 
 	if assistantconfig.ShaPinningEnabled() {
-		if !strings.HasPrefix(ref.Reference, "@sha256:") {
+		if !strings.Contains(ref.Reference, "sha256:") {
 			// TODO support having `dpm install` resolve to sha256
 			// when the dar uri in daml.yaml doesn't already include it
-			return fmt.Errorf("currently, dar oci URIs in daml.yaml must include @sha256. Prefer 'dpm add dar' command to add dars to your daml.yaml")
+			return fmt.Errorf("currently 'dpm install' requires dar oci URIs in daml.yaml to include '@sha256'. Prefer 'dpm add dar' command to add dars to your daml.yaml")
 		}
 	}
 
