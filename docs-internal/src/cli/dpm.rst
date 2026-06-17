@@ -33,6 +33,6 @@ SEE ALSO
 * :ref:`dpm resolve <dpm_resolve>` 	 - 
 * :ref:`dpm tags <dpm_tags>` 	 - list published tags of an artifact
 * :ref:`dpm uninstall <dpm_uninstall>` 	 - uninstall a dpm-sdk version
-* :ref:`dpm update <dpm_update>` 	 - update (or create) package lockfile(s)
+* :ref:`dpm update <dpm_update>` 	 - update project dependencies
 * :ref:`dpm version <dpm_version>` 	 - show sdk versions
 

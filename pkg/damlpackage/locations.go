@@ -33,6 +33,10 @@ type ParsedDarDependency struct {
 	Location *ArtifactLocation
 
 	MainPackageId *string
+
+	// the index of this dependency in the list in daml.yaml.
+	// useful when trying to update the dep as part of `dpm update`.
+	Index int
 }
 
 func (d *ParsedDarDependency) GetOciRemote() (*assistantremote.Remote, *registry.Reference, error) {
@@ -67,7 +71,7 @@ func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations
 
 	var errs []error
 
-	for _, rawDep := range rawDeps {
+	for i, rawDep := range rawDeps {
 		d, err := rawDep.Value()
 		if err != nil {
 			errs = append(errs, err)
@@ -80,7 +84,11 @@ func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations
 				errs = append(errs, fmt.Errorf("couldn't parse dependency url %q: %w", d, err))
 				continue
 			}
-			parsedLocations[d] = &ParsedDarDependency{FullUrl: u, MainPackageId: rawDep.GetMainPackageId()}
+			parsedLocations[d] = &ParsedDarDependency{
+				FullUrl:       u,
+				MainPackageId: rawDep.GetMainPackageId(),
+				Index:         i,
+			}
 		} else if strings.HasPrefix(d, "http://") || strings.HasPrefix(d, "https://") {
 			// TODO
 			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: http dependencies not yet supported", d))
@@ -96,6 +104,7 @@ func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations
 				Location:      nil,
 				FullUrl:       u,
 				MainPackageId: rawDep.GetMainPackageId(),
+				Index:         i,
 			}
 		} else if strings.HasPrefix(d, "@") {
 			parsed := regex.FindStringSubmatch(d)
@@ -124,6 +133,7 @@ func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations
 				Location:      location,
 				FullUrl:       u,
 				MainPackageId: rawDep.GetMainPackageId(),
+				Index:         i,
 			}
 		} else if strings.Contains(d, ":") {
 			errs = append(errs, fmt.Errorf("error parsing dependency %q: OCI dependencies must start with oci://", d))
@@ -141,6 +151,7 @@ func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations
 				Location:      nil,
 				FullUrl:       u,
 				MainPackageId: rawDep.GetMainPackageId(),
+				Index:         i,
 			}
 		}
 	}

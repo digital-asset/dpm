@@ -6,13 +6,13 @@ Dpm Update
 dpm update
 ----------
 
-update (or create) package lockfile(s)
+update project dependencies
 
 Synopsis
 ~~~~~~~~
 
 
-update (or create) package lockfile(s)
+update project dependencies
 
 ::
 
@@ -23,8 +23,8 @@ Options
 
 ::
 
-      --check   check existing lockfile but don't update it
-  -h, --help    help for update
+      --force-insecure   ignoring ArtifactLocations and force http instead of https for OCI registry
+  -h, --help             help for update
 
 SEE ALSO
 ~~~~~~~~

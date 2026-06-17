@@ -1,6 +1,7 @@
 package dar
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -34,52 +35,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				return err
 			}
 
-			damlPackage, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
-			if err != nil {
-				return err
-			}
-			if !ok {
-				return fmt.Errorf("must be in daml.yaml directory or sub-directory")
-			}
-
-			ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
-			if err != nil {
-				return err
-			}
-			client, err := assistantremote.New(ref.Registry, "", insecure)
-			if err != nil {
-				return err
-			}
-
-			// Resolve to sha256
-			ociManifest, err := ocilister.FetchManifest(ctx, client, ref)
-			if err != nil {
-				return err
-			}
-			resolvedUri := uri + "@" + ociManifest.Digest.String()
-
-			// Pull
-			parsedUrl, err := url.Parse(resolvedUri)
-			if err != nil {
-				return err
-			}
-			parsedDarDep := &damlpackage.ParsedDarDependency{
-				FullUrl: parsedUrl,
-				Location: &damlpackage.ArtifactLocation{
-					Insecure: insecure,
-				},
-			}
-			if err := project.InstallDar(ctx, config, parsedDarDep); err != nil {
-				return err
-			}
-
-			// Edit daml.yaml
-			if err := appendDarToYaml(damlPackage, depsFieldName, resolvedUri); err != nil {
-				return err
-			}
-
-			fmt.Printf("Successfully installed and added dar %q to %q\n", resolvedUri, damlPackage)
-			return nil
+			return AddOrUpdateDar(ctx, config, uri, depsFieldName, insecure, -1)
 		},
 	}
 
@@ -88,6 +44,55 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	cmd.Flags().BoolVar(&dataDependencies, "data-dependencies", false, "add the dar to the data-dependencies field")
 
 	return cmd
+}
+
+func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, uri, depsFieldName string, insecure bool, index int) error {
+	damlPackage, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("must be in daml.yaml directory or sub-directory")
+	}
+
+	ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
+	if err != nil {
+		return err
+	}
+	client, err := assistantremote.New(ref.Registry, "", insecure)
+	if err != nil {
+		return err
+	}
+
+	// Resolve to sha256
+	ociManifest, err := ocilister.FetchManifest(ctx, client, ref)
+	if err != nil {
+		return err
+	}
+	resolvedUri := uri + "@" + ociManifest.Digest.String()
+
+	// Pull
+	parsedUrl, err := url.Parse(resolvedUri)
+	if err != nil {
+		return err
+	}
+	parsedDarDep := &damlpackage.ParsedDarDependency{
+		FullUrl: parsedUrl,
+		Location: &damlpackage.ArtifactLocation{
+			Insecure: insecure,
+		},
+	}
+	if err := project.InstallDar(ctx, config, parsedDarDep); err != nil {
+		return err
+	}
+
+	// Edit daml.yaml
+	if err := appendDarToYaml(damlPackage, depsFieldName, resolvedUri, index); err != nil {
+		return err
+	}
+
+	fmt.Printf("Successfully installed and added dar %q to %q\n", resolvedUri, damlPackage)
+	return nil
 }
 
 func dependenciesFieldFromArgs(dependencies, dataDependencies bool) (string, error) {
@@ -103,15 +108,21 @@ func dependenciesFieldFromArgs(dependencies, dataDependencies bool) (string, err
 	return "", fmt.Errorf("a --dependencies or --data-dependencies is required")
 }
 
-func appendDarToYaml(path, fieldName, dar string) error {
+func appendDarToYaml(path, fieldName, dar string, index int) error {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
-	out, err := yamledit.AddToList(b, fieldName, dar)
+	var out string
+	if index != -1 {
+		out, err = yamledit.ReplaceItemInList(b, fieldName, index, dar)
+	} else {
+		out, err = yamledit.AddToList(b, fieldName, dar)
+	}
 	if err != nil {
 		return err
 	}
+
 	return os.WriteFile(path, []byte(out), 0644)
 }
