@@ -18,15 +18,21 @@ import (
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
 	var insecure bool
+	var dependencies, dataDependencies bool
 
 	cmd := &cobra.Command{
-		Use:    "dar <oci-uri>",
+		Use:    "dar <oci-uri> <--dependencies | --data-dependencies>",
 		Short:  "add a dar to project",
 		Args:   cobra.ExactArgs(1),
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			uri := args[0]
+
+			depsFieldName, err := dependenciesFieldFromArgs(dependencies, dataDependencies)
+			if err != nil {
+				return err
+			}
 
 			damlPackage, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
 			if err != nil {
@@ -68,7 +74,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			}
 
 			// Edit daml.yaml
-			if err := appendDarToYaml(damlPackage, resolvedUri); err != nil {
+			if err := appendDarToYaml(damlPackage, depsFieldName, resolvedUri); err != nil {
 				return err
 			}
 
@@ -78,17 +84,32 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&insecure, "insecure", false, "use http instead of https for OCI registry")
+	cmd.Flags().BoolVar(&dependencies, "dependencies", false, "add the dar to the dependencies field")
+	cmd.Flags().BoolVar(&dataDependencies, "data-dependencies", false, "add the dar to the data-dependencies field")
 
 	return cmd
 }
 
-func appendDarToYaml(path, dar string) error {
+func dependenciesFieldFromArgs(dependencies, dataDependencies bool) (string, error) {
+	if dataDependencies && dependencies {
+		return "", fmt.Errorf("--dependencies and --data-dependencies cannot both be provided")
+	}
+	if dependencies {
+		return "dependencies", nil
+	}
+	if dataDependencies {
+		return "data-dependencies", nil
+	}
+	return "", fmt.Errorf("a --dependencies or --data-dependencies is required")
+}
+
+func appendDarToYaml(path, fieldName, dar string) error {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
-	out, err := yamledit.AddToList(b, "data-dependencies", dar)
+	out, err := yamledit.AddToList(b, fieldName, dar)
 	if err != nil {
 		return err
 	}

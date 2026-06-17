@@ -74,7 +74,7 @@ data-dependencies:
   - std-lib
 `)
 
-		cmd := createStdTestRootCmd(t, "add", "dar", "oci://"+darRef.String(), "--insecure")
+		cmd := createStdTestRootCmd(t, "add", "dar", "--data-dependencies", "oci://"+darRef.String(), "--insecure")
 		require.NoError(t, cmd.Execute())
 
 		newContent, err := os.ReadFile(filepath.Join(projectDir, "daml.yaml"))
