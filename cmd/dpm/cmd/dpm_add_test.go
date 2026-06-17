@@ -83,3 +83,18 @@ data-dependencies:
 	})
 
 }
+
+func (suite *MainSuite) TestDpmAddDarCommandNegativeCases() {
+	t := suite.T()
+	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
+
+	t.Run("add new dar to both data-dependencies and dependencies fails in single-package project", func(t *testing.T) {
+		_ = testutil.ActivateDamlYamlForTest(t, `
+data-dependencies:
+  - std-lib
+`)
+
+		cmd := createStdTestRootCmd(t, "add", "dar", "--dependencies", "--data-dependencies", "oci://doesnt/matter/for/this/test:1.2.3", "--insecure")
+		require.Error(t, cmd.Execute())
+	})
+}
