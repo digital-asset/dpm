@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,7 +14,12 @@ import (
 func (suite *MainSuite) TestDpmAddComponentCommand() {
 	t := suite.T()
 
-	newComponent := "oci://example.com/newly-added:4.5.6"
+	_, reg := testutil.StartRegistry(t)
+	newComponentRepo := "newly/added:4.5.6"
+	newComponent := fmt.Sprintf("oci://%s/%s", testutil.GetRemote(reg).Registry, newComponentRepo)
+
+	args := testutil.PushComponentUri(reg, newComponentRepo, testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
 
 	t.Run("add new component in single-package project", func(t *testing.T) {
 		projectDir := testutil.ActivateDamlYamlForTest(t, `
@@ -22,12 +28,12 @@ components:
   - oci://example.com/some/component:1.2.3
 `)
 
-		cmd := createStdTestRootCmd(t, "add", "component", newComponent)
+		cmd := createStdTestRootCmd(t, "add", "component", newComponent, "--insecure")
 		require.NoError(t, cmd.Execute())
 
 		newContent, err := os.ReadFile(filepath.Join(projectDir, "daml.yaml"))
 		require.NoError(t, err)
-		assert.Contains(t, string(newContent), "- "+newComponent)
+		assert.Contains(t, string(newContent), "- "+newComponent+"@sha256:")
 	})
 
 	t.Run("add new component in multi-package project", func(t *testing.T) {
@@ -37,11 +43,11 @@ components:
   - oci://example.com/some/component:1.2.3
 `)
 
-		cmd := createStdTestRootCmd(t, "add", "component", newComponent)
+		cmd := createStdTestRootCmd(t, "add", "component", newComponent, "--insecure")
 		require.NoError(t, cmd.Execute())
 
 		newContent, err := os.ReadFile(filepath.Join(projectDir, "multi-package.yaml"))
 		require.NoError(t, err)
-		assert.Contains(t, string(newContent), "- "+newComponent)
+		assert.Contains(t, string(newContent), "- "+newComponent+"@sha256:")
 	})
 }

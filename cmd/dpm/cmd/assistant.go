@@ -84,7 +84,7 @@ func RootCmd(ctx context.Context, da *assistant.DamlAssistant) (*cobra.Command, 
 		setCmdMetaGroup(update.Cmd(config)),
 		setCmdMetaGroup(publish.Cmd()),
 		setCmdMetaGroup(tags.Cmd(config)),
-		setCmdMetaGroup(add.Cmd()),
+		setCmdMetaGroup(add.Cmd(config)),
 		componentCmd.Cmd(config),
 	)
 
