@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -82,6 +83,41 @@ data-dependencies:
 		assert.Contains(t, string(newContent), "- oci://"+darRef.String()+"@sha256:")
 	})
 
+}
+
+// tests 'dpm add dar' for a dar that already exists in daml.yaml
+func (suite *MainSuite) TestAddingExistingDar() {
+	t := suite.T()
+
+	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
+
+	testutil.StartRegistry(t)
+	reg := os.Getenv(assistantconfig.OciRegistryEnvVar)
+
+	// set up a daml.yaml containing a ":latest@sha256:" dar already
+	darRefLatest, err := registry.ParseReference(fmt.Sprintf("%s/newly/added:latest", reg))
+	require.NoError(t, err)
+
+	oldSha256 := "sha256:12d74505ebae3959746e8a2f5ab68b942a5580634dda7ea1a586874e07b52eb9"
+	projectDir := testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
+data-dependencies:
+  - std-lib
+  - oci://%s@%s`, darRefLatest.String(), oldSha256))
+
+	// push a new "latest" tag
+	pushDar(t, fmt.Sprintf("oci://%s/newly/added:4.5.6", reg), "latest")
+
+	// Running 'dpm add dar oci://<uri>:latest' should now essentially bump the dar to the new latest
+	cmd := createStdTestRootCmd(t, "add", "dar", "--data-dependencies", "oci://"+darRefLatest.String(), "--insecure")
+	require.NoError(t, cmd.Execute())
+
+	damlPkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
+	require.NoError(t, err)
+
+	assert.Len(t, damlPkg.DataDependencies, 2, "should not include more entries than it previously did")
+	assert.Equal(t, "std-lib", *damlPkg.DataDependencies[0].ValueOnly)
+	assert.Contains(t, *damlPkg.DataDependencies[1].ValueOnly, "oci://"+darRefLatest.String()+"@sha256:")
+	assert.NotContains(t, *damlPkg.DataDependencies[1].ValueOnly, oldSha256, "daml.yaml expected to not contain the old sha256 anymore")
 }
 
 func (suite *MainSuite) TestDpmAddDarCommandNegativeCases() {
