@@ -396,7 +396,7 @@ func (a *Assembler) handleURI(ctx context.Context, ref registry.Reference, comp 
 	if !strings.Contains(ref.Reference, "sha256:") {
 		_, err := semver.StrictNewVersion(ref.Reference)
 		if err != nil {
-			return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", ref.Reference, fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), err)
+			return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", ref.Reference, *comp.Uri, err)
 		}
 	}
 
@@ -407,16 +407,18 @@ func (a *Assembler) handleURI(ctx context.Context, ref registry.Reference, comp 
 	}
 	if !ok {
 		if _, isRemote := a.puller.(*remotepuller.RemoteOciPuller); isRemote && !a.config.AutoInstall {
-			return "", fmt.Errorf("component %s is currently not installed.  Run `dpm install package` to install", *comp.Uri)
+			return "", fmt.Errorf("component %s is currently not installed.  Run `dpm install package` to install", comp.Name)
 		}
 		platform := simpleplatform.CurrentPlatform()
 		if a.overridePlatform != nil {
 			platform = a.overridePlatform
 		}
+
 		customRemote, err := assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
 		if err != nil {
 			return "", err
 		}
+
 		// Passing in old config layoutCache
 		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
 
@@ -491,7 +493,6 @@ func (a *Assembler) handleOCI(ctx context.Context, compName string, reference st
 	return destPath, nil
 }
 
-// FindManifestByAnnotation searches the index.json for a manifest with a matching annotation key/value.
 func (a *Assembler) FindManifestByAnnotation(name string, value string) (string, bool, error) {
 	indexPath := filepath.Join(a.config.CachePath, "oci-layout/index.json")
 	_, err := os.Stat(indexPath)
@@ -525,11 +526,11 @@ func (a *Assembler) FindManifestByAnnotation(name string, value string) (string,
 	return "", false, nil
 }
 
-func ComputeTagOrDigest(comp *sdkmanifest.Component) (string, bool) {
+func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
 	if comp.Digest != nil {
-		return comp.Digest.String(), false
+		return comp.Digest.String()
 	}
-	return comp.Version.Value().String(), true
+	return comp.Version.Value().String()
 }
 
 func (a *Assembler) ociComponentPath(componentUri string, reference string) string {

@@ -106,7 +106,7 @@ func promote(ctx context.Context, sourceClient, destinationClient *assistantremo
 
 	for _, comp := range components {
 		repoName := ociconsts.ComponentRepoPrefix + comp.Name
-		tag, _ := assembler.ComputeTagOrDigest(comp)
+		tag := assembler.ComputeTagOrDigest(comp)
 		if err := copyComponent(ctx, sourceClient, destinationClient, repoName, tag, blobCache); err != nil {
 			return err
 		}

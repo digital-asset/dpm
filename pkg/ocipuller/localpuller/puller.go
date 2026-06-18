@@ -102,11 +102,6 @@ func (p *LocalOciPuller) getLocalOciTarget(ctx context.Context, repo string) (or
 }
 
 func (p *LocalOciPuller) GetManifest(ctx context.Context, compRepo string, tag string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
-	//test, err := p.getLocalOciTarget(ctx, compRepo)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//desc, err := test.Resolve(ctx, tag)
 	target, err := p.getLocalOciTarget(ctx, compRepo)
 	if err != nil {
 		return nil, err

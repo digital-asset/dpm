@@ -211,7 +211,7 @@ func createFromManifest(ctx context.Context, client *assistantremote.Remote, man
 	licenses := make(map[string][]byte)
 	for _, comp := range comps {
 		repoName := ociconsts.ComponentRepoPrefix + comp.Name
-		tag, _ := assembler.ComputeTagOrDigest(comp)
+		tag := assembler.ComputeTagOrDigest(comp)
 		fmt.Printf("pulling component %s/%s:%s...\n", client.Registry, repoName, tag)
 		desc, err := clone(ctx, client, localRegistryPath, repoName, tag, platform, blobCache)
 		if err != nil {
