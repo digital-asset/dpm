@@ -23,7 +23,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:    "dar <oci-uri> <--dependencies | --data-dependencies>",
-		Short:  "add a dar to project",
+		Short:  "add or update a dar in the project",
 		Args:   cobra.ExactArgs(1),
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -35,6 +35,19 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				return err
 			}
 
+			// figure out if we need to update rather than add
+			existingDep, err := findExistingDependency(uri, depsFieldName)
+			if err != nil {
+				return err
+			}
+
+			// update
+			if existingDep != nil {
+				fmt.Printf("dependency %q already exists in daml.yaml, will be updated...\n", uri)
+				return AddOrUpdateDar(ctx, config, uri, depsFieldName, insecure, existingDep.Index)
+			}
+
+			// add
 			return AddOrUpdateDar(ctx, config, uri, depsFieldName, insecure, -1)
 		},
 	}
@@ -46,6 +59,50 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	return cmd
 }
 
+func findExistingDependency(uri, depsFieldName string) (*damlpackage.ParsedDarDependency, error) {
+	damlPackagePath, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("must be in daml.yaml directory or sub-directory")
+	}
+
+	damlPackage, err := damlpackage.Read(damlPackagePath)
+	if err != nil {
+		return nil, err
+	}
+
+	deps := damlPackage.ParsedDarDependencies.Dependencies
+	if depsFieldName == "data-dependencies" {
+		deps = damlPackage.ParsedDarDependencies.DataDependencies
+	}
+
+	for _, dep := range deps {
+		// running 'dpm add' with the exact same uri as one in daml.yaml should behave like 'dpm update'.
+		// it will be a no-op, unless the cache has been cleared, in which case it will simply get re-downloaded
+		if dep.FullUrl.String() == uri {
+			return dep, nil
+		}
+
+		// running 'dpm add oci://blah/blah:<tag>' when daml.yaml has 'oci://blah/blah:<tag>@sha256'
+		// should update
+		if uri == removeDigestFromUri(dep.FullUrl.String()) {
+			return dep, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func removeDigestFromUri(uri string) string {
+	if i := strings.LastIndex(uri, "@sha256:"); i != -1 {
+		return uri[:i]
+	}
+	return ""
+}
+
+// AddOrUpdateDar will add when the passed index is -1, otherwise it will update at that index
 func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, uri, depsFieldName string, insecure bool, index int) error {
 	damlPackage, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
 	if err != nil {
