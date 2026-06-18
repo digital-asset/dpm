@@ -87,7 +87,7 @@ func (c *Component) String() string {
 		return fmt.Sprintf("%s@%s", c.Name, *c.LocalPath)
 	} else if c.Uri != nil {
 		return fmt.Sprintf("%s@%s", c.Name, *c.Uri)
-	}
+	} //TODO - Incorrect formatting?
 	return c.Name
 }
 

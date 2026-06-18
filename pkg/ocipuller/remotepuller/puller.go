@@ -5,9 +5,6 @@ package remotepuller
 
 import (
 	"context"
-	"fmt"
-	"github.com/opencontainers/go-digest"
-
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	ociconsts "daml.com/x/assistant/pkg/oci"
@@ -16,6 +13,7 @@ import (
 	"daml.com/x/assistant/pkg/ocipuller"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
+	"fmt"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
@@ -108,17 +106,16 @@ func (a *RemoteOciPuller) cachedRepo(url string) (oras.ReadOnlyTarget, error) {
 	return ocicache.CachedTarget(repo, a.ociLayoutCache)
 }
 
-func (a *RemoteOciPuller) GetDigest(ctx context.Context, compRepo string, tag string) (*digest.Digest, error) {
-	url := fmt.Sprintf("%s/%s", a.remote.Registry, compRepo)
-	repo, err := remote.NewRepository(url)
+func (a *RemoteOciPuller) GetManifest(ctx context.Context, compRepo string, tag string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
+	nonGeneric := platform.(*simpleplatform.NonGeneric)
+	index, _, err := ociindex.FetchIndex(ctx, a.remote, compRepo, tag)
 	if err != nil {
 		return nil, err
 	}
-	repo.Client = a.remote
-	repo.PlainHTTP = a.remote.Insecure
-	desc, err := repo.Resolve(ctx, tag)
+
+	manifestDesc, err := ociindex.FindTargetPlatform(index.Manifests, nonGeneric)
 	if err != nil {
 		return nil, err
 	}
-	return &desc.Digest, nil
+	return manifestDesc, nil
 }

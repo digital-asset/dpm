@@ -61,5 +61,8 @@ func (f *FakePuller) PullComponent(ctx context.Context, componentName, tag, dest
 func (f *FakePuller) PullComponentByFullPath(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
 	panic("not implemented")
 }
+func (f *FakePuller) GetManifest(ctx context.Context, compRepo string, tag string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
+	panic("not implemented")
+}
 
 var _ ocipuller.OciPuller = (*FakePuller)(nil)

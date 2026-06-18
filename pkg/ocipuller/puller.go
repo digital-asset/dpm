@@ -19,6 +19,7 @@ type OciPuller interface {
 	PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) (*v1.Descriptor, error)
 	PullComponentByFullPath(ctx context.Context, componentPath, tag, destPath string, platform simpleplatform.Platform) (*v1.Descriptor, error)
 	PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) (*v1.Descriptor, error)
+	GetManifest(ctx context.Context, compRepo string, tag string, platform simpleplatform.Platform) (*v1.Descriptor, error)
 }
 
 // ApplyFileInfoCopyOptions returns an oras.CopyOptions that applies

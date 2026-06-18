@@ -100,3 +100,34 @@ func (p *LocalOciPuller) getLocalOciTarget(ctx context.Context, repo string) (or
 	}
 	return oci.NewFromFS(ctx, os.DirFS(d))
 }
+
+func (p *LocalOciPuller) GetManifest(ctx context.Context, compRepo string, tag string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
+	//test, err := p.getLocalOciTarget(ctx, compRepo)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//desc, err := test.Resolve(ctx, tag)
+	target, err := p.getLocalOciTarget(ctx, compRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	src, err := ocicache.CachedTarget(target, p.config.OciLayoutCache)
+	if err != nil {
+		return nil, err
+	}
+
+	nonGeneric := platform.(*simpleplatform.NonGeneric)
+	index, _, err := ociindex.FetchIndexFromTarget(ctx, src, compRepo, tag)
+	if err != nil {
+		return nil, err
+	}
+
+	manifestDesc, err := ociindex.FindTargetPlatform(index.Manifests, nonGeneric)
+	if err != nil {
+		return nil, err
+	}
+
+	return manifestDesc, nil
+
+}
