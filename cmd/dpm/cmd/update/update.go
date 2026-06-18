@@ -3,25 +3,28 @@ package update
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/add/dar"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/ocilister"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
 
 type updateCmd struct {
 	forceInsecure bool
 	config        *assistantconfig.Config
+	printer       *cobra.Command
 }
 
 // TODO this currently only supports DARs and daml.yaml, but not components
 func Cmd(config *assistantconfig.Config) *cobra.Command {
 	c := updateCmd{}
-	c.config = config
 
 	cmd := &cobra.Command{
 		Use:    string(builtincommand.Update),
@@ -31,32 +34,21 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 
-			damlPackagePath, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
-			if err != nil {
-				return err
-			}
-			if !ok {
-				return fmt.Errorf("must be in daml.yaml directory or sub-directory")
-			}
+			c.config = config
+			c.printer = cmd
 
-			damlPackage, err := damlpackage.Read(damlPackagePath)
+			pkgs, err := c.packagesToUpdate()
 			if err != nil {
 				return err
 			}
 
-			for _, dep := range damlPackage.ParsedDarDependencies.Dependencies {
-				if err := c.updateDar(ctx, "dependencies", dep); err != nil {
+			for _, p := range pkgs {
+				if err := c.updatePackage(ctx, p); err != nil {
 					return err
 				}
 			}
 
-			for _, dep := range damlPackage.ParsedDarDependencies.DataDependencies {
-				if err := c.updateDar(ctx, "data-dependencies", dep); err != nil {
-					return err
-				}
-			}
-
-			fmt.Println("Successfully updated project at " + damlPackagePath)
+			fmt.Println("Successfully updated project.")
 			return nil
 
 		},
@@ -65,6 +57,55 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	cmd.Flags().BoolVar(&c.forceInsecure, "force-insecure", false, "ignoring ArtifactLocations and force http instead of https for OCI registry")
 
 	return cmd
+}
+
+func (c *updateCmd) packagesToUpdate() ([]string, error) {
+	multiPackagePath, ok, err := assistantconfig.GetMultiPackageAbsolutePath()
+	if err != nil {
+		return nil, err
+	}
+	if ok {
+		mPkg, err := multipackage.Read(multiPackagePath)
+		if err != nil {
+			return nil, err
+		}
+		return lo.Map(mPkg.AbsolutePackages(), func(p string, _ int) string {
+			return filepath.Join(p, "daml.yaml")
+		}), nil
+	}
+
+	damlPackagePath, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
+	if err != nil {
+		return nil, err
+	}
+	if ok {
+		return []string{damlPackagePath}, nil
+	}
+
+	return nil, fmt.Errorf("not in a (single-package or multi-package) project directory")
+}
+
+func (c *updateCmd) updatePackage(ctx context.Context, damlPackagePath string) error {
+	c.printer.Printf("Updating package %s...\n", damlPackagePath)
+
+	damlPackage, err := damlpackage.Read(damlPackagePath)
+	if err != nil {
+		return err
+	}
+
+	for _, dep := range damlPackage.ParsedDarDependencies.Dependencies {
+		if err := c.updateDar(ctx, "dependencies", dep); err != nil {
+			return err
+		}
+	}
+
+	for _, dep := range damlPackage.ParsedDarDependencies.DataDependencies {
+		if err := c.updateDar(ctx, "data-dependencies", dep); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (c *updateCmd) updateDar(ctx context.Context, field string, dep *damlpackage.ParsedDarDependency) error {

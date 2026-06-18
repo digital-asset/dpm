@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,6 +14,49 @@ import (
 	"github.com/stretchr/testify/require"
 	"oras.land/oras-go/v2/registry"
 )
+
+func (suite *MainSuite) TestDpmUpdateCommandWorksInSingleOrMultiPackageProject() {
+	t := suite.T()
+
+	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
+
+	packageDir := testutil.ActivateDamlYamlForTest(t, `
+data-dependencies:
+ - std-lib
+`)
+
+	t.Run("in single package project", func(t *testing.T) {
+		cmd, r, w := createTestRootCmd(t, "update")
+		assert.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		require.NoError(t, err)
+		assert.Contains(t, string(output), "Updating package "+packageDir)
+	})
+
+	t.Run("in multi package project", func(t *testing.T) {
+		package2Dir := testutil.ActivateDamlYamlForTest(t, `
+data-dependencies:
+ - std-lib
+`)
+
+		_ = testutil.ActivateMultiPackageYamlForTest(t, fmt.Sprintf(`
+packages:
+ - %s
+ - %s
+`, packageDir, package2Dir))
+
+		cmd, r, w := createTestRootCmd(t, "update")
+		require.NoError(t, cmd.Execute())
+		assert.NoError(t, w.Close())
+
+		output, err := io.ReadAll(r)
+		assert.NoError(t, err)
+		assert.Contains(t, string(output), "Updating package "+packageDir)
+		assert.Contains(t, string(output), "Updating package "+package2Dir)
+	})
+}
 
 func (suite *MainSuite) TestDpmUpdateCommandForFloatyDars() {
 	t := suite.T()
