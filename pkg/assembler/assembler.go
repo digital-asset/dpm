@@ -393,6 +393,7 @@ func (a *Assembler) HandleURI(ctx context.Context, comp *sdkmanifest.Component) 
 func (a *Assembler) handleURI(ctx context.Context, ref registry.Reference, comp *sdkmanifest.Component) (string, error) {
 	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), ref.Reference)
 
+	// TODO - Rip out for floaty support, add tests to ensure things work
 	if !strings.Contains(ref.Reference, "sha256:") {
 		_, err := semver.StrictNewVersion(ref.Reference)
 		if err != nil {
