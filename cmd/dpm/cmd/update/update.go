@@ -94,13 +94,13 @@ func (c *updateCmd) updatePackage(ctx context.Context, damlPackagePath string) e
 	}
 
 	for _, dep := range damlPackage.ParsedDarDependencies.Dependencies {
-		if err := c.updateDar(ctx, "dependencies", dep); err != nil {
+		if err := c.updateDar(ctx, damlPackagePath, "dependencies", dep); err != nil {
 			return err
 		}
 	}
 
 	for _, dep := range damlPackage.ParsedDarDependencies.DataDependencies {
-		if err := c.updateDar(ctx, "data-dependencies", dep); err != nil {
+		if err := c.updateDar(ctx, damlPackagePath, "data-dependencies", dep); err != nil {
 			return err
 		}
 	}
@@ -108,7 +108,7 @@ func (c *updateCmd) updatePackage(ctx context.Context, damlPackagePath string) e
 	return nil
 }
 
-func (c *updateCmd) updateDar(ctx context.Context, field string, dep *damlpackage.ParsedDarDependency) error {
+func (c *updateCmd) updateDar(ctx context.Context, damlPackagePath, field string, dep *damlpackage.ParsedDarDependency) error {
 	if dep.FullUrl.Scheme != "oci" {
 		return nil
 	}
@@ -130,7 +130,7 @@ func (c *updateCmd) updateDar(ctx context.Context, field string, dep *damlpackag
 	}
 
 	insecure := c.forceInsecure || dep.Location.Insecure
-	if err := dar.AddOrUpdateDar(ctx, c.config, uri, field, insecure, dep.Index); err != nil {
+	if err := dar.AddOrUpdateDar(ctx, c.config, damlPackagePath, uri, field, insecure, dep.Index); err != nil {
 		return err
 	}
 

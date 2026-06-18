@@ -35,6 +35,14 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				return err
 			}
 
+			damlPackagePath, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return fmt.Errorf("must be in daml.yaml directory or sub-directory")
+			}
+
 			// figure out if we need to update rather than add
 			existingDep, err := findExistingDependency(uri, depsFieldName)
 			if err != nil {
@@ -44,11 +52,11 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			// update
 			if existingDep != nil {
 				fmt.Printf("dependency %q already exists in daml.yaml, will be updated...\n", uri)
-				return AddOrUpdateDar(ctx, config, uri, depsFieldName, insecure, existingDep.Index)
+				return AddOrUpdateDar(ctx, config, damlPackagePath, uri, depsFieldName, insecure, existingDep.Index)
 			}
 
 			// add
-			return AddOrUpdateDar(ctx, config, uri, depsFieldName, insecure, -1)
+			return AddOrUpdateDar(ctx, config, damlPackagePath, uri, depsFieldName, insecure, -1)
 		},
 	}
 
@@ -79,6 +87,10 @@ func findExistingDependency(uri, depsFieldName string) (*damlpackage.ParsedDarDe
 	}
 
 	for _, dep := range deps {
+		if dep.FullUrl.Scheme != "oci" {
+			continue
+		}
+
 		// running 'dpm add' with the exact same uri as one in daml.yaml should behave like 'dpm update'.
 		// it will be a no-op, unless the cache has been cleared, in which case it will simply get re-downloaded
 		if dep.FullUrl.String() == uri {
@@ -104,15 +116,7 @@ func RemoveDigestFromUri(uri string) string {
 }
 
 // AddOrUpdateDar will add when the passed index is -1, otherwise it will update at that index
-func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, uri, depsFieldName string, insecure bool, index int) error {
-	damlPackage, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return fmt.Errorf("must be in daml.yaml directory or sub-directory")
-	}
-
+func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, damlPackagePath, uri, depsFieldName string, insecure bool, index int) error {
 	ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
 	if err != nil {
 		return err
@@ -145,11 +149,11 @@ func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, uri, de
 	}
 
 	// Edit daml.yaml
-	if err := appendDarToYaml(damlPackage, depsFieldName, resolvedUri, index); err != nil {
+	if err := appendDarToYaml(damlPackagePath, depsFieldName, resolvedUri, index); err != nil {
 		return err
 	}
 
-	fmt.Printf("Successfully installed and added dar %q to %q\n", resolvedUri, damlPackage)
+	fmt.Printf("Successfully installed and added dar %q to %q\n", resolvedUri, damlPackagePath)
 	return nil
 }
 
