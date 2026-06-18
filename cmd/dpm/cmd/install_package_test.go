@@ -191,12 +191,10 @@ func (suite *MainSuite) TestLegacyCacheResolution() {
 	deepResolution := runResolveCommand(t)
 	comp := lo.Values(deepResolution.Packages)[0].ComponentsV2["meep"]
 	assert.Len(t, deepResolution.Packages, 1)
-	//assert.Equal(t, comp["path"], filepath.Join(c.CachePath, "components", "meep", comp["version"]))
 	assert.Equal(t, "1.2.3", comp["version"])
 
 	t.Run("test cache still writing to version", func(t *testing.T) {
 		ctx := testutil.Context(t)
-		//setupRegistriesAndPublishedComponents(t)
 		client, reg := testutil.StartRegistry(t)
 
 		// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
