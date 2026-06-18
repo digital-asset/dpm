@@ -93,6 +93,8 @@ func (a *RemoteOciPuller) pull(ctx context.Context, repo, reference, destPath st
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO - copy index.json to cache from oci-layout
 	return &desc, err
 }
 
