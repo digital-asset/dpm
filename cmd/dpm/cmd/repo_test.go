@@ -104,7 +104,10 @@ func (suite *RepoSuite) TestRepoCreateTarball() {
 			verifyLnkAtPath(t, filepath.Join(dir, entries[0].Name()))
 		})
 		t.Run("verify LICENSE file", func(t *testing.T) {
-			licenseFile := filepath.Join(tmpDamlHome, "cache", "components", "dpm", "4.5.6", "LICENSE")
+			sha, err := testutil.FindManifestByAnnotation(filepath.Join(tmpDamlHome, "cache"), "dpm", "4.5.6")
+			require.NoError(t, err)
+
+			licenseFile := filepath.Join(tmpDamlHome, "cache", "components", "dpm", strings.ReplaceAll(sha, ":", "_"), "LICENSE")
 			bytes, err := os.ReadFile(licenseFile)
 			require.NoError(t, err)
 			assert.Equal(t, bytes, root.License)

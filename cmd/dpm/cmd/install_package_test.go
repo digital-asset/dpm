@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"daml.com/x/assistant/pkg/ociindex"
 	"fmt"
 	"io"
 	"net/http/httptest"
@@ -81,13 +82,16 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 4)
 
 		checkComponent := checkComponent(t, deepResolution, dpmHome)
+		meepSHA, err := testutil.FindManifestByAnnotation(filepath.Join(dpmHome, "cache"), "meep", "1.2.3")
+		require.NoError(t, err)
+		randoSHA, err := testutil.FindManifestByAnnotation(filepath.Join(dpmHome, "cache"), "rando", "1.2.4")
+		require.NoError(t, err)
 
 		// Test that the cache and dpm resolve use the full URI for `oci://` based components
-		checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
-		checkComponent(altURL+"/"+"bar/foo/rando", "1.2.4")
+		checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
+		checkComponent(altURL+"/"+"bar/foo/rando", strings.ReplaceAll(randoSHA, ":", "_"))
 
 		// local non `oci://` components
-		checkComponent("javabro", "6.7.8")
 		assert.Equal(t, testutil.TestdataPath(t, "another-generic-component"), lo.Values(deepResolution.Packages)[0].ComponentsV2["my-local-component"]["path"])
 	})
 
@@ -187,15 +191,42 @@ func (suite *MainSuite) TestLegacyCacheResolution() {
 	deepResolution := runResolveCommand(t)
 	comp := lo.Values(deepResolution.Packages)[0].ComponentsV2["meep"]
 	assert.Len(t, deepResolution.Packages, 1)
-	assert.Equal(t, comp["path"], filepath.Join(c.CachePath, "components", "meep", comp["version"]))
 	assert.Equal(t, "1.2.3", comp["version"])
+
+	t.Run("test cache still writing to version", func(t *testing.T) {
+		ctx := testutil.Context(t)
+		client, reg := testutil.StartRegistry(t)
+
+		// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
+		testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+		require.NoError(t, os.Chdir(testutil.TestdataPath(t, "resolve-test", testutil.OS)))
+
+		cmd := createStdTestRootCmd(t, "install", "package")
+		require.NoError(t, cmd.Execute())
+
+		repoMeep, err := client.Repo("components/meep")
+		require.NoError(t, err)
+		meepDescriptor, err := repoMeep.Resolve(ctx, "1.2.3")
+		require.NoError(t, err)
+
+		rc, err := repoMeep.Fetch(ctx, meepDescriptor)
+		require.NoError(t, err)
+		defer rc.Close()
+
+		index, _, err := ociindex.FetchIndex(ctx, client, "components/meep", "1.2.3")
+		require.NoError(t, err)
+
+		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2["meep"]
+		assert.Equal(t, comp["path"], filepath.Join(c.CachePath, "components", utils.UrlToFilePath("meep"), strings.ReplaceAll(index.Manifests[0].Digest.String(), ":", "_")))
+		assert.Equal(t, "1.2.3", comp["version"])
+	})
 }
 
 func checkComponent(t *testing.T, deepResolution *resolution.Resolution, dpmHome string) func(name string, version string) {
 	checkComponent := func(name, version string) {
 		// Test that the cache and dpm resolve use the full URI for `oci://` based components
 		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2[name]
-		assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", utils.UrlToFilePath(name), comp["version"]))
+		assert.Equal(t, comp["path"], filepath.Join(dpmHome, "cache", "components", utils.UrlToFilePath(name), version))
 		assert.Equal(t, version, comp["version"])
 	}
 	return checkComponent

@@ -638,7 +638,11 @@ func (suite *MainSuite) TestComponentSubdirFilesPerm() {
 
 	c, err := assistantconfig.Get()
 	require.NoError(t, err)
-	s, err := os.Stat(filepath.Join(c.CachePath, "components", "meep", "1.2.3", "just-a-dir", "xyz"))
+
+	sha, err := testutil.FindManifestByAnnotation(c.CachePath, "meep", "1.2.3")
+	require.NoError(t, err)
+
+	s, err := os.Stat(filepath.Join(c.CachePath, "components", "meep", strings.ReplaceAll(sha, ":", "_"), "just-a-dir", "xyz"))
 	require.NoError(t, err)
 
 	assert.Equal(t, mode, s.Mode())

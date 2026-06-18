@@ -5,9 +5,13 @@ package assembler
 
 import (
 	"context"
+	ociconsts "daml.com/x/assistant/pkg/oci"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Masterminds/semver/v3"
+	"github.com/opencontainers/go-digest"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"log/slog"
 	"maps"
 	"os"
@@ -24,6 +28,7 @@ import (
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/samber/lo"
 	"oras.land/oras-go/v2/registry"
 )
@@ -265,7 +270,7 @@ func (a *Assembler) collectAssistant(ctx context.Context, assistant *sdkmanifest
 	if assistant.LocalPath != nil {
 		return "", fmt.Errorf("assistant can only be OCI and not a local-path")
 	}
-	p, err := a.handleOCI(ctx, assistant)
+	p, err := a.HandleOCI(ctx, assistant)
 	if err != nil {
 		return "", err
 	}
@@ -324,12 +329,12 @@ func (a *Assembler) collectComponent(ctx context.Context, basePath string, comp 
 	if comp.LocalPath != nil {
 		p = a.handleLocalDir(filepath.Dir(basePath), *comp.LocalPath)
 	} else if comp.Uri != nil {
-		p, err = a.handleURI(ctx, comp)
+		p, err = a.HandleURI(ctx, comp)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		p, err = a.handleOCI(ctx, comp)
+		p, err = a.HandleOCI(ctx, comp)
 		if err != nil {
 			return nil, err
 		}
@@ -345,7 +350,13 @@ func (a *Assembler) collectComponent(ctx context.Context, basePath string, comp 
 		return nil, err
 	}
 
-	version := filepath.Base(absPath)
+	// either resolve or use base
+	var version string
+	if comp.Version != nil {
+		version = comp.Version.Value().String()
+	} else {
+		version = filepath.Base(absPath)
+	}
 
 	return &ResolvedComponent{
 		Component:     parsedComp,
@@ -359,15 +370,30 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 	return utils.ResolvePath(basePath, componentPath)
 }
 
-func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+func (a *Assembler) HandleURI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
 	prefixTrimmedOCI := strings.TrimPrefix(*comp.Uri, "oci://")
 	ref, err := registry.ParseReference(prefixTrimmedOCI)
 	if err != nil {
 		return "", err
 	}
 
+	if err := registry.Reference.ValidateReferenceAsTag(ref); err == nil {
+		uriDigest, found, err := a.FindManifestByAnnotation(filepath.Base(comp.Name), ref.Reference)
+		if err != nil {
+			return "", err
+		}
+		if found {
+			ref.Reference = uriDigest
+			return a.handleURI(ctx, ref, comp)
+		}
+	}
+	return a.handleURI(ctx, ref, comp)
+}
+
+func (a *Assembler) handleURI(ctx context.Context, ref registry.Reference, comp *sdkmanifest.Component) (string, error) {
 	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), ref.Reference)
 
+	// TODO - Rip out for floaty support, add tests to ensure things work
 	if !strings.Contains(ref.Reference, "sha256:") {
 		_, err := semver.StrictNewVersion(ref.Reference)
 		if err != nil {
@@ -382,13 +408,12 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 	}
 	if !ok {
 		if _, isRemote := a.puller.(*remotepuller.RemoteOciPuller); isRemote && !a.config.AutoInstall {
-			return "", fmt.Errorf("component %q is currently not installed.  Run `dpm install package` to install", comp.String())
+			return "", fmt.Errorf("component %s is currently not installed.  Run `dpm install package` to install", comp.Name)
 		}
 		platform := simpleplatform.CurrentPlatform()
 		if a.overridePlatform != nil {
 			platform = a.overridePlatform
 		}
-		fmt.Printf("pulling sdk component %s %s ...\n", comp.Name, *comp.Uri)
 
 		customRemote, err := assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
 		if err != nil {
@@ -398,36 +423,108 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		// Passing in old config layoutCache
 		customPuller := remotepuller.New(a.config.OciLayoutCache, customRemote)
 
-		if err := customPuller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform); err != nil {
+		_, err = digest.Parse(ref.Reference)
+		if err != nil {
+			descDigest, err := customPuller.GetManifest(ctx, ref.Repository, ref.Reference, platform)
+			if err != nil {
+				return "", err
+			}
+
+			destPath = a.ociComponentPath(comp.Name, descDigest.Digest.String())
+		}
+		fmt.Printf("pulling sdk component %s %s ...\n", comp.Name, *comp.Uri)
+
+		_, err = customPuller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform)
+		if err != nil {
 			return "", err
 		}
 	}
 	return destPath, nil
 }
 
-func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
-	reference := ComputeTagOrDigest(comp)
-	destPath := a.ociComponentPath(comp.Name, reference)
-	// check if component is already in the cache
+func (a *Assembler) HandleOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+	if comp.Version != nil {
+		ref, found, err := a.FindManifestByAnnotation(comp.Name, comp.Version.Value().String())
+		if err != nil {
+			return "", err
+		}
+		if found {
+			return a.handleOCI(ctx, comp.Name, ref)
+		}
+		return a.handleOCI(ctx, comp.Name, comp.Version.Value().String())
+	}
+
+	return a.handleOCI(ctx, comp.Name, comp.Digest.String())
+}
+
+func (a *Assembler) handleOCI(ctx context.Context, compName string, reference string) (string, error) {
+	destPath := a.ociComponentPath(compName, reference)
+
 	ok, err := utils.DirExists(destPath)
 	if err != nil {
 		return "", err
 	}
 	if !ok {
 		if _, isRemote := a.puller.(*remotepuller.RemoteOciPuller); isRemote && !a.config.AutoInstall {
-			return "", fmt.Errorf("component %q is currently not installed.  Run `dpm install package` to install", comp.String())
+			return "", fmt.Errorf("component %q is currently not installed.  Run `dpm install package` to install", compName)
 		}
 		platform := simpleplatform.CurrentPlatform()
 		if a.overridePlatform != nil {
 			platform = a.overridePlatform
 		}
-		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, reference)
-		if err := a.puller.PullComponent(ctx, comp.Name, reference, destPath, platform); err != nil {
+
+		_, err := digest.Parse(reference)
+		if err != nil {
+			descDigest, err := a.puller.GetManifest(ctx, ociconsts.ComponentRepoPrefix+compName, reference, platform)
+			if err != nil {
+				return "", err
+			}
+
+			destPath = a.ociComponentPath(compName, descDigest.Digest.String())
+		}
+		fmt.Printf("pulling sdk component %s %s...\n", compName, reference)
+
+		_, err = a.puller.PullComponent(ctx, compName, reference, destPath, platform)
+		if err != nil {
 			return "", err
 		}
+
 	}
 
 	return destPath, nil
+}
+
+func (a *Assembler) FindManifestByAnnotation(name string, value string) (string, bool, error) {
+	indexPath := filepath.Join(a.config.CachePath, "oci-layout/index.json")
+	_, err := os.Stat(indexPath)
+	// no oci-layout initialized
+	if os.IsNotExist(err) {
+		return "", false, nil
+	}
+
+	data, err := os.ReadFile(filepath.Join(a.config.CachePath, "oci-layout/index.json"))
+	if err != nil {
+		return "", false, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	var index ocispec.Index
+	if err := json.Unmarshal(data, &index); err != nil {
+		return "", false, fmt.Errorf("failed to unmarshal index: %w", err)
+	}
+
+	for _, desc := range index.Manifests {
+		if desc.Annotations == nil {
+			continue
+		}
+
+		if artifactName, nameFound := desc.Annotations[ociconsts.DescriptorNameAnnotation]; nameFound && artifactName == name {
+			if version, versionFound := desc.Annotations[v1.AnnotationVersion]; versionFound && version == value {
+				return desc.Digest.String(), true, nil
+			}
+		}
+	}
+
+	return "", false, nil
 }
 
 func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
