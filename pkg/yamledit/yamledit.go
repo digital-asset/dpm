@@ -3,11 +3,38 @@ package yamledit
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/parser"
 )
+
+type YamlTarget struct {
+	YamlFilePath string
+	FieldName    string
+}
+
+// EditYaml adds an item to list in yaml file
+// or replace the given index with it
+func EditYaml(info YamlTarget, item string, index int) error {
+	b, err := os.ReadFile(info.YamlFilePath)
+	if err != nil {
+		return err
+	}
+
+	var out string
+	if index != -1 {
+		out, err = ReplaceItemInList(b, info.FieldName, index, item)
+	} else {
+		out, err = AddToList(b, info.FieldName, item)
+	}
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(info.YamlFilePath, []byte(out), 0644)
+}
 
 // AddToList adds item to the given target field.
 // item can be a simple value or a whole object

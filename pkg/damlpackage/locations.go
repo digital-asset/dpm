@@ -17,6 +17,7 @@ import (
 type ArtifactLocations map[string]*ArtifactLocation
 
 type ArtifactLocation struct {
+	Alias    string `yaml:"-"`
 	Url      string `yaml:"url"`
 	Auth     string `yaml:"auth"`
 	Insecure bool   `yaml:"insecure"`
@@ -37,6 +38,20 @@ type ParsedDarDependency struct {
 	// the index of this dependency in the list in daml.yaml.
 	// useful when trying to update the dep as part of `dpm update`.
 	Index int
+}
+
+// StringWithAlias will reconstruct the original '@<alias>/<rest of uri>' for oci-based dars
+func (d *ParsedDarDependency) StringWithAlias() string {
+	if d.FullUrl == nil {
+		return ""
+	}
+	u := d.FullUrl.String()
+
+	if d.Location == nil {
+		return u
+	}
+
+	return d.Location.Alias + strings.TrimPrefix(u, d.Location.Url)
 }
 
 func (d *ParsedDarDependency) GetOciRemote() (*assistantremote.Remote, *registry.Reference, error) {

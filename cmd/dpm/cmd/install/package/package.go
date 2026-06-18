@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/utils"
+	"daml.com/x/assistant/pkg/yamledit"
 	"github.com/samber/lo"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
@@ -110,45 +112,78 @@ func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assista
 		}
 	}
 
-	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.Dependencies)); err != nil {
+	yamlTarget := yamledit.YamlTarget{
+		YamlFilePath: damlPath,
+		FieldName:    "dependencies",
+	}
+	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.Dependencies), yamlTarget); err != nil {
 		return err
 	}
-	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.DataDependencies)); err != nil {
+
+	yamlTarget = yamledit.YamlTarget{
+		YamlFilePath: damlPath,
+		FieldName:    "data-dependencies",
+	}
+	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.DataDependencies), yamlTarget); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func installDars(ctx context.Context, config *assistantconfig.Config, dars []*damlpackage.ParsedDarDependency) error {
+func installDars(ctx context.Context, config *assistantconfig.Config, dars []*damlpackage.ParsedDarDependency, yamlTarget yamledit.YamlTarget) error {
 	for _, d := range dars {
-		if err := InstallDar(ctx, config, d); err != nil {
+		updatedDar, err := InstallDar(ctx, config, d)
+		if err != nil {
 			return err
+		}
+
+		// now update daml.yaml if we had to append a @sha256
+		if updatedDar != nil {
+			quotedUri := fmt.Sprintf("\"%s\"", updatedDar.StringWithAlias())
+			return yamledit.EditYaml(yamlTarget, quotedUri, updatedDar.Index)
 		}
 	}
 	return nil
 }
 
-func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpackage.ParsedDarDependency) error {
+func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpackage.ParsedDarDependency) (updatedDar *damlpackage.ParsedDarDependency, err error) {
 	if dar.FullUrl.Scheme != "oci" {
-		return nil
+		return nil, nil
 	}
 	fmt.Printf("installing dar %q...\n", dar.FullUrl.String())
 
 	client, ref, err := dar.GetOciRemote()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !assistantconfig.ShaPinningEnabled() && ocilister.IsFloaty(ref.Reference) {
-		return fmt.Errorf("tag not allowed in %q: only strict semver OCI tags are supported currently", dar.FullUrl.String())
+		return nil, fmt.Errorf("tag not allowed in %q: only strict semver OCI tags are supported currently", dar.FullUrl.String())
 	}
 
-	if assistantconfig.ShaPinningEnabled() {
-		if !strings.Contains(ref.Reference, "sha256:") {
-			// TODO support having `dpm install` resolve to sha256
-			// when the dar uri in daml.yaml doesn't already include it
-			return fmt.Errorf("currently 'dpm install' requires dar oci URIs in daml.yaml to include '@sha256'. Prefer 'dpm add dar' command to add dars to your daml.yaml")
+	// if the URI doesn't already have a sha256, give it one.
+	// (this does not mean we're gonna bump dependencies)
+	if !strings.Contains(dar.FullUrl.String(), "@sha256:") {
+		ociManifest, err := ocilister.FetchManifest(ctx, client, *ref)
+		if err != nil {
+			return nil, err
+		}
+
+		newUrl, err := url.Parse(dar.FullUrl.String() + "@" + ociManifest.Digest.String())
+		if err != nil {
+			return nil, err
+		}
+		updatedDar = &damlpackage.ParsedDarDependency{
+			FullUrl:       newUrl,
+			Location:      dar.Location,
+			MainPackageId: dar.MainPackageId,
+			Index:         dar.Index,
+		}
+
+		client, ref, err = updatedDar.GetOciRemote()
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -157,14 +192,17 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 
 	ok, err := utils.DirExists(darDir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if ok {
 		fmt.Println("Dar already installed.")
-		return nil
+		return nil, nil
 	}
-	_, err = puller.PullDarByFullPath(ctx, ref.Repository, ref.Reference, darDir)
-	return err
+	if _, err = puller.PullDarByFullPath(ctx, ref.Repository, ref.Reference, darDir); err != nil {
+		return nil, err
+	}
+
+	return updatedDar, nil
 }
 
 func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, absPath string, sub bool) error {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"strings"
 
 	"daml.com/x/assistant/pkg/componentlist"
 	"daml.com/x/assistant/pkg/sdkmanifest"
@@ -78,6 +79,15 @@ func ReadFromContents(contents []byte, absoluteFilePath string) (*DamlPackage, e
 
 		// zero it out to make sure we really aren't relying on it past this point
 		obj.DeprecatedOverrideComponents = nil
+	}
+
+	// populate the in-memory Alias field for artifact-locations
+	// TODO this should really happen during unmarshalling of that field
+	for alias, artifactLoc := range obj.ArtifactLocations {
+		if !strings.HasPrefix(alias, "@") {
+			return nil, fmt.Errorf("artifact-location alias %q is invalid. Must begin with '@'", alias)
+		}
+		artifactLoc.Alias = alias
 	}
 
 	obj.ParsedDarDependencies = &ParsedDarDependencies{}

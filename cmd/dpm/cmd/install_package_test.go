@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"context"
-	"daml.com/x/assistant/pkg/ociindex"
+
 	"fmt"
 	"io"
 	"net/http/httptest"
@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"daml.com/x/assistant/pkg/ociindex"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/resolution"

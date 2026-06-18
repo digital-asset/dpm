@@ -7,12 +7,17 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
+	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/darmanifest"
+	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/testutil"
+	"daml.com/x/assistant/pkg/utils"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,9 +43,15 @@ func (suite *MainSuite) TestResolutionOfOciDarDependencies() {
 	var res *resolution.Package
 
 	t := suite.T()
+	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
 
 	config := testutil.MkConfig(t)
-	t.Chdir(testutil.TestdataPath(t, "oci-dar-deps")) // fixture daml.yaml
+
+	projectDir := t.TempDir()
+	utils.CopyFile(
+		testutil.TestdataPath(t, "oci-dar-deps", "daml.yaml"), // fixture daml.yaml
+		filepath.Join(projectDir, "daml.yaml"))
+	t.Chdir(projectDir)
 
 	// push dars to test registry
 	testutil.StartRegistry(t)
@@ -51,8 +62,8 @@ func (suite *MainSuite) TestResolutionOfOciDarDependencies() {
 	barDarRef, err := registry.ParseReference(fmt.Sprintf("%s/some/dars/n/stuff/bar:4.5.6", reg))
 	require.NoError(t, err)
 
-	pushDar(t, "oci://"+fooDarRef.String())
-	pushDar(t, "oci://"+barDarRef.String())
+	fooDarRefWithDigest := pushDar(t, "oci://"+fooDarRef.String())
+	barDarRefWithDigest := pushDar(t, "oci://"+barDarRef.String())
 
 	t.Run("dpm install package", func(t *testing.T) {
 		require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
@@ -66,11 +77,11 @@ func (suite *MainSuite) TestResolutionOfOciDarDependencies() {
 	t.Run("resolution output should contain dars sourced via OCI", func(t *testing.T) {
 		assert.Contains(t,
 			res.GetResolvedDependencies(),
-			filepath.Join(config.CachePathForDar(&fooDarRef), "test.dar"),
+			filepath.Join(config.CachePathForDar(&fooDarRefWithDigest), "test.dar"),
 		)
 		assert.Contains(t,
 			res.GetResolvedDataDependencies(),
-			filepath.Join(config.CachePathForDar(&barDarRef), "test.dar"),
+			filepath.Join(config.CachePathForDar(&barDarRefWithDigest), "test.dar"),
 		)
 	})
 }
@@ -125,6 +136,7 @@ func checkDar(t *testing.T, darFile string) {
 
 func (suite *MainSuite) TestDarInstallWithArtifactLocationAlias() {
 	t := suite.T()
+	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
 
 	config := testutil.MkConfig(t)
 
@@ -137,11 +149,11 @@ func (suite *MainSuite) TestDarInstallWithArtifactLocationAlias() {
 	barDarRef, err := registry.ParseReference(fmt.Sprintf("%s/some/dars/n/stuff/bar:4.5.6", reg))
 	require.NoError(t, err)
 
-	pushDar(t, "oci://"+fooDarRef.String())
-	pushDar(t, "oci://"+barDarRef.String())
+	fooDarRefWithDigest := pushDar(t, "oci://"+fooDarRef.String())
+	barDarRefWithDigest := pushDar(t, "oci://"+barDarRef.String())
 
 	// install dars
-	testutil.ActivateDamlYamlForTest(t, `
+	projectDir := testutil.ActivateDamlYamlForTest(t, `
 dependencies:
   - "@digital-asset/foo:1.2.3"
 
@@ -158,8 +170,10 @@ artifact-locations:
 `)
 	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
 
+	require.NotEmpty(t, projectDir)
+
 	t.Run("dar manifest includes main-package-id", func(t *testing.T) {
-		darManifestPath := filepath.Join(config.CachePathForDar(&fooDarRef), assistantconfig.DarManifestName)
+		darManifestPath := filepath.Join(config.CachePathForDar(&fooDarRefWithDigest), assistantconfig.DarManifestName)
 		m, err := darmanifest.ReadDarManifest(darManifestPath)
 		require.NoError(t, err)
 		assert.Equal(t, "0984ff5e3082add400bfcc6e3244bf9822ca5a617cfd92429e3fbce58058dbfa", m.Spec.Dars[0].MainPackageId)
@@ -167,12 +181,22 @@ artifact-locations:
 
 	// verify installed dars
 	t.Run("dars downloaded to the dpm cache", func(t *testing.T) {
-		assert.FileExists(t, filepath.Join(config.CachePathForDar(&fooDarRef), "test.dar"))
-		assert.FileExists(t, filepath.Join(config.CachePathForDar(&barDarRef), "test.dar"))
+		assert.FileExists(t, filepath.Join(config.CachePathForDar(&fooDarRefWithDigest), "test.dar"))
+		assert.FileExists(t, filepath.Join(config.CachePathForDar(&barDarRefWithDigest), "test.dar"))
+	})
+
+	t.Run("oci digest gets added to daml.yaml when missing", func(t *testing.T) {
+		damlPkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
+		require.NoError(t, err)
+
+		assert.Len(t, damlPkg.Dependencies, 1, "should not include more entries than it previously did")
+		assert.Len(t, damlPkg.DataDependencies, 1, "should not include more entries than it previously did")
+		assert.Contains(t, *damlPkg.Dependencies[0].ValueOnly, "@sha256:")
+		assert.Contains(t, *damlPkg.DataDependencies[0].ValueOnly, "@sha256:")
 	})
 }
 
-func pushDar(t *testing.T, uri string, extraTags ...string) {
+func pushDar(t *testing.T, uri string, extraTags ...string) (refWithDigest registry.Reference) {
 	args := []string{
 		"publish", "dar", uri,
 		"-f", testutil.TestdataPath(t, "test-dar", "test.dar"),
@@ -189,4 +213,21 @@ func pushDar(t *testing.T, uri string, extraTags ...string) {
 
 	cmd := createStdTestRootCmd(t, args...)
 	require.NoError(t, cmd.Execute())
+
+	ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
+	require.NoError(t, err)
+
+	client, err := assistantremote.New(ref.Registry, "", true)
+	require.NoError(t, err)
+	descriptor, err := ocilister.FetchManifest(t.Context(), client, ref)
+	require.NoError(t, err)
+
+	return appendShaToRef(t, ref, descriptor.Digest.String())
+}
+
+func appendShaToRef(t *testing.T, ref registry.Reference, digest string) registry.Reference {
+	require.Contains(t, digest, "sha256:")
+	result, err := registry.ParseReference(ref.String() + "@" + digest)
+	require.NoError(t, err)
+	return result
 }

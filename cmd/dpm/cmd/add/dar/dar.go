@@ -144,7 +144,7 @@ func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, damlPac
 			Insecure: insecure,
 		},
 	}
-	if err := project.InstallDar(ctx, config, parsedDarDep); err != nil {
+	if _, err := project.InstallDar(ctx, config, parsedDarDep); err != nil {
 		return err
 	}
 
