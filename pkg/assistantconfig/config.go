@@ -390,7 +390,7 @@ func DpmLockfileEnabled() bool {
 }
 
 func ShaPinningEnabled() bool {
-	return os.Getenv(DpmShaPinningEnabled) == "true"
+	return true
 }
 
 func (c *Config) CachePathForDar(ref *registry.Reference) string {
