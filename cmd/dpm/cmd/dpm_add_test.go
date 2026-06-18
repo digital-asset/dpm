@@ -134,3 +134,39 @@ data-dependencies:
 		require.Error(t, cmd.Execute())
 	})
 }
+
+// tests 'dpm add component' for a component that already exists in daml.yaml
+func (suite *MainSuite) TestAddingExistingComponent() {
+	t := suite.T()
+
+	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
+
+	_, reg := testutil.StartRegistry(t)
+
+	newComponentWithoutRegistry := "newly/added"
+	newComponent := fmt.Sprintf("%s/%s", testutil.GetRemote(reg).Registry, newComponentWithoutRegistry)
+
+	// set up a daml.yaml containing a ":latest@sha256:" dar already
+	compRefLatest := newComponent + ":latest"
+	oldSha256 := "sha256:12d74505ebae3959746e8a2f5ab68b942a5580634dda7ea1a586874e07b52eb9"
+	projectDir := testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
+components:
+  - pre-existing:1.2.3
+  - oci://%s@%s`, compRefLatest, oldSha256))
+
+	// push a new "latest" tag
+	args := testutil.PushComponentUri(reg, newComponentWithoutRegistry+":4.5.6", testutil.TestdataPath(t, "meepy-component", testutil.OS), "latest")
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+	// Running 'dpm add oci://<uri>:latest' should now essentially bump to the new latest
+	cmd := createStdTestRootCmd(t, "add", "component", "oci://"+compRefLatest, "--insecure")
+	require.NoError(t, cmd.Execute())
+
+	damlPkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
+	require.NoError(t, err)
+
+	assert.Len(t, damlPkg.ComponentsList, 2, "should not include more entries than it previously did")
+	assert.Equal(t, "pre-existing:1.2.3", *damlPkg.ComponentsList[0].StringBased)
+	assert.Contains(t, *damlPkg.ComponentsList[1].StringBased, "oci://"+compRefLatest+"@sha256:")
+	assert.NotContains(t, *damlPkg.ComponentsList[1].StringBased, oldSha256, "daml.yaml expected to not contain the old sha256 anymore")
+}

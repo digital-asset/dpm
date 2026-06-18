@@ -87,7 +87,7 @@ func findExistingDependency(uri, depsFieldName string) (*damlpackage.ParsedDarDe
 
 		// running 'dpm add oci://blah/blah:<tag>' when daml.yaml has 'oci://blah/blah:<tag>@sha256'
 		// should update
-		if uri == removeDigestFromUri(dep.FullUrl.String()) {
+		if uri == RemoveDigestFromUri(dep.FullUrl.String()) {
 			return dep, nil
 		}
 	}
@@ -95,7 +95,8 @@ func findExistingDependency(uri, depsFieldName string) (*damlpackage.ParsedDarDe
 	return nil, nil
 }
 
-func removeDigestFromUri(uri string) string {
+// TODO move this to some proper package
+func RemoveDigestFromUri(uri string) string {
 	if i := strings.LastIndex(uri, "@sha256:"); i != -1 {
 		return uri[:i]
 	}

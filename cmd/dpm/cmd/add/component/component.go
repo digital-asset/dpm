@@ -1,15 +1,19 @@
 package component
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"os"
 	"strings"
 
+	"daml.com/x/assistant/cmd/dpm/cmd/add/dar"
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/componentlist"
+	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/yamledit"
@@ -32,45 +36,70 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			ctx := cmd.Context()
 			uri := args[0]
 
-			projectManifest, err := getDamlYamlOrMultiPackageYaml()
+			damlPackagePath, multiPackagePath, err := getDamlYamlOrMultiPackageYaml()
 			if err != nil {
 				return err
 			}
+			projectManifest := cmp.Or(damlPackagePath, multiPackagePath)
 
-			ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
-			if err != nil {
-				return err
-			}
-			client, err := assistantremote.New(ref.Registry, "", insecure)
-			if err != nil {
-				return err
-			}
-
-			// Resolve to sha256
-			sha, err := GetDigest(ctx, client, ref)
-			if err != nil {
-				return err
-			}
-			resolvedUri := uri + "@" + sha.String()
-
-			// Pull
-			if err := PullComponent(ctx, resolvedUri, config, client); err != nil {
-				return err
+			var components componentlist.ComponentList
+			if damlPackagePath != "" {
+				obj, err := damlpackage.Read(damlPackagePath)
+				if err != nil {
+					return err
+				}
+				components = obj.ComponentsList
+			} else {
+				obj, err := multipackage.Read(multiPackagePath)
+				if err != nil {
+					return err
+				}
+				components = obj.ComponentsList
 			}
 
-			// Edit daml.yaml / multi-package.yaml
-			if err := appendComponentToYaml(projectManifest, resolvedUri); err != nil {
-				return err
+			index := findExistingComponent(components, uri)
+			if index != -1 {
+				fmt.Printf("component %q already exists, will be updated...\n", uri)
 			}
 
-			fmt.Printf("Successfully installed and added component %q to %q\n", resolvedUri, projectManifest)
-			return nil
+			return AddOrUpdateComponent(ctx, config, projectManifest, uri, insecure, index)
 		},
 	}
 
 	cmd.Flags().BoolVar(&insecure, "insecure", false, "use http instead of https for OCI registry")
 
 	return cmd
+}
+
+func AddOrUpdateComponent(ctx context.Context, config *assistantconfig.Config, projectManifest, uri string, insecure bool, index int) error {
+	ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
+	if err != nil {
+		return err
+	}
+	client, err := assistantremote.New(ref.Registry, "", insecure)
+	if err != nil {
+		return err
+	}
+
+	// Resolve to sha256
+	sha, err := GetDigest(ctx, client, ref)
+	if err != nil {
+		return err
+	}
+	resolvedUri := uri + "@" + sha.String()
+
+	// Pull
+	if err := PullComponent(ctx, resolvedUri, config, client); err != nil {
+		return err
+	}
+
+	// Edit daml.yaml / multi-package.yaml
+	if err := modifyYamlManifest(projectManifest, resolvedUri, index); err != nil {
+		return err
+	}
+
+	fmt.Printf("Successfully installed and added component %q to %q\n", resolvedUri, projectManifest)
+	return nil
 }
 
 func PullComponent(ctx context.Context, resolvedUri string, config *assistantconfig.Config, client *assistantremote.Remote) error {
@@ -122,27 +151,27 @@ func asSdkManifest(uri string) (*sdkmanifest.SdkManifest, error) {
 	}, nil
 }
 
-func getDamlYamlOrMultiPackageYaml() (string, error) {
+func getDamlYamlOrMultiPackageYaml() (string, string, error) {
 	p, ok, err := assistantconfig.GetDamlPackageAbsolutePath()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if ok {
-		return p, nil
+		return p, "", nil
 	}
 
 	p, ok, err = assistantconfig.GetMultiPackageAbsolutePath()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if ok {
-		return p, nil
+		return "", p, nil
 	}
 
-	return "", fmt.Errorf("not in a (single-package or multi-package) project directory")
+	return "", "", fmt.Errorf("not in a (single-package or multi-package) project directory")
 }
 
-func appendComponentToYaml(path, component string) error {
+func modifyYamlManifest(path, component string, index int) error {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -153,9 +182,37 @@ func appendComponentToYaml(path, component string) error {
 		return err
 	}
 
-	out, err := yamledit.AddToList(b, "components", string(item))
+	var out string
+	if index != -1 {
+		out, err = yamledit.ReplaceItemInList(b, "components", index, string(item))
+	} else {
+		out, err = yamledit.AddToList(b, "components", string(item))
+	}
 	if err != nil {
 		return err
 	}
+
 	return os.WriteFile(path, []byte(out), 0644)
+}
+
+func findExistingComponent(components componentlist.ComponentList, uri string) int {
+	for i, compEntry := range components {
+		comp := compEntry.StringBased
+		if comp == nil {
+			continue
+		}
+
+		// running 'dpm add' with the exact same uri as one in daml.yaml should behave like 'dpm update'.
+		// it will be a no-op, unless the cache has been cleared, in which case it will simply get re-downloaded
+		if *comp == uri {
+			return i
+		}
+
+		// running 'dpm add oci://blah/blah:<tag>' when daml.yaml has 'oci://blah/blah:<tag>@sha256'
+		// should update
+		if uri == dar.RemoveDigestFromUri(*comp) {
+			return i
+		}
+	}
+	return -1
 }
