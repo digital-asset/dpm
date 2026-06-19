@@ -15,6 +15,7 @@ import (
 	"daml.com/x/assistant/pkg/ociindex"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"github.com/Masterminds/semver/v3"
+	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/samber/lo"
 	"oras.land/oras-go/v2/content"
@@ -119,31 +120,31 @@ func isErrorCode(err error, code string) bool {
 	return errors.As(err, &ec) && ec.Code == code
 }
 
-func FetchManifest(ctx context.Context, client *assistantremote.Remote, ref registry.Reference) (*v1.Descriptor, error) {
+func FetchManifest(ctx context.Context, client *assistantremote.Remote, ref registry.Reference) (digest.Digest, v1.Manifest, error) {
 	repo, err := client.Repo(ref.Repository)
 	if err != nil {
-		return nil, err
+		return "", v1.Manifest{}, err
 	}
 	desc, err := repo.Resolve(ctx, ref.Reference)
 	if err != nil {
-		return nil, err
+		return "", v1.Manifest{}, err
 	}
 
 	rc, err := repo.Fetch(ctx, desc)
 	if err != nil {
-		return nil, err
+		return "", v1.Manifest{}, err
 	}
 	defer rc.Close()
 
 	manifestBytes, err := content.ReadAll(rc, desc)
 	if err != nil {
-		return nil, err
+		return "", v1.Manifest{}, err
 	}
 
 	var manifest v1.Manifest
 	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
-		return nil, err
+		return "", v1.Manifest{}, err
 	}
 
-	return &desc, nil
+	return desc.Digest, manifest, nil
 }

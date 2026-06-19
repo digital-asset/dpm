@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"daml.com/x/assistant/pkg/sdkmanifest"
+	"daml.com/x/assistant/pkg/yamledit"
 	"github.com/Masterminds/semver/v3"
 	"github.com/goccy/go-yaml"
 	"github.com/opencontainers/go-digest"
@@ -53,15 +54,22 @@ func (e *ComponentEntry) MarshalYAML() (any, error) {
 	}
 }
 
-func (compList ComponentList) ToMap() (map[string]*sdkmanifest.Component, error) {
+func (compList ComponentList) ToMap(yamlEditTarget *yamledit.YamlTarget) (map[string]*sdkmanifest.Component, error) {
 	compMap := make(map[string]*sdkmanifest.Component)
 	var errs []error
 
-	for _, entry := range compList {
+	for i, entry := range compList {
 		name, comp, err := entry.toComponent()
 		if err != nil {
 			errs = append(errs, err)
 			continue
+		}
+		if yamlEditTarget != nil {
+			comp.YamlEditTarget = &yamledit.YamlTarget{
+				YamlFilePath: yamlEditTarget.YamlFilePath,
+				FieldName:    yamlEditTarget.FieldName,
+				Index:        i,
+			}
 		}
 		compMap[name] = comp
 	}

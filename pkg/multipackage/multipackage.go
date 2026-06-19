@@ -12,6 +12,7 @@ import (
 	"daml.com/x/assistant/pkg/componentlist"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/utils"
+	"daml.com/x/assistant/pkg/yamledit"
 	"github.com/goccy/go-yaml"
 	"github.com/samber/lo"
 )
@@ -75,7 +76,10 @@ func ReadFromContents(contents []byte, absPath string) (*MultiPackage, error) {
 	}
 
 	if obj.ComponentsList != nil {
-		obj.Components, err = obj.ComponentsList.ToMap()
+		obj.Components, err = obj.ComponentsList.ToMap(&yamledit.YamlTarget{
+			YamlFilePath: absPath,
+			FieldName:    "components",
+		})
 		if err != nil {
 			return nil, err
 		}

@@ -19,7 +19,7 @@ func TestComponentList(t *testing.T) {
 	m := Manifest{}
 	require.NoError(t, yaml.Unmarshal(testdata.Valid, &m))
 
-	cs, err := m.Components.ToMap()
+	cs, err := m.Components.ToMap(nil)
 	require.NoError(t, err)
 
 	assert.Len(t, cs, 4)

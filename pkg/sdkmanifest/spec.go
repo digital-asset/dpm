@@ -6,6 +6,7 @@ package sdkmanifest
 import (
 	"fmt"
 
+	"daml.com/x/assistant/pkg/yamledit"
 	"github.com/goccy/go-yaml"
 	"github.com/opencontainers/go-digest"
 )
@@ -75,6 +76,8 @@ type Component struct {
 	ImageTag  *string `yaml:"image-tag,omitempty"`
 	LocalPath *string `yaml:"local-path,omitempty"`
 	Uri       *string `yaml:"uri,omitempty"`
+
+	YamlEditTarget *yamledit.YamlTarget `yaml:"-"`
 }
 
 // String returns representation meant for humans

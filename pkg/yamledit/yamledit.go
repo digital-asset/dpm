@@ -13,19 +13,20 @@ import (
 type YamlTarget struct {
 	YamlFilePath string
 	FieldName    string
+	Index        int
 }
 
 // EditYaml adds an item to list in yaml file
 // or replace the given index with it
-func EditYaml(info YamlTarget, item string, index int) error {
+func EditYaml(info YamlTarget, item string) error {
 	b, err := os.ReadFile(info.YamlFilePath)
 	if err != nil {
 		return err
 	}
 
 	var out string
-	if index != -1 {
-		out, err = ReplaceItemInList(b, info.FieldName, index, item)
+	if info.Index != -1 {
+		out, err = ReplaceItemInList(b, info.FieldName, info.Index, item)
 	} else {
 		out, err = AddToList(b, info.FieldName, item)
 	}

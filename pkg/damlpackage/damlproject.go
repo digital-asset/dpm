@@ -11,6 +11,7 @@ import (
 
 	"daml.com/x/assistant/pkg/componentlist"
 	"daml.com/x/assistant/pkg/sdkmanifest"
+	"daml.com/x/assistant/pkg/yamledit"
 	"github.com/goccy/go-yaml"
 )
 
@@ -59,7 +60,10 @@ func ReadFromContents(contents []byte, absoluteFilePath string) (*DamlPackage, e
 	obj.AbsolutePath = absoluteFilePath
 
 	if obj.ComponentsList != nil {
-		obj.Components, err = obj.ComponentsList.ToMap()
+		obj.Components, err = obj.ComponentsList.ToMap(&yamledit.YamlTarget{
+			YamlFilePath: absoluteFilePath,
+			FieldName:    "components",
+		})
 		if err != nil {
 			return nil, err
 		}

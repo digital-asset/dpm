@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
+	"daml.com/x/assistant/pkg/cacheindex"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"oras.land/oras-go/v2/registry"
 
@@ -56,6 +57,8 @@ type Config struct {
 	Registry         string `yaml:"registry,omitempty"`
 	RegistryAuthPath string `yaml:"registry-auth-path,omitempty"`
 	Insecure         bool   `yaml:"insecure,omitempty"`
+
+	CacheIndex *cacheindex.CacheIndex `yaml:"-"`
 }
 
 func (c *Config) SdkManifestsRepo() (string, error) {
@@ -67,10 +70,15 @@ func (c *Config) SdkManifestsRepo() (string, error) {
 }
 
 func (c *Config) EnsureDirs() error {
-	return utils.EnsureDirs(c.DamlHomePath, c.OciLayoutCache,
+	err := utils.EnsureDirs(c.DamlHomePath, c.OciLayoutCache,
 		filepath.Join(c.InstalledSdkManifestsPath, sdkmanifest.Enterprise.String()),
 		filepath.Join(c.InstalledSdkManifestsPath, sdkmanifest.Private.String()),
 		filepath.Join(c.InstalledSdkManifestsPath, sdkmanifest.OpenSource.String()))
+	if err != nil {
+		return err
+	}
+
+	return c.CacheIndex.Init()
 }
 
 func Get() (*Config, error) {
@@ -154,6 +162,9 @@ func GetWithCustomDamlHome(dpmHomePath string) (*Config, error) {
 	config.OciLayoutCache = filepath.Join(cacheDir, "oci-layout")
 	config.InstalledSdkManifestsPath = filepath.Join(cacheDir, "sdk")
 	config.InstallLocalFilePath = filepath.Join(config.InstalledSdkManifestsPath, ".lock")
+	config.CacheIndex = &cacheindex.CacheIndex{
+		AbsolutePath: filepath.Join(cacheDir, "index.json"),
+	}
 	return &config, nil
 }
 
