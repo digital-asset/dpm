@@ -474,8 +474,15 @@ func (a *Assembler) installUriComp(ctx context.Context, comp *sdkmanifest.Compon
 	if a.overridePlatform != nil {
 		platform = a.overridePlatform
 	}
-	if _, err := puller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform); err != nil {
+
+	ok, err := utils.DirExists(destPath)
+	if err != nil {
 		return "", err
+	}
+	if !ok {
+		if _, err := puller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform); err != nil {
+			return "", err
+		}
 	}
 
 	if err := a.config.CacheIndex.Store(sha256Digest, comp.Name, version); err != nil {
