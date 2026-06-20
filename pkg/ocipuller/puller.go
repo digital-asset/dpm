@@ -5,21 +5,20 @@ package ocipuller
 
 import (
 	"context"
+
 	"daml.com/x/assistant/pkg/oci"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils/fileinfo"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
 )
 
 type OciPuller interface {
-	PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, platform *simpleplatform.NonGeneric) (*v1.Descriptor, error)
-	PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) (*v1.Descriptor, error)
-	PullComponentByFullPath(ctx context.Context, componentPath, tag, destPath string, platform simpleplatform.Platform) (*v1.Descriptor, error)
-	PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) (*v1.Descriptor, error)
-	GetManifest(ctx context.Context, compRepo string, tag string, platform simpleplatform.Platform) (*v1.Descriptor, error)
+	PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, platform *simpleplatform.NonGeneric) error
+	PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error
+	PullComponentByFullPath(ctx context.Context, componentPath, tag, destPath string, platform simpleplatform.Platform) error
+	PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) error
 }
 
 // ApplyFileInfoCopyOptions returns an oras.CopyOptions that applies

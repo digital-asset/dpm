@@ -163,8 +163,8 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 		fmt.Println("Dar already installed.")
 		return nil
 	}
-	_, err = puller.PullDarByFullPath(ctx, ref.Repository, ref.Reference, darDir)
-	return err
+
+	return puller.PullDarByFullPath(ctx, ref.Repository, ref.Reference, darDir)
 }
 
 func installOverrides(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config, absPath string, sub bool) error {

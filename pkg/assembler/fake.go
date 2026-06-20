@@ -5,7 +5,6 @@ package assembler
 
 import (
 	"context"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -48,20 +47,17 @@ func Fake(registry *httptest.Server) (*Assembler, error) {
 
 type FakePuller struct{}
 
-func (f *FakePuller) PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) (*v1.Descriptor, error) {
+func (f *FakePuller) PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) error {
 	panic("not implemented")
 }
 
-func (f *FakePuller) PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, platform *simpleplatform.NonGeneric) (*v1.Descriptor, error) {
+func (f *FakePuller) PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, platform *simpleplatform.NonGeneric) error {
 	panic("not implemented")
 }
-func (f *FakePuller) PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
+func (f *FakePuller) PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error {
 	panic("not implemented")
 }
-func (f *FakePuller) PullComponentByFullPath(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
-	panic("not implemented")
-}
-func (f *FakePuller) GetManifest(ctx context.Context, compRepo string, tag string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
+func (f *FakePuller) PullComponentByFullPath(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error {
 	panic("not implemented")
 }
 

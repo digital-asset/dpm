@@ -5,7 +5,6 @@ package testutil
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http/httptest"
 	"os"
@@ -28,7 +27,6 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/goccy/go-yaml"
 	"github.com/google/go-containerregistry/pkg/registry"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -270,37 +268,4 @@ func ActivateMultiPackageYamlForTest(t *testing.T, s string) (packageDir string)
 	t.Chdir(tmpDir)
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "multi-package.yaml"), []byte(s), 0666))
 	return tmpDir
-}
-
-func FindManifestByAnnotation(path string, name string, value string) (string, error) {
-	indexPath := filepath.Join(path, "oci-layout/index.json")
-	_, err := os.Stat(indexPath)
-	// no oci-layout initialized
-	if os.IsNotExist(err) {
-		return "", nil
-	}
-
-	data, err := os.ReadFile(indexPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read file: %w", err)
-	}
-
-	var index ocispec.Index
-	if err := json.Unmarshal(data, &index); err != nil {
-		return "", fmt.Errorf("failed to unmarshal index: %w", err)
-	}
-
-	for _, desc := range index.Manifests {
-		if desc.Annotations == nil {
-			continue
-		}
-
-		if artifactName, nameFound := desc.Annotations[ociconsts.DescriptorNameAnnotation]; nameFound && artifactName == name {
-			if version, versionFound := desc.Annotations[v1.AnnotationVersion]; versionFound && version == value {
-				return desc.Digest.String(), nil
-			}
-		}
-	}
-
-	return "", nil
 }

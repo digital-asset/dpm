@@ -63,7 +63,7 @@ func installSdkVersion(ctx context.Context, config *assistantconfig.Config, pull
 		return err
 	}
 
-	_, err = puller.PullAssembly(ctx, edition, tag, tmpDir, simpleplatform.CurrentPlatform())
+	err = puller.PullAssembly(ctx, edition, tag, tmpDir, simpleplatform.CurrentPlatform())
 	if err != nil {
 		return err
 	}

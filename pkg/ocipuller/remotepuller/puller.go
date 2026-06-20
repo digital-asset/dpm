@@ -5,6 +5,8 @@ package remotepuller
 
 import (
 	"context"
+	"fmt"
+
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	ociconsts "daml.com/x/assistant/pkg/oci"
@@ -13,8 +15,6 @@ import (
 	"daml.com/x/assistant/pkg/ocipuller"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/simpleplatform"
-	"fmt"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
@@ -42,34 +42,34 @@ func NewFromRemoteConfig(config *assistantconfig.Config) (*RemoteOciPuller, erro
 	return New(config.OciLayoutCache, remote), nil
 }
 
-func (a *RemoteOciPuller) PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
+func (a *RemoteOciPuller) PullComponent(ctx context.Context, componentName, tag, destPath string, platform simpleplatform.Platform) error {
 	return a.pull(ctx, ociconsts.ComponentRepoPrefix+componentName, tag, destPath, platform)
 }
 
-func (a *RemoteOciPuller) PullComponentByFullPath(ctx context.Context, componentPath, reference, destPath string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
+func (a *RemoteOciPuller) PullComponentByFullPath(ctx context.Context, componentPath, reference, destPath string, platform simpleplatform.Platform) error {
 	return a.pull(ctx, componentPath, reference, destPath, platform)
 }
 
-func (a *RemoteOciPuller) PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) (*v1.Descriptor, error) {
+func (a *RemoteOciPuller) PullDarByFullPath(ctx context.Context, darPath, tag, destPath string) error {
 	return a.pull(ctx, darPath, tag, destPath, &simpleplatform.Generic{})
 }
 
-func (a *RemoteOciPuller) PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, platform *simpleplatform.NonGeneric) (*v1.Descriptor, error) {
+func (a *RemoteOciPuller) PullAssembly(ctx context.Context, edition sdkmanifest.Edition, tag, destPath string, platform *simpleplatform.NonGeneric) error {
 	repo, err := edition.SdkManifestsRepo()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	return a.pull(ctx, repo, tag, destPath, platform)
 }
 
-func (a *RemoteOciPuller) pull(ctx context.Context, repo, reference, destPath string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
+func (a *RemoteOciPuller) pull(ctx context.Context, repo, reference, destPath string, platform simpleplatform.Platform) error {
 	src, err := a.cachedRepo(fmt.Sprintf("%s/%s", a.remote.Registry, repo))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	dest, err := file.New(destPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	dest.PreservePermissions = true
 	// errors out if dest already exists
@@ -78,24 +78,19 @@ func (a *RemoteOciPuller) pull(ctx context.Context, repo, reference, destPath st
 	if nonGeneric, ok := platform.(*simpleplatform.NonGeneric); ok {
 		index, _, err := ociindex.FetchIndex(ctx, a.remote, repo, reference)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		descriptor, err := ociindex.FindTargetPlatform(index.Manifests, nonGeneric)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		opts.WithTargetPlatform(descriptor.Platform)
 	}
 
-	desc, err := oras.Copy(ctx, src, reference, dest, reference, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO - copy index.json to cache from oci-layout
-	return &desc, err
+	_, err = oras.Copy(ctx, src, reference, dest, reference, opts)
+	return err
 }
 
 func (a *RemoteOciPuller) cachedRepo(url string) (oras.ReadOnlyTarget, error) {
@@ -106,18 +101,4 @@ func (a *RemoteOciPuller) cachedRepo(url string) (oras.ReadOnlyTarget, error) {
 	repo.Client = a.remote
 	repo.PlainHTTP = a.remote.Insecure
 	return ocicache.CachedTarget(repo, a.ociLayoutCache)
-}
-
-func (a *RemoteOciPuller) GetManifest(ctx context.Context, compRepo string, tag string, platform simpleplatform.Platform) (*v1.Descriptor, error) {
-	nonGeneric := platform.(*simpleplatform.NonGeneric)
-	index, _, err := ociindex.FetchIndex(ctx, a.remote, compRepo, tag)
-	if err != nil {
-		return nil, err
-	}
-
-	manifestDesc, err := ociindex.FindTargetPlatform(index.Manifests, nonGeneric)
-	if err != nil {
-		return nil, err
-	}
-	return manifestDesc, nil
 }
