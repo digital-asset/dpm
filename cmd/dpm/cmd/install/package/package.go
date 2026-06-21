@@ -163,6 +163,7 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 	}
 
 	if assistantconfig.ShaPinningEnabled() && !strings.Contains(dar.FullUrl.String(), "@sha256:") {
+		ociManifest, err := ocilister.FetchManifest(ctx, client, *ref)
 		if err != nil {
 			return nil, err
 		}
@@ -193,7 +194,7 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 	}
 	if ok {
 		fmt.Println("Dar already installed.")
-		return nil, nil
+		return updatedDar, nil
 	}
 	if _, err = puller.PullDarByFullPath(ctx, ref.Repository, ref.Reference, darDir); err != nil {
 		return nil, err

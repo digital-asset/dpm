@@ -47,7 +47,7 @@ func (d *ParsedDarDependency) StringWithAlias() string {
 	}
 	u := d.FullUrl.String()
 
-	if d.Location == nil {
+	if d.Location == nil || !strings.HasPrefix(u, d.Location.Url) {
 		return u
 	}
 
