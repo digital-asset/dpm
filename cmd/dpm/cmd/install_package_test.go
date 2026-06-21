@@ -12,12 +12,15 @@ import (
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
+	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/testutil"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"oras.land/oras-go/v2/registry"
 )
 
 func (suite *MainSuite) TestInstallPackage() {
@@ -161,6 +164,93 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 			require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
 			checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
 		})
+	})
+}
+
+func (suite *MainSuite) TestShaPinningForUriComponentsInSinglePackageProject() {
+	t := suite.T()
+
+	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
+
+	_ = testutil.MkConfig(t)
+	_, reg := testutil.StartRegistry(t)
+	newComponentRepo := "newly/added:4.5.6"
+	newComponent := fmt.Sprintf("oci://%s/%s", testutil.GetRemote(reg).Registry, newComponentRepo)
+
+	args := testutil.PushComponentUri(reg, newComponentRepo, testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+	projectDir := testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
+components:
+  - %s
+`, newComponent))
+
+	t.Run("dpm install appends missing sha256 to oci uri", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t, "install")
+		require.NoError(t, cmd.Execute())
+
+		ref, err := registry.ParseReference(strings.TrimPrefix(newComponent, "oci://"))
+		require.NoError(t, err)
+		client, err := assistantremote.New(ref.Registry, "", true)
+		require.NoError(t, err)
+		resolvedDigest, _, err := ocilister.FetchManifest(t.Context(), client, ref)
+		require.NoError(t, err)
+
+		newContent, err := os.ReadFile(filepath.Join(projectDir, "daml.yaml"))
+		require.NoError(t, err)
+		assert.Contains(t, string(newContent), newComponent+"@"+resolvedDigest.String())
+	})
+
+	t.Run("dpm resolve works for sha256 pinned oci components", func(t *testing.T) {
+		resolution := runResolveCommand(t)
+		comps := lo.Values(lo.Values(resolution.Packages)[0].ComponentsV2)
+		assert.Len(t, comps, 1)
+		assert.Equal(t, "4.5.6", comps[0]["version"])
+	})
+
+	t.Run("dpm installing more than once", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t, "install")
+		require.NoError(t, cmd.Execute())
+	})
+}
+
+func (suite *MainSuite) TestShaPinningForUriComponentsInMultiPackageProject() {
+	t := suite.T()
+
+	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
+
+	_ = testutil.MkConfig(t)
+	_, reg := testutil.StartRegistry(t)
+	newComponentRepo := "newly/added:4.5.6"
+	newComponent := fmt.Sprintf("oci://%s/%s", testutil.GetRemote(reg).Registry, newComponentRepo)
+
+	args := testutil.PushComponentUri(reg, newComponentRepo, testutil.TestdataPath(t, "meepy-component", testutil.OS))
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+	projectDir := testutil.ActivateMultiPackageYamlForTest(t, fmt.Sprintf(`
+components:
+  - %s
+`, newComponent))
+
+	t.Run("dpm install appends missing sha256 to oci uri", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t, "install", "package")
+		require.NoError(t, cmd.Execute())
+
+		ref, err := registry.ParseReference(strings.TrimPrefix(newComponent, "oci://"))
+		require.NoError(t, err)
+		client, err := assistantremote.New(ref.Registry, "", true)
+		require.NoError(t, err)
+		resolvedDigest, _, err := ocilister.FetchManifest(t.Context(), client, ref)
+		require.NoError(t, err)
+
+		newContent, err := os.ReadFile(filepath.Join(projectDir, "multi-package.yaml"))
+		require.NoError(t, err)
+		assert.Contains(t, string(newContent), newComponent+"@"+resolvedDigest.String())
+	})
+
+	t.Run("dpm installing more than once", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t, "install")
+		require.NoError(t, cmd.Execute())
 	})
 }
 
