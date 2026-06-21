@@ -11,8 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"daml.com/x/assistant/pkg/ociindex"
-
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/testutil"
@@ -166,54 +164,37 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 	})
 }
 
-func (suite *MainSuite) TestLegacyCacheResolution() {
+func (suite *MainSuite) TestLegacyCacheResolutionForSdkComponentsUnaffectedByShaCaching() {
 	t := suite.T()
-
-	cwd, err := os.Getwd()
-
-	require.NoError(t, err)
-
-	t.Cleanup(func() { require.NoError(t, os.Chdir(cwd)) })
 
 	installSdk(t, []string{someSdkVersion})
 
-	c, err := assistantconfig.Get()
-	require.NoError(t, err)
+	deepResolution := runResolveCommand(t)
+	comp := deepResolution.DefaultSDK[someSdkVersion].ComponentsV2["meep"]
+	assert.Equal(t, "1.2.3", comp["version"])
+	assert.Equal(t,
+		filepath.Join(os.Getenv(assistantconfig.DpmHomeEnvVar), "cache", "components", "meep", "1.2.3"),
+		comp["path"])
+}
 
-	require.NoError(t, os.Chdir(testutil.TestdataPath(t, "resolve-test", testutil.OS)))
+func (suite *MainSuite) TestLegacyCacheResolutionForShorthandComponentsUnaffectedByShaCaching() {
+	t := suite.T()
+	c := testutil.MkConfig(t)
+
+	ctx := testutil.Context(t)
+	_, reg := testutil.StartRegistry(t)
+
+	// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
+	testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
+
+	t.Chdir(testutil.TestdataPath(t, "resolve-test", testutil.OS))
+	cmd := createStdTestRootCmd(t, "install", "package")
+	require.NoError(t, cmd.Execute())
 
 	deepResolution := runResolveCommand(t)
 	comp := lo.Values(deepResolution.Packages)[0].ComponentsV2["meep"]
-	assert.Len(t, deepResolution.Packages, 1)
+	assert.Equal(t, comp["path"], filepath.Join(c.CachePath, "components", "meep", "1.2.3"))
 	assert.Equal(t, "1.2.3", comp["version"])
-
-	t.Run("test cache still writing to version", func(t *testing.T) {
-		ctx := testutil.Context(t)
-		client, reg := testutil.StartRegistry(t)
-
-		// Want to ensure that version is still using handleOCI - push up using internal DA pushComponent
-		testutil.PushComponent(t, ctx, reg, "meep", "1.2.3", testutil.TestdataPath(t, "meepy-component", testutil.OS))
-		require.NoError(t, os.Chdir(testutil.TestdataPath(t, "resolve-test", testutil.OS)))
-
-		cmd := createStdTestRootCmd(t, "install", "package")
-		require.NoError(t, cmd.Execute())
-
-		repoMeep, err := client.Repo("components/meep")
-		require.NoError(t, err)
-		meepDescriptor, err := repoMeep.Resolve(ctx, "1.2.3")
-		require.NoError(t, err)
-
-		rc, err := repoMeep.Fetch(ctx, meepDescriptor)
-		require.NoError(t, err)
-		defer rc.Close()
-
-		index, _, err := ociindex.FetchIndex(ctx, client, "components/meep", "1.2.3")
-		require.NoError(t, err)
-
-		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2["meep"]
-		assert.Equal(t, comp["path"], filepath.Join(c.CachePath, "components", utils.UrlToFilePath("meep"), strings.ReplaceAll(index.Manifests[0].Digest.String(), ":", "_")))
-		assert.Equal(t, "1.2.3", comp["version"])
-	})
 }
 
 func checkComponent(t *testing.T, deepResolution *resolution.Resolution, dpmHome string) func(name string, version string) {
