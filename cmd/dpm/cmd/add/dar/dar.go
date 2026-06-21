@@ -127,11 +127,11 @@ func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, damlPac
 	}
 
 	// Resolve to sha256
-	ociManifest, err := ocilister.FetchManifest(ctx, client, ref)
+	resolvedDigest, _, err := ocilister.FetchManifest(ctx, client, ref)
 	if err != nil {
 		return err
 	}
-	resolvedUri := uri + "@" + ociManifest.Digest.String()
+	resolvedUri := uri + "@" + resolvedDigest.String()
 
 	// Pull
 	parsedUrl, err := url.Parse(resolvedUri)

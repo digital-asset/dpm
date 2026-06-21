@@ -141,7 +141,8 @@ func installDars(ctx context.Context, config *assistantconfig.Config, dars []*da
 		// now update daml.yaml if we had to append a @sha256
 		if updatedDar != nil {
 			quotedUri := fmt.Sprintf("\"%s\"", updatedDar.StringWithAlias())
-			return yamledit.EditYaml(yamlTarget, quotedUri, updatedDar.Index)
+			yamlTarget.Index = updatedDar.Index
+			return yamledit.EditYaml(yamlTarget, quotedUri)
 		}
 	}
 	return nil
@@ -163,12 +164,12 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 	}
 
 	if assistantconfig.ShaPinningEnabled() && !strings.Contains(dar.FullUrl.String(), "@sha256:") {
-		ociManifest, err := ocilister.FetchManifest(ctx, client, *ref)
+		resolvedDigest, _, err := ocilister.FetchManifest(ctx, client, *ref)
 		if err != nil {
 			return nil, err
 		}
 
-		newUrl, err := url.Parse(dar.FullUrl.String() + "@" + ociManifest.Digest.String())
+		newUrl, err := url.Parse(dar.FullUrl.String() + "@" + resolvedDigest.String())
 		if err != nil {
 			return nil, err
 		}

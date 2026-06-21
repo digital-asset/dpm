@@ -416,7 +416,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 			if a.overridePlatform != nil {
 				platform = a.overridePlatform
 			}
-			if err := puller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform); err != nil {
+			if _, err := puller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform); err != nil {
 				return "", err
 			}
 		}
@@ -484,7 +484,7 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 			platform = a.overridePlatform
 		}
 		fmt.Printf("pulling sdk component %s %s...\n", comp.Name, tag)
-		if err := a.puller.PullComponent(ctx, comp.Name, tag, destPath, platform); err != nil {
+		if _, err := a.puller.PullComponent(ctx, comp.Name, tag, destPath, platform); err != nil {
 			return "", err
 		}
 	}

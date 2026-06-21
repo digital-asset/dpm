@@ -134,16 +134,9 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 		randoSHA := randoDescriptor.Digest.String()
 		t.Setenv("TEST_RANDO_SHA", randoSHA)
 
-		repoJava, err := client.Repo("components/javabro")
-		require.NoError(t, err)
-		javaDescriptor, err := repoJava.Resolve(ctx, "6.7.8")
-		require.NoError(t, err)
-		javaSHA := javaDescriptor.Digest.String()
-		t.Setenv("TEST_JAVA_SHA", javaSHA)
-
 		cmd := createStdTestRootCmd(t, installCommand...)
-
 		require.NoError(t, cmd.Execute())
+
 		require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
 
 		deepResolution := runResolveCommand(t)
@@ -159,8 +152,6 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 
 		// Test that the cache and dpm resolve use the full URsI for `oci://` based components
 		checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
-		// and use the shorthand for non `oci://` components
-		checkComponent("javabro", strings.ReplaceAll(javaSHA, ":", "_"))
 
 		t.Run("test that moving tag to new sha doesn't break pinning", func(t *testing.T) {
 			args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "components", "rando"))

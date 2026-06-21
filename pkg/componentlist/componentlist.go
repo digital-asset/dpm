@@ -9,7 +9,6 @@ import (
 	"daml.com/x/assistant/pkg/yamledit"
 	"github.com/Masterminds/semver/v3"
 	"github.com/goccy/go-yaml"
-	"github.com/opencontainers/go-digest"
 	"oras.land/oras-go/v2/registry"
 )
 
@@ -114,23 +113,7 @@ func fromStringBasedComponent(c string) (string, *sdkmanifest.Component, error) 
 
 		return name, &sdkmanifest.Component{Name: name, Uri: &c}, nil
 	} else if strings.Contains(c, "@") && !strings.Contains(c, "/") {
-		// e.g "damlc@sha256:abc123" "damlc:123@sha256:abc1234"
-		parts := strings.Split(c, "@")
-
-		name, sha := parts[0], parts[1]
-
-		trimmedName, _, found := strings.Cut(name, ":")
-		if found {
-			// handle damlc:1.2.3@sha256:abc1234 case by trimming the version from the name
-			name = trimmedName
-		}
-
-		dg, err := digest.Parse(sha)
-		if err != nil {
-			return "", nil, fmt.Errorf("couldn't parse component %q: %w", c, err)
-		}
-
-		return name, &sdkmanifest.Component{Name: name, Digest: &dg}, nil
+		return "", nil, fmt.Errorf("invalid uri: currently, opt-in components that have '@sha256' must have fully-qualified uri beginning with 'oci://'")
 	} else if strings.Contains(c, ":") && !strings.Contains(c, "/") {
 		// e.g. "damlc:1.2.3"
 		parts := strings.Split(c, ":")
@@ -138,7 +121,7 @@ func fromStringBasedComponent(c string) (string, *sdkmanifest.Component, error) 
 
 		semVer, err := semver.StrictNewVersion(version)
 		if err != nil {
-			return "", nil, fmt.Errorf("couldn't parse component %q: %w", c, err)
+			return "", nil, fmt.Errorf("couldn't parse component's %q tag as semver (for floaty-tags, use fully-qualified 'oci://' URIs): %w", c, err)
 		}
 
 		return name, &sdkmanifest.Component{Name: name, Version: sdkmanifest.AssemblySemVer(semVer)}, nil

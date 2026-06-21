@@ -220,10 +220,10 @@ func pushDar(t *testing.T, uri string, extraTags ...string) (refWithDigest regis
 
 	client, err := assistantremote.New(ref.Registry, "", true)
 	require.NoError(t, err)
-	descriptor, err := ocilister.FetchManifest(t.Context(), client, ref)
+	resolvedDigest, _, err := ocilister.FetchManifest(t.Context(), client, ref)
 	require.NoError(t, err)
 
-	return appendShaToRef(t, ref, descriptor.Digest.String())
+	return appendShaToRef(t, ref, resolvedDigest.String())
 }
 
 func appendShaToRef(t *testing.T, ref registry.Reference, digest string) registry.Reference {

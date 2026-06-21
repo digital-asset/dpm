@@ -139,7 +139,7 @@ func asSdkManifest(uri string) (*sdkmanifest.SdkManifest, error) {
 		&componentlist.ComponentEntry{
 			StringBased: &uri,
 		},
-	}.ToMap()
+	}.ToMap(nil)
 	if err != nil {
 		return nil, err
 	}
