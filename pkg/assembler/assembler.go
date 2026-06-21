@@ -5,18 +5,19 @@ package assembler
 
 import (
 	"context"
-	ociconsts "daml.com/x/assistant/pkg/oci"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
-	"github.com/opencontainers/go-digest"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"log/slog"
 	"maps"
 	"os"
 	"path/filepath"
 	"strings"
+
+	ociconsts "daml.com/x/assistant/pkg/oci"
+	"github.com/Masterminds/semver/v3"
+	"github.com/opencontainers/go-digest"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
@@ -449,7 +450,17 @@ func (a *Assembler) HandleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 			return "", err
 		}
 		if found {
-			return a.handleOCI(ctx, comp.Name, ref)
+			path := a.ociComponentPath(comp.Name, ref)
+
+			ok, err := utils.DirExists(path)
+
+			// if we cannot find by digest fall through to version
+			if err != nil {
+				return a.handleOCI(ctx, comp.Name, comp.Version.Value().String())
+			}
+			if ok {
+				return a.handleOCI(ctx, comp.Name, ref)
+			}
 		}
 		return a.handleOCI(ctx, comp.Name, comp.Version.Value().String())
 	}
