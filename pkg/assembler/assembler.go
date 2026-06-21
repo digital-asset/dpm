@@ -25,6 +25,7 @@ import (
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
 	"daml.com/x/assistant/pkg/yamledit"
+	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/samber/lo"
 	"oras.land/oras-go/v2/registry"
@@ -362,6 +363,10 @@ func (a *Assembler) handleLocalDir(basePath, componentPath string) string {
 }
 
 func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+	if a.config.AutoInstall {
+		return a.installUriComp(ctx, comp)
+	}
+
 	uri := *comp.Uri
 
 	ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
@@ -369,101 +374,128 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		return "", err
 	}
 
-	if a.config.AutoInstall {
-		var version string
+	digest, err := ref.Digest()
+	if err != nil {
+		// legacy case where 'oci://' Uris hadn't yet supported digests.
+		// we'll fall back to not relying on CacheIndex and assume the legacy cache layout
+		fmt.Fprintln(os.Stderr, "warn: dpm now attaches @sha256 digest to OCI URIs. Please run 'dpm install' to have dpm update your daml.yaml / component.yaml")
 
-		client, err := assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
-		if err != nil {
-			return "", err
-		}
-
-		var newUri string
-
-		sha256Digest, digestErr := ref.Digest()
-
-		// if the URI doesn't already have a sha256, give it one.
-		// (this does not necessarily mean we're gonna bump dependencies)
-		if digestErr != nil {
-			resolvedDigest, ociManifest, err := ocilister.FetchManifest(ctx, client, ref)
-			if err != nil {
-				return "", err
-			}
-			sha256Digest = resolvedDigest
-			version = ociManifest.Annotations[v1.AnnotationVersion]
-			newUri = uri + "@" + resolvedDigest.String()
-
-			// update client and ref
-			ref, err = registry.ParseReference(strings.TrimPrefix(newUri, "oci://"))
-			if err != nil {
-				return "", err
-			}
-			client, err = assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
-			if err != nil {
-				return "", err
-			}
-		}
-
-		destPath := a.ociComponentPath(comp.Name, version)
-
-		// check if component is already in the cache
-		ok, err := utils.DirExists(destPath)
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			puller := remotepuller.New(a.config.OciLayoutCache, client)
-			platform := simpleplatform.CurrentPlatform()
-			if a.overridePlatform != nil {
-				platform = a.overridePlatform
-			}
-			if _, err := puller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform); err != nil {
-				return "", err
-			}
-		}
-
-		if err := a.config.CacheIndex.Store(sha256Digest, comp.Name, version); err != nil {
-			return "", err
-		}
-
-		// if we had to append a sha, update the daml.yaml
-		if newUri != "" {
-			if comp.YamlEditTarget == nil {
-				return "", fmt.Errorf("could not update project's daml.yaml or multi-package.yaml with component's sha for component %q as the need info to edit the yaml file is missing", uri)
-			}
-			yamledit.EditYaml(*comp.YamlEditTarget, newUri)
-		}
-
-		return destPath, nil
-	} else {
-		digest, err := ref.Digest()
-		if err != nil {
-			// legacy case where uris didn't yet have digest
-			// we'll fall back to not relying on CacheIndex
-			fmt.Fprintln(os.Stderr, "warn: dpm now attaches @sha256 digest to OCI URIs. Please run 'dpm install' to have dpm update your daml.yaml / component.yaml")
-
-			// TODO
-			return "TODO", nil
-		}
-
-		_, version, ok, err := a.config.CacheIndex.Get(digest.String())
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", fmt.Errorf("component %q is currently not installed.  Run `dpm install package` to install", comp.String())
-		}
-
-		destPath := a.ociComponentPath(comp.Name, version)
-		ok, err = utils.DirExists(destPath)
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", fmt.Errorf("component %q is currently not installed.  Run `dpm install package` to install", comp.String())
-		}
-
-		return destPath, nil
+		// TODO
+		return "TODO", nil
 	}
+
+	destPath, ok, err := a.getFromCacheByDigest(comp, digest)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", fmt.Errorf("component %q is currently not installed.  Run `dpm install package` to install", comp.String())
+	}
+	return destPath, nil
+}
+
+func (a *Assembler) installUriComp(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+	uri := *comp.Uri
+
+	ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
+	if err != nil {
+		return "", err
+	}
+
+	var version string
+
+	client, err := assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
+	if err != nil {
+		return "", err
+	}
+
+	var newUri string
+
+	sha256Digest, digestErr := ref.Digest()
+
+	// if the URI doesn't already have a sha256, give it one.
+	// (this does not necessarily mean we're gonna bump dependencies. This method never changes existing SHAs!)
+	if digestErr != nil {
+		resolvedDigest, ociManifest, err := ocilister.FetchManifest(ctx, client, ref)
+		if err != nil {
+			return "", err
+		}
+		sha256Digest = resolvedDigest
+		version = ociManifest.Annotations[v1.AnnotationVersion]
+		newUri = uri + "@" + resolvedDigest.String()
+
+		// update client and ref
+		ref, err = registry.ParseReference(strings.TrimPrefix(newUri, "oci://"))
+		if err != nil {
+			return "", err
+		}
+		client, err = assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		// The uri has a sha already.
+
+		destPath, ok, err := a.getFromCacheByDigest(comp, sha256Digest)
+		if err != nil {
+			return "", err
+		}
+		// if it had been downloaded already, and we could fetch it from the cache, we're done
+		if ok {
+			return destPath, nil
+		}
+
+		// otherwise we're gonna have to pull it anyway.
+		// we'll resolve again despite already knowing the SHA, because we need to get the version
+		_, ociManifest, err := ocilister.FetchManifest(ctx, client, ref)
+		if err != nil {
+			return "", err
+		}
+		version = ociManifest.Annotations[v1.AnnotationVersion]
+	}
+
+	destPath := a.ociComponentPath(comp.Name, version)
+
+	puller := remotepuller.New(a.config.OciLayoutCache, client)
+	platform := simpleplatform.CurrentPlatform()
+	if a.overridePlatform != nil {
+		platform = a.overridePlatform
+	}
+	if _, err := puller.PullComponentByFullPath(ctx, ref.Repository, ref.Reference, destPath, platform); err != nil {
+		return "", err
+	}
+
+	if err := a.config.CacheIndex.Store(sha256Digest, comp.Name, version); err != nil {
+		return "", err
+	}
+
+	// if we had to append a sha, update the daml.yaml / component.yaml
+	if newUri != "" {
+		if comp.YamlEditTarget == nil {
+			return "", fmt.Errorf("could not update project's daml.yaml or multi-package.yaml with component's sha for component %q as the need info to edit the yaml file is missing", uri)
+		}
+		yamledit.EditYaml(*comp.YamlEditTarget, newUri)
+	}
+
+	return destPath, nil
+
+}
+
+func (a *Assembler) getFromCacheByDigest(comp *sdkmanifest.Component, d digest.Digest) (string, bool, error) {
+	_, version, ok, err := a.config.CacheIndex.Get(d.String())
+	if err != nil {
+		return "", false, err
+	}
+	if !ok {
+		return "", false, nil
+	}
+
+	destPath := a.ociComponentPath(comp.Name, version)
+	ok, err = utils.DirExists(destPath)
+	if err != nil {
+		return "", false, err
+	}
+	return destPath, ok, nil
 }
 
 func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) (string, error) {

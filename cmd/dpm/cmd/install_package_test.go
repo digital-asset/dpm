@@ -141,7 +141,7 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 
 		deepResolution := runResolveCommand(t)
 		assert.Len(t, deepResolution.Packages, 1)
-		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 3)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 2)
 
 		checkComponent := func(name, version string) {
 			// Test that the cache and dpm resolve use the full URI for `oci://` based components
@@ -151,7 +151,7 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 		}
 
 		// Test that the cache and dpm resolve use the full URsI for `oci://` based components
-		checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
+		checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
 
 		t.Run("test that moving tag to new sha doesn't break pinning", func(t *testing.T) {
 			args := testutil.PushComponentUri(reg, fmt.Sprintf("%s/%s:%s", "foo/bar", "meep", "1.2.3"), testutil.TestdataPath(t, "components", "rando"))
@@ -160,7 +160,7 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 			require.NoError(t, cmd.Execute())
 			// assert meep component not overwritten
 			require.NoError(t, createStdTestRootCmd(t, "meep").Execute())
-			checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
+			checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
 		})
 	})
 }
