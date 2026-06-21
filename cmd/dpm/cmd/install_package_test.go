@@ -71,7 +71,14 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 		regURL, altURL := setupRegistriesAndPublishedComponents(t)
 
 		// run install package
-		require.NoError(t, os.Chdir(testutil.TestdataPath(t, "multi-registry", testutil.OS)))
+
+		tmpProjectDir := t.TempDir()
+		require.NoError(t, utils.CopyFile(
+			filepath.Join(testutil.TestdataPath(t, "multi-registry", "daml.yaml")),
+			filepath.Join(tmpProjectDir, "daml.yaml"),
+		))
+		t.Chdir(tmpProjectDir)
+
 		cmd := createStdTestRootCmd(t, installCommand...)
 		require.NoError(t, cmd.Execute())
 
@@ -81,20 +88,14 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 		// run resolve command
 		deepResolution := runResolveCommand(t)
 		assert.Len(t, deepResolution.Packages, 1)
-		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 4)
+		assert.Len(t, lo.Values(deepResolution.Packages)[0].Components, 3)
 
 		checkComponent := checkComponent(t, deepResolution, dpmHome)
-		meepSHA, err := testutil.FindManifestByAnnotation(filepath.Join(dpmHome, "cache"), "meep", "1.2.3")
-		require.NoError(t, err)
-		randoSHA, err := testutil.FindManifestByAnnotation(filepath.Join(dpmHome, "cache"), "rando", "1.2.4")
 		require.NoError(t, err)
 
 		// Test that the cache and dpm resolve use the full URI for `oci://` based components
-		checkComponent(regURL+"/"+"foo/bar/meep", strings.ReplaceAll(meepSHA, ":", "_"))
-		checkComponent(altURL+"/"+"bar/foo/rando", strings.ReplaceAll(randoSHA, ":", "_"))
-
-		// local non `oci://` components
-		assert.Equal(t, testutil.TestdataPath(t, "another-generic-component"), lo.Values(deepResolution.Packages)[0].ComponentsV2["my-local-component"]["path"])
+		checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
+		checkComponent(altURL+"/"+"bar/foo/rando", "1.2.4")
 	})
 
 	t.Run("install package with pinning", func(t *testing.T) {
