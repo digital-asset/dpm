@@ -25,6 +25,7 @@ import (
 	"daml.com/x/assistant/pkg/simpleplatform"
 	"daml.com/x/assistant/pkg/utils"
 	"daml.com/x/assistant/pkg/yamledit"
+	"github.com/Masterminds/semver/v3"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/samber/lo"
@@ -368,7 +369,6 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 	}
 
 	uri := *comp.Uri
-
 	ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
 	if err != nil {
 		return "", err
@@ -379,9 +379,7 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 		// legacy case where 'oci://' Uris hadn't yet supported digests.
 		// we'll fall back to not relying on CacheIndex and assume the legacy cache layout
 		fmt.Fprintln(os.Stderr, "warn: dpm now attaches @sha256 digest to OCI URIs. Please run 'dpm install' to have dpm update your daml.yaml / component.yaml")
-
-		// TODO
-		return "TODO", nil
+		return a.legacyUriComponentLookup(comp, ref)
 	}
 
 	destPath, ok, err := a.getFromCacheByDigest(comp, digest)
@@ -394,22 +392,37 @@ func (a *Assembler) handleURI(ctx context.Context, comp *sdkmanifest.Component) 
 	return destPath, nil
 }
 
-func (a *Assembler) installUriComp(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
-	uri := *comp.Uri
+func (a *Assembler) legacyUriComponentLookup(comp *sdkmanifest.Component, ref registry.Reference) (string, error) {
+	version, err := semver.StrictNewVersion(ref.Reference)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse %q as strict semantic version in %q: %w", ref.Reference, *comp.Uri, err)
+	}
 
+	destPath := a.ociComponentPath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository), version.String())
+	ok, err := utils.DirExists(destPath)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", fmt.Errorf("component %q is currently not installed.  Run `dpm install package` to install", comp.String())
+	}
+
+	return destPath, nil
+}
+
+func (a *Assembler) installUriComp(ctx context.Context, comp *sdkmanifest.Component) (string, error) {
+	var version, newUri string
+
+	uri := *comp.Uri
 	ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
 	if err != nil {
 		return "", err
 	}
 
-	var version string
-
 	client, err := assistantremote.New(ref.Registry, a.config.RegistryAuthPath, a.config.Insecure)
 	if err != nil {
 		return "", err
 	}
-
-	var newUri string
 
 	sha256Digest, digestErr := ref.Digest()
 
@@ -472,13 +485,14 @@ func (a *Assembler) installUriComp(ctx context.Context, comp *sdkmanifest.Compon
 	// if we had to append a sha, update the daml.yaml / component.yaml
 	if newUri != "" {
 		if comp.YamlEditTarget == nil {
-			return "", fmt.Errorf("could not update project's daml.yaml or multi-package.yaml with component's sha for component %q as the need info to edit the yaml file is missing", uri)
+			return "", fmt.Errorf("could not update project's daml.yaml or multi-package.yaml with component's sha for component %q as the needed info to edit the yaml file is missing", uri)
 		}
-		yamledit.EditYaml(*comp.YamlEditTarget, newUri)
+		if err := yamledit.EditYaml(*comp.YamlEditTarget, newUri); err != nil {
+			return "", err
+		}
 	}
 
 	return destPath, nil
-
 }
 
 func (a *Assembler) getFromCacheByDigest(comp *sdkmanifest.Component, d digest.Digest) (string, bool, error) {
@@ -525,7 +539,6 @@ func (a *Assembler) handleOCI(ctx context.Context, comp *sdkmanifest.Component) 
 }
 
 func ComputeTagOrDigest(comp *sdkmanifest.Component) string {
-	// TODO fully flesh this out
 	return comp.Version.Value().String()
 }
 

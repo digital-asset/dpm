@@ -23,8 +23,12 @@ type CacheIndexContents struct {
 }
 
 type CacheIndexComponent struct {
-	Name    string `json:"name"`
 	Version string `json:"version"`
+
+	// this is not needed but is being included because having it will allow us
+	// to make bold changes if we want to better flesh out / overhaul the concept of "name"
+	// in dpm in the future
+	Name string `json:"name"`
 }
 
 func (c *CacheIndex) Store(d digest.Digest, name, version string) error {

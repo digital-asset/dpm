@@ -165,6 +165,21 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 			checkComponent(regURL+"/"+"foo/bar/meep", "1.2.3")
 		})
 	})
+
+	t.Run("install package with local-filepath components", func(t *testing.T) {
+		localComponentPath := testutil.TestdataPath(t, "another-generic-component")
+
+		testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
+components:
+    - name: my-local-component
+      path: %s`, localComponentPath))
+
+		cmd := createStdTestRootCmd(t, installCommand...)
+		require.NoError(t, cmd.Execute())
+
+		deepResolution := runResolveCommand(t)
+		assert.Equal(t, localComponentPath, lo.Values(deepResolution.Packages)[0].ComponentsV2["my-local-component"]["path"])
+	})
 }
 
 func (suite *MainSuite) TestShaPinningForUriComponentsInSinglePackageProject() {
