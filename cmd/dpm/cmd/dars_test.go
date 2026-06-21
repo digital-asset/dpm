@@ -47,11 +47,10 @@ func (suite *MainSuite) TestResolutionOfOciDarDependencies() {
 
 	config := testutil.MkConfig(t)
 
-	projectDir := t.TempDir()
-	utils.CopyFile(
+	require.NoError(t, utils.CopyFile(
 		testutil.TestdataPath(t, "oci-dar-deps", "daml.yaml"), // fixture daml.yaml
-		filepath.Join(projectDir, "daml.yaml"))
-	t.Chdir(projectDir)
+		filepath.Join(projectDir, "daml.yaml"),
+	))
 
 	// push dars to test registry
 	testutil.StartRegistry(t)

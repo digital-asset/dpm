@@ -162,10 +162,7 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 		return nil, fmt.Errorf("tag not allowed in %q: only strict semver OCI tags are supported currently", dar.FullUrl.String())
 	}
 
-	// if the URI doesn't already have a sha256, give it one.
-	// (this does not mean we're gonna bump dependencies)
-	if !strings.Contains(dar.FullUrl.String(), "@sha256:") {
-		ociManifest, err := ocilister.FetchManifest(ctx, client, *ref)
+	if assistantconfig.ShaPinningEnabled() && !strings.Contains(dar.FullUrl.String(), "@sha256:") {
 		if err != nil {
 			return nil, err
 		}
