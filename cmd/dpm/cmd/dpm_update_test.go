@@ -58,6 +58,61 @@ packages:
 	})
 }
 
+func (suite *MainSuite) TestDpmUpdateCommandForFloatyComponents() {
+	t := suite.T()
+
+	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
+
+	_ = testutil.MkConfig(t)
+	_, reg := testutil.StartRegistry(t)
+	componentRepo := "newly/added"
+	componentOciUri := fmt.Sprintf("oci://%s/%s", testutil.GetRemote(reg).Registry, componentRepo)
+
+	args := testutil.PushComponentUri(reg, componentRepo+":1.1.1", testutil.TestdataPath(t, "meepy-component", testutil.OS), "latest")
+	require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+	projectDir := testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
+components:
+  - %s:latest
+`, componentOciUri))
+
+	var uriBeforeUpdate string
+
+	t.Run("dpm install should append missing sha256 to oci uri", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t, "install")
+		require.NoError(t, cmd.Execute())
+
+		pkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
+		require.NoError(t, err)
+
+		uriBeforeUpdate = *pkg.ComponentsList[0].StringBased
+		assert.Contains(t, uriBeforeUpdate, componentOciUri+":latest@sha256:")
+	})
+
+	t.Run("update command bumps floaty components", func(t *testing.T) {
+		// push new version under "latest" tag
+		args := testutil.PushComponentUri(reg, componentRepo+":2.2.2", testutil.TestdataPath(t, "meepy-component", testutil.OS), "latest")
+		require.NoError(t, createStdTestRootCmd(t, args...).Execute())
+
+		cmd := createStdTestRootCmd(t, "update")
+		require.NoError(t, cmd.Execute())
+
+		pkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
+		require.NoError(t, err)
+		require.Len(t, pkg.Components, 1)
+
+		uriAfterUpdate := *pkg.ComponentsList[0].StringBased
+		assert.Contains(t, uriAfterUpdate, componentOciUri+":latest@sha256:")
+
+		assert.NotEqual(t, uriBeforeUpdate, uriAfterUpdate)
+	})
+
+	t.Run("running dpm update more than once in a row", func(t *testing.T) {
+		cmd := createStdTestRootCmd(t, "update")
+		require.NoError(t, cmd.Execute())
+	})
+}
+
 func (suite *MainSuite) TestDpmUpdateCommandForFloatyDars() {
 	t := suite.T()
 
