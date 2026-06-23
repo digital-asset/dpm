@@ -173,7 +173,7 @@ func (c *updateCmd) updateDar(ctx context.Context, damlPackagePath, field string
 		uri = fmt.Sprintf("oci://%s/%s:%s", ref.Registry, ref.Repository, tag)
 	}
 
-	insecure := c.forceInsecure || dep.Location.Insecure
+	insecure := c.forceInsecure || (dep.Location != nil && dep.Location.Insecure)
 	if err := dar.AddOrUpdateDar(ctx, c.config, damlPackagePath, uri, field, insecure, dep.Index); err != nil {
 		return err
 	}

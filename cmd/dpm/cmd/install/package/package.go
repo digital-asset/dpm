@@ -42,6 +42,9 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 
 func InstallPackage(config *assistantconfig.Config, cmd *cobra.Command) error {
 	ctx := cmd.Context()
+
+	cmd.SilenceUsage = true
+
 	modifiedConfig := config
 	modifiedConfig.AutoInstall = true
 	multiPackagePath, hasMultiPackage, err := assistantconfig.GetMultiPackageAbsolutePath()
