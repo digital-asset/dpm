@@ -238,7 +238,7 @@ func (suite *MainSuite) TestComponentOverlay() {
 				output := runHelpCommand(t)
 
 				// assert number of cmds in output as expected
-				_, trimmedOutput, _ := strings.Cut(output, "Dpm-SDK Commands\n")
+				_, trimmedOutput, _ := strings.Cut(output, "Dpm Commands\n")
 				trimmedOutput, _, _ = strings.Cut(trimmedOutput, "\nAdditional Commands")
 				count := strings.Count(trimmedOutput, "\n")
 				assert.Equal(t, len(tc.ExpectedHelpCommands), count)

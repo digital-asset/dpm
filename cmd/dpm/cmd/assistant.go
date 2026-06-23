@@ -56,7 +56,7 @@ func RootCmd(ctx context.Context, da *assistant.DamlAssistant) (*cobra.Command, 
 	})
 	cmd.AddGroup(&cobra.Group{
 		ID:    sdkGroupId,
-		Title: "Dpm-SDK Commands",
+		Title: "Dpm Commands",
 	})
 
 	if err := logging.InitLogging(); err != nil {
