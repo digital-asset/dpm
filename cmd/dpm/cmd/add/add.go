@@ -9,8 +9,8 @@ import (
 
 func Cmd(config *assistantconfig.Config) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:  "add",
-		Long: "Add components and dars to project",
+		Use:   "add",
+		Short: "Add components and dars to project",
 	}
 
 	cmd.AddCommand(component.Cmd(config))

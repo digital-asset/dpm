@@ -30,10 +30,9 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	c := updateCmd{}
 
 	cmd := &cobra.Command{
-		Use:    string(builtincommand.Update),
-		Short:  "update project dependencies",
-		Hidden: true,
-		Args:   cobra.NoArgs,
+		Use:   string(builtincommand.Update),
+		Short: "update project dependencies",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 
