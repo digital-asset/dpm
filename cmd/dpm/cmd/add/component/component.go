@@ -28,10 +28,9 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	var insecure bool
 
 	cmd := &cobra.Command{
-		Use:    "component <oci-uri>",
-		Short:  "add a component to project",
-		Args:   cobra.ExactArgs(1),
-		Hidden: true,
+		Use:   "component <oci-uri>",
+		Short: "add a component to project",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			uri := args[0]

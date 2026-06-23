@@ -6,7 +6,7 @@ Dpm Tags
 dpm tags
 --------
 
-list published tags of an artifact
+List published tags of an artifact
 
 Synopsis
 ~~~~~~~~

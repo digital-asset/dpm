@@ -6,13 +6,13 @@ Dpm Bootstrap
 dpm bootstrap
 -------------
 
-auxiliary command for installing standalone dpm-sdk bundle
+Auxiliary command for installing standalone dpm-sdk bundle
 
 Synopsis
 ~~~~~~~~
 
 
-auxiliary command for installing standalone dpm-sdk bundle
+Auxiliary command for installing standalone dpm-sdk bundle
 
 ::
 

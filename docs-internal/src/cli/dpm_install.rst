@@ -6,7 +6,7 @@ Dpm Install
 dpm install
 -----------
 
-install project's dependencies or specific dpm-sdk version
+Install project's dependencies or specific dpm-sdk version
 
 Synopsis
 ~~~~~~~~

@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"unicode"
+	"unicode/utf8"
 
 	"daml.com/x/assistant/cmd/dpm/cmd/add"
 	"daml.com/x/assistant/cmd/dpm/cmd/publish"
@@ -17,7 +19,6 @@ import (
 	"daml.com/x/assistant/cmd/dpm/cmd/bootstrap"
 	componentCmd "daml.com/x/assistant/cmd/dpm/cmd/component"
 	"daml.com/x/assistant/cmd/dpm/cmd/install"
-	"daml.com/x/assistant/cmd/dpm/cmd/login"
 	"daml.com/x/assistant/cmd/dpm/cmd/repo"
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve"
 	"daml.com/x/assistant/cmd/dpm/cmd/versions"
@@ -78,7 +79,6 @@ func RootCmd(ctx context.Context, da *assistant.DamlAssistant) (*cobra.Command, 
 		setCmdMetaGroup(bootstrap.Cmd(config)),
 		setCmdMetaGroup(install.Cmd(config)),
 		setCmdMetaGroup(uninstall.Cmd(config)),
-		setCmdMetaGroup(login.Cmd(config)),
 		setCmdMetaGroup(repo.Cmd(config)),
 		setCmdMetaGroup(resolve.Cmd(config)),
 		setCmdMetaGroup(update.Cmd(config)),
@@ -103,6 +103,7 @@ func RootCmd(ctx context.Context, da *assistant.DamlAssistant) (*cobra.Command, 
 		} else {
 			for _, c := range sdkCommands {
 				c.GroupID = sdkGroupId
+				c.Short = capitalizeFirst(c.Short)
 			}
 			cmd.AddCommand(sdkCommands...)
 		}
@@ -121,7 +122,17 @@ func RootCmd(ctx context.Context, da *assistant.DamlAssistant) (*cobra.Command, 
 
 func setCmdMetaGroup(cmd *cobra.Command) *cobra.Command {
 	cmd.GroupID = builtinGroupId
+	cmd.Short = capitalizeFirst(cmd.Short)
 	return cmd
+}
+
+func capitalizeFirst(s string) string {
+	if s == "" {
+		return s
+	}
+
+	r, size := utf8.DecodeRuneInString(s)
+	return string(unicode.ToUpper(r)) + s[size:]
 }
 
 func shouldAddSdkCommands(osArgs []string) bool {

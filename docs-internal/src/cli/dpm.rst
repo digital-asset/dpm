@@ -24,15 +24,15 @@ Options
 SEE ALSO
 ~~~~~~~~
 
-* :ref:`dpm bootstrap <dpm_bootstrap>` 	 - auxiliary command for installing standalone dpm-sdk bundle
+* :ref:`dpm add <dpm_add>` 	 - Add components and dars to project
+* :ref:`dpm bootstrap <dpm_bootstrap>` 	 - Auxiliary command for installing standalone dpm-sdk bundle
 * :ref:`dpm component <dpm_component>` 	 - commands for component development
-* :ref:`dpm install <dpm_install>` 	 - install project's dependencies or specific dpm-sdk version
-* :ref:`dpm login <dpm_login>` 	 - 
+* :ref:`dpm install <dpm_install>` 	 - Install project's dependencies or specific dpm-sdk version
 * :ref:`dpm publish <dpm_publish>` 	 - Commands for publishing artifacts
 * :ref:`dpm repo <dpm_repo>` 	 - 
 * :ref:`dpm resolve <dpm_resolve>` 	 - 
-* :ref:`dpm tags <dpm_tags>` 	 - list published tags of an artifact
-* :ref:`dpm uninstall <dpm_uninstall>` 	 - uninstall a dpm-sdk version
-* :ref:`dpm update <dpm_update>` 	 - update project dependencies
-* :ref:`dpm version <dpm_version>` 	 - show sdk versions
+* :ref:`dpm tags <dpm_tags>` 	 - List published tags of an artifact
+* :ref:`dpm uninstall <dpm_uninstall>` 	 - Uninstall a dpm-sdk version
+* :ref:`dpm update <dpm_update>` 	 - Update project dependencies
+* :ref:`dpm version <dpm_version>` 	 - Show sdk versions
 

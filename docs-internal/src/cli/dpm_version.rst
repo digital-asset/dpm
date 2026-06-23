@@ -6,7 +6,7 @@ Dpm Version
 dpm version
 -----------
 
-show sdk versions
+Show sdk versions
 
 Synopsis
 ~~~~~~~~

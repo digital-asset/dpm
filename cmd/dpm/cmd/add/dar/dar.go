@@ -22,10 +22,9 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	var dependencies, dataDependencies bool
 
 	cmd := &cobra.Command{
-		Use:    "dar <oci-uri> <--dependencies | --data-dependencies>",
-		Short:  "add or update a dar in the project",
-		Args:   cobra.ExactArgs(1),
-		Hidden: true,
+		Use:   "dar <oci-uri> <--dependencies | --data-dependencies>",
+		Short: "add or update a dar in the project",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 			uri := args[0]

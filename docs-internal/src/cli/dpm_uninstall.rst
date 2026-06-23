@@ -6,13 +6,13 @@ Dpm Uninstall
 dpm uninstall
 -------------
 
-uninstall a dpm-sdk version
+Uninstall a dpm-sdk version
 
 Synopsis
 ~~~~~~~~
 
 
-uninstall a dpm-sdk version
+Uninstall a dpm-sdk version
 
 ::
 

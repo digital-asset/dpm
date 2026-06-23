@@ -6,13 +6,13 @@ Dpm Update
 dpm update
 ----------
 
-update project dependencies
+Update project dependencies
 
 Synopsis
 ~~~~~~~~
 
 
-update project dependencies
+Update project dependencies
 
 ::
 

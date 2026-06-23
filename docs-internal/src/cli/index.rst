@@ -3,12 +3,14 @@
    :caption: CLI Reference:
 
    dpm
+   dpm_add
+   dpm_add_component
+   dpm_add_dar
    dpm_bootstrap
    dpm_component
    dpm_component_init
    dpm_component_run
    dpm_install
-   dpm_login
    dpm_publish
    dpm_publish_component
    dpm_publish_dar
