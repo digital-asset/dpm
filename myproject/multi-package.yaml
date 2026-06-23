@@ -1,0 +1,6 @@
+sdk-version: 3.5.2-snapshot.20260522.607.0.v9a2967e1
+
+packages:
+- ./interfaces
+- ./main
+- ./test
