@@ -118,6 +118,8 @@ data-dependencies:
 	assert.Equal(t, "std-lib", *damlPkg.DataDependencies[0].ValueOnly)
 	assert.Contains(t, *damlPkg.DataDependencies[1].ValueOnly, "oci://"+darRefLatest.String()+"@sha256:")
 	assert.NotContains(t, *damlPkg.DataDependencies[1].ValueOnly, oldSha256, "daml.yaml expected to not contain the old sha256 anymore")
+
+	assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 4.5.6")
 }
 
 func (suite *MainSuite) TestDpmAddDarCommandNegativeCases() {
@@ -168,6 +170,14 @@ components:
 	assert.Equal(t, "pre-existing:1.2.3", *damlPkg.ComponentsList[0].StringBased)
 	assert.Contains(t, *damlPkg.ComponentsList[1].StringBased, "oci://"+compRefLatest+"@sha256:")
 	assert.NotContains(t, *damlPkg.ComponentsList[1].StringBased, oldSha256, "daml.yaml expected to not contain the old sha256 anymore")
+
+	assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 4.5.6")
+}
+
+func assertContainsComment(t *testing.T, yamlFilePath, comment string) {
+	bytes, err := os.ReadFile(yamlFilePath)
+	require.NoError(t, err)
+	assert.Contains(t, string(bytes), comment)
 }
 
 // tests 'dpm add component' for a component that already exists in daml.yaml
@@ -204,4 +214,6 @@ components:
 	assert.Equal(t, "pre-existing:1.2.3", *damlPkg.ComponentsList[0].StringBased)
 	assert.Contains(t, *damlPkg.ComponentsList[1].StringBased, "oci://"+newComponent+":4.5.6@sha256:")
 	assert.NotContains(t, *damlPkg.ComponentsList[1].StringBased, oldSha256, "daml.yaml expected to not contain the old sha256 anymore")
+
+	assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 4.5.6")
 }

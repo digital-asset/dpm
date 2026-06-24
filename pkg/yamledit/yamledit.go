@@ -1,7 +1,6 @@
 package yamledit
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -14,6 +13,17 @@ type YamlTarget struct {
 	YamlFilePath string
 	FieldName    string
 	Index        int
+
+	LineComment string
+}
+
+func (t *YamlTarget) Copy() YamlTarget {
+	return YamlTarget{
+		YamlFilePath: t.YamlFilePath,
+		FieldName:    t.FieldName,
+		Index:        t.Index,
+		LineComment:  t.LineComment,
+	}
 }
 
 // EditYaml adds an item to list in yaml file
@@ -23,6 +33,8 @@ func EditYaml(info YamlTarget, item string) error {
 	if err != nil {
 		return err
 	}
+
+	item = attachLineComment(item, info.LineComment)
 
 	var out string
 	if info.Index != -1 {
@@ -38,7 +50,7 @@ func EditYaml(info YamlTarget, item string) error {
 }
 
 // AddToList adds item to the given target field.
-// item can be a simple value or a whole object
+// item can be a simple value or a YAML object.
 func AddToList(raw []byte, field string, item string) (string, error) {
 	f, err := parser.ParseBytes(raw, parser.ParseComments)
 	if err != nil {
@@ -50,12 +62,17 @@ func AddToList(raw []byte, field string, item string) (string, error) {
 		return "", err
 	}
 
+	itemListFile, err := parser.ParseBytes(itemListYAML, parser.ParseComments)
+	if err != nil {
+		return "", err
+	}
+
 	path, err := yaml.PathString("$." + field)
 	if err != nil {
 		return "", err
 	}
 
-	err = path.MergeFromReader(f, bytes.NewReader(itemListYAML))
+	err = path.MergeFromFile(f, itemListFile)
 	if err == nil {
 		return f.String(), nil
 	}
@@ -67,15 +84,20 @@ func AddToList(raw []byte, field string, item string) (string, error) {
 	// field does not exist yet. Add:
 	//
 	// field:
-	//   - <item>
+	//   - <item> # <comment>
 	rootFragment := field + ":\n" + indentYaml(string(itemListYAML))
+
+	rootFragmentFile, err := parser.ParseBytes([]byte(rootFragment), parser.ParseComments)
+	if err != nil {
+		return "", err
+	}
 
 	root, err := yaml.PathString("$")
 	if err != nil {
 		return "", err
 	}
 
-	if err := root.MergeFromReader(f, strings.NewReader(rootFragment)); err != nil {
+	if err := root.MergeFromFile(f, rootFragmentFile); err != nil {
 		return "", err
 	}
 
@@ -83,11 +105,38 @@ func AddToList(raw []byte, field string, item string) (string, error) {
 }
 
 func marshalOneItemList(item string) ([]byte, error) {
-	var value any
-	if err := yaml.Unmarshal([]byte(item), &value); err != nil {
-		return nil, err
+	item = normalizeYAMLFragment(item)
+	if strings.TrimSpace(item) == "" {
+		return nil, fmt.Errorf("empty YAML item")
 	}
-	return yaml.MarshalWithOptions([]any{value}, yaml.Indent(2))
+
+	// Validate the raw item first.
+	if _, err := parser.ParseBytes([]byte(item), parser.ParseComments); err != nil {
+		return nil, fmt.Errorf("invalid YAML item: %w", err)
+	}
+
+	lines := strings.Split(strings.TrimRight(item, "\n"), "\n")
+	out := make([]string, len(lines))
+
+	out[0] = "- " + lines[0]
+	for i := 1; i < len(lines); i++ {
+		out[i] = "  " + lines[i]
+	}
+
+	seq := []byte(strings.Join(out, "\n") + "\n")
+
+	// Validate the generated one-item sequence too.
+	if _, err := parser.ParseBytes(seq, parser.ParseComments); err != nil {
+		return nil, fmt.Errorf("invalid YAML list item: %w", err)
+	}
+
+	return seq, nil
+}
+
+func normalizeYAMLFragment(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.Trim(s, "\n")
+	return s + "\n"
 }
 
 func indentYaml(s string) string {
@@ -96,6 +145,23 @@ func indentYaml(s string) string {
 		lines[i] = "  " + lines[i]
 	}
 	return strings.Join(lines, "\n") + "\n"
+}
+
+func attachLineComment(item, comment string) string {
+	comment = strings.TrimSpace(comment)
+	if comment == "" {
+		return item
+	}
+
+	comment = strings.TrimSpace(strings.TrimPrefix(comment, "#"))
+	if comment == "" {
+		return item
+	}
+
+	item = strings.TrimRight(item, "\n")
+	lines := strings.Split(item, "\n")
+	lines[0] = strings.TrimRight(lines[0], " \t") + " # " + comment
+	return strings.Join(lines, "\n")
 }
 
 // ReplaceItemInList replaces the specified item in given field.
@@ -115,7 +181,14 @@ func replace(raw []byte, path string, replacement string) (string, error) {
 		return "", err
 	}
 
-	if err := p.ReplaceWithReader(f, bytes.NewBufferString(replacement)); err != nil {
+	replacement = normalizeYAMLFragment(replacement)
+
+	replacementFile, err := parser.ParseBytes([]byte(replacement), parser.ParseComments)
+	if err != nil {
+		return "", fmt.Errorf("invalid YAML replacement: %w", err)
+	}
+
+	if err := p.ReplaceWithFile(f, replacementFile); err != nil {
 		return "", err
 	}
 

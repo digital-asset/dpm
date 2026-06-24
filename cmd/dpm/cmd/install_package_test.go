@@ -214,6 +214,8 @@ components:
 		newContent, err := os.ReadFile(filepath.Join(projectDir, "daml.yaml"))
 		require.NoError(t, err)
 		assert.Contains(t, string(newContent), newComponent+"@"+resolvedDigest.String())
+
+		assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 4.5.6")
 	})
 
 	t.Run("dpm resolve works for sha256 pinned oci components", func(t *testing.T) {
@@ -221,11 +223,15 @@ components:
 		comps := lo.Values(lo.Values(resolution.Packages)[0].ComponentsV2)
 		assert.Len(t, comps, 1)
 		assert.Equal(t, "4.5.6", comps[0]["version"])
+
+		assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 4.5.6")
 	})
 
 	t.Run("dpm installing more than once", func(t *testing.T) {
 		cmd := createStdTestRootCmd(t, "install")
 		require.NoError(t, cmd.Execute())
+
+		assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 4.5.6")
 	})
 }
 
@@ -261,11 +267,15 @@ components:
 		newContent, err := os.ReadFile(filepath.Join(projectDir, "multi-package.yaml"))
 		require.NoError(t, err)
 		assert.Contains(t, string(newContent), newComponent+"@"+resolvedDigest.String())
+
+		assertContainsComment(t, filepath.Join(projectDir, "multi-package.yaml"), "# 4.5.6")
 	})
 
 	t.Run("dpm installing more than once", func(t *testing.T) {
 		cmd := createStdTestRootCmd(t, "install")
 		require.NoError(t, cmd.Execute())
+
+		assertContainsComment(t, filepath.Join(projectDir, "multi-package.yaml"), "# 4.5.6")
 	})
 }
 

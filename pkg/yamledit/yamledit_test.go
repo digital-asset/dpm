@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const item = `name: newly-added
-path: /newly/added`
+var item = attachLineComment(`name: newly-added
+path: /newly/added`, "# some foo comment")
 
 func TestAddToList(t *testing.T) {
 	t.Run("non-empty list", func(t *testing.T) {

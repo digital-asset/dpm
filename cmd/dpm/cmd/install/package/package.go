@@ -18,6 +18,7 @@ import (
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/utils"
 	"daml.com/x/assistant/pkg/yamledit"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/samber/lo"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
@@ -127,7 +128,7 @@ func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assista
 		YamlFilePath: damlPath,
 		FieldName:    "data-dependencies",
 	}
-	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.DataDependencies), yamlTarget); err != nil {
+	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.DataDependencies), yamlTarget.Copy()); err != nil {
 		return err
 	}
 
@@ -136,7 +137,7 @@ func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assista
 
 func installDars(ctx context.Context, config *assistantconfig.Config, dars []*damlpackage.ParsedDarDependency, yamlTarget yamledit.YamlTarget) error {
 	for _, d := range dars {
-		updatedDar, err := InstallDar(ctx, config, d)
+		updatedDar, version, err := InstallDar(ctx, config, d)
 		if err != nil {
 			return err
 		}
@@ -144,37 +145,39 @@ func installDars(ctx context.Context, config *assistantconfig.Config, dars []*da
 		// now update daml.yaml if we had to append a @sha256
 		if updatedDar != nil {
 			quotedUri := fmt.Sprintf("\"%s\"", updatedDar.StringWithAlias())
+			yamlTarget = yamlTarget.Copy()
 			yamlTarget.Index = updatedDar.Index
+			yamlTarget.LineComment = version
 			return yamledit.EditYaml(yamlTarget, quotedUri)
 		}
 	}
 	return nil
 }
 
-func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpackage.ParsedDarDependency) (updatedDar *damlpackage.ParsedDarDependency, err error) {
+func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpackage.ParsedDarDependency) (updatedDar *damlpackage.ParsedDarDependency, version string, err error) {
 	if dar.FullUrl.Scheme != "oci" {
-		return nil, nil
+		return nil, "", nil
 	}
 	fmt.Printf("installing dar %q...\n", dar.FullUrl.String())
 
 	client, ref, err := dar.GetOciRemote()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if !assistantconfig.ShaPinningEnabled() && ocilister.IsFloaty(ref.Reference) {
-		return nil, fmt.Errorf("tag not allowed in %q: only strict semver OCI tags are supported currently", dar.FullUrl.String())
+		return nil, "", fmt.Errorf("tag not allowed in %q: only strict semver OCI tags are supported currently", dar.FullUrl.String())
 	}
 
 	if assistantconfig.ShaPinningEnabled() && !strings.Contains(dar.FullUrl.String(), "@sha256:") {
-		resolvedDigest, _, err := ocilister.FetchManifest(ctx, client, *ref)
+		resolvedDigest, manifest, err := ocilister.FetchManifest(ctx, client, *ref)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
 		newUrl, err := url.Parse(dar.FullUrl.String() + "@" + resolvedDigest.String())
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		updatedDar = &damlpackage.ParsedDarDependency{
 			FullUrl:       newUrl,
@@ -183,9 +186,11 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 			Index:         dar.Index,
 		}
 
+		version = manifest.Annotations[v1.AnnotationVersion]
+
 		client, ref, err = updatedDar.GetOciRemote()
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 	}
 
@@ -194,17 +199,17 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 
 	ok, err := utils.DirExists(darDir)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if ok {
 		fmt.Println("Dar already installed.")
-		return updatedDar, nil
+		return updatedDar, version, nil
 	}
 	if _, err = puller.PullDarByFullPath(ctx, ref.Repository, ref.Reference, darDir); err != nil {
-		return nil, err
+		return nil, version, err
 	}
 
-	return updatedDar, nil
+	return updatedDar, version, nil
 }
 
 func installMultiPackageYamlComponentsOnly(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config) error {

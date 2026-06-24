@@ -16,6 +16,7 @@ import (
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/sdkmanifest"
+	"daml.com/x/assistant/pkg/yamledit"
 	"github.com/spf13/cobra"
 	"oras.land/oras-go/v2/registry"
 )
@@ -138,13 +139,21 @@ func (c *updateCmd) updatePackage(ctx context.Context, damlPackage *damlpackage.
 	}
 
 	for _, dep := range damlPackage.ParsedDarDependencies.Dependencies {
-		if err := c.updateDar(ctx, damlPackage.AbsolutePath, "dependencies", dep); err != nil {
+		yamlTarget := yamledit.YamlTarget{
+			YamlFilePath: damlPackage.AbsolutePath,
+			FieldName:    "dependencies",
+		}
+		if err := c.updateDar(ctx, dep, yamlTarget); err != nil {
 			return err
 		}
 	}
 
 	for _, dep := range damlPackage.ParsedDarDependencies.DataDependencies {
-		if err := c.updateDar(ctx, damlPackage.AbsolutePath, "data-dependencies", dep); err != nil {
+		yamlTarget := yamledit.YamlTarget{
+			YamlFilePath: damlPackage.AbsolutePath,
+			FieldName:    "data-dependencies",
+		}
+		if err := c.updateDar(ctx, dep, yamlTarget); err != nil {
 			return err
 		}
 	}
@@ -152,7 +161,7 @@ func (c *updateCmd) updatePackage(ctx context.Context, damlPackage *damlpackage.
 	return nil
 }
 
-func (c *updateCmd) updateDar(ctx context.Context, damlPackagePath, field string, dep *damlpackage.ParsedDarDependency) error {
+func (c *updateCmd) updateDar(ctx context.Context, dep *damlpackage.ParsedDarDependency, yamlTarget yamledit.YamlTarget) error {
 	if dep.FullUrl.Scheme != "oci" {
 		return nil
 	}
@@ -174,7 +183,8 @@ func (c *updateCmd) updateDar(ctx context.Context, damlPackagePath, field string
 	}
 
 	insecure := c.forceInsecure || (dep.Location != nil && dep.Location.Insecure)
-	if err := dar.AddOrUpdateDar(ctx, c.config, damlPackagePath, uri, field, insecure, dep.Index); err != nil {
+	yamlTarget.Index = dep.Index
+	if err := dar.AddOrUpdateDar(ctx, c.config, uri, insecure, yamlTarget); err != nil {
 		return err
 	}
 

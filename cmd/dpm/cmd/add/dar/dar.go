@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 
 	project "daml.com/x/assistant/cmd/dpm/cmd/install/package"
@@ -13,6 +12,7 @@ import (
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/yamledit"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
 	"oras.land/oras-go/v2/registry"
 )
@@ -48,14 +48,21 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				return err
 			}
 
+			yamlTarget := yamledit.YamlTarget{
+				YamlFilePath: damlPackagePath,
+				FieldName:    depsFieldName,
+				Index:        -1,
+			}
+
 			// update
 			if existingDep != nil {
 				fmt.Printf("dependency %q already exists in daml.yaml, will be updated...\n", uri)
-				return AddOrUpdateDar(ctx, config, damlPackagePath, uri, depsFieldName, insecure, existingDep.Index)
+				yamlTarget.Index = existingDep.Index
+				return AddOrUpdateDar(ctx, config, uri, insecure, yamlTarget)
 			}
 
 			// add
-			return AddOrUpdateDar(ctx, config, damlPackagePath, uri, depsFieldName, insecure, -1)
+			return AddOrUpdateDar(ctx, config, uri, insecure, yamlTarget)
 		},
 	}
 
@@ -111,7 +118,7 @@ func findExistingDependency(uri, depsFieldName string) (*damlpackage.ParsedDarDe
 }
 
 // AddOrUpdateDar will add when the passed index is -1, otherwise it will update at that index
-func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, damlPackagePath, uri, depsFieldName string, insecure bool, index int) error {
+func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, uri string, insecure bool, yamlTarget yamledit.YamlTarget) error {
 	ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
 	if err != nil {
 		return err
@@ -122,13 +129,13 @@ func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, damlPac
 	}
 
 	// Resolve to sha256
-	resolvedDigest, _, err := ocilister.FetchManifest(ctx, client, ref)
+	resolvedDigest, manifest, err := ocilister.FetchManifest(ctx, client, ref)
 	if err != nil {
 		return err
 	}
+	yamlTarget.LineComment = manifest.Annotations[v1.AnnotationVersion]
 	resolvedUri := uri + "@" + resolvedDigest.String()
 
-	// Pull
 	parsedUrl, err := url.Parse(resolvedUri)
 	if err != nil {
 		return err
@@ -139,16 +146,16 @@ func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, damlPac
 			Insecure: insecure,
 		},
 	}
-	if _, err := project.InstallDar(ctx, config, parsedDarDep); err != nil {
+	if _, _, err := project.InstallDar(ctx, config, parsedDarDep); err != nil {
 		return err
 	}
 
 	// Edit daml.yaml
-	if err := appendDarToYaml(damlPackagePath, depsFieldName, resolvedUri, index); err != nil {
+	if err := yamledit.EditYaml(yamlTarget, resolvedUri); err != nil {
 		return err
 	}
 
-	fmt.Printf("Successfully installed and added dar %q to %q\n", resolvedUri, damlPackagePath)
+	fmt.Printf("Successfully installed and added dar %q to %q\n", resolvedUri, yamlTarget.YamlFilePath)
 	return nil
 }
 
@@ -163,23 +170,4 @@ func dependenciesFieldFromArgs(dependencies, dataDependencies bool) (string, err
 		return "data-dependencies", nil
 	}
 	return "", fmt.Errorf("a --dependencies or --data-dependencies is required")
-}
-
-func appendDarToYaml(path, fieldName, dar string, index int) error {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	var out string
-	if index != -1 {
-		out, err = yamledit.ReplaceItemInList(b, fieldName, index, dar)
-	} else {
-		out, err = yamledit.AddToList(b, fieldName, dar)
-	}
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(path, []byte(out), 0644)
 }

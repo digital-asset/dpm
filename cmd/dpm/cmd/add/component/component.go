@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"daml.com/x/assistant/pkg/assembler"
@@ -13,11 +12,10 @@ import (
 	"daml.com/x/assistant/pkg/componentlist"
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/multipackage"
+	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/yamledit"
-	"github.com/goccy/go-yaml"
-	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
 	"oras.land/oras-go/v2/registry"
@@ -83,7 +81,7 @@ func AddOrUpdateComponent(ctx context.Context, config *assistantconfig.Config, p
 	}
 
 	// Resolve to sha256
-	sha, err := GetDigest(ctx, client, ref)
+	sha, manifest, err := ocilister.FetchManifest(ctx, client, ref)
 	if err != nil {
 		return err
 	}
@@ -95,7 +93,15 @@ func AddOrUpdateComponent(ctx context.Context, config *assistantconfig.Config, p
 	}
 
 	// Edit daml.yaml / multi-package.yaml
-	if err := modifyYamlManifest(projectManifest, resolvedUri, index); err != nil {
+	yamlTarget := yamledit.YamlTarget{
+		YamlFilePath: projectManifest,
+		FieldName:    "components",
+		Index:        index,
+	}
+	if version := manifest.Annotations[v1.AnnotationVersion]; version != "" {
+		yamlTarget.LineComment = "# " + version
+	}
+	if err := yamledit.EditYaml(yamlTarget, resolvedUri); err != nil {
 		return err
 	}
 
@@ -113,26 +119,6 @@ func PullComponent(ctx context.Context, resolvedUri string, config *assistantcon
 	puller := remotepuller.New(config.OciLayoutCache, client)
 	_, err = assembler.New(config, puller).Assemble(ctx, m)
 	return err
-}
-
-func GetDigest(ctx context.Context, client *assistantremote.Remote, ref registry.Reference) (*digest.Digest, error) {
-	// TODO this function does a HEAD instead of GET
-	// and so the returned OCI descriptor isn't the full one would include all the annotations
-
-	fmt.Printf("Resolving %q...\n", ref.String())
-
-	repo, err := client.Repo(ref.Repository)
-	if err != nil {
-		return nil, err
-	}
-	desc, err := repo.Resolve(ctx, ref.Reference)
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println("resolved sha256: " + desc.Digest)
-	fmt.Println("resolved version: " + desc.Annotations[v1.AnnotationVersion])
-	return &desc.Digest, nil
 }
 
 func asSdkManifest(uri string) (*sdkmanifest.SdkManifest, error) {
@@ -170,30 +156,6 @@ func getDamlYamlOrMultiPackageYaml() (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("not in a (single-package or multi-package) project directory")
-}
-
-func modifyYamlManifest(path, component string, index int) error {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	item, err := yaml.Marshal(&componentlist.ComponentEntry{StringBased: &component})
-	if err != nil {
-		return err
-	}
-
-	var out string
-	if index != -1 {
-		out, err = yamledit.ReplaceItemInList(b, "components", index, string(item))
-	} else {
-		out, err = yamledit.AddToList(b, "components", string(item))
-	}
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(path, []byte(out), 0644)
 }
 
 func findExistingComponent(components componentlist.ComponentList, uri string) (int, error) {

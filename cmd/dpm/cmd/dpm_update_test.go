@@ -87,6 +87,8 @@ components:
 
 		uriBeforeUpdate = *pkg.ComponentsList[0].StringBased
 		assert.Contains(t, uriBeforeUpdate, componentOciUri+":latest@sha256:")
+
+		assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 1.1.1")
 	})
 
 	t.Run("update command bumps floaty components", func(t *testing.T) {
@@ -105,11 +107,15 @@ components:
 		assert.Contains(t, uriAfterUpdate, componentOciUri+":latest@sha256:")
 
 		assert.NotEqual(t, uriBeforeUpdate, uriAfterUpdate)
+
+		assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 2.2.2")
 	})
 
 	t.Run("running dpm update more than once in a row", func(t *testing.T) {
 		cmd := createStdTestRootCmd(t, "update")
 		require.NoError(t, cmd.Execute())
+
+		assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 2.2.2")
 	})
 }
 
@@ -149,6 +155,8 @@ data-dependencies:
 		valueBeforeUpdate, err = damlPkg.DataDependencies[1].Value()
 		require.NoError(t, err)
 		assert.Contains(t, valueBeforeUpdate, "latest@sha256")
+
+		assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 1.1.1")
 	})
 
 	t.Run("update command should update floaty dars", func(t *testing.T) {
@@ -168,6 +176,8 @@ data-dependencies:
 
 		// make sure it's a different sha256 now
 		assert.NotEqual(t, valueAfterUpdate, valueBeforeUpdate)
+
+		assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 2.2.2")
 	})
 
 }

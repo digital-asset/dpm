@@ -494,7 +494,9 @@ func (a *Assembler) installUriComp(ctx context.Context, comp *sdkmanifest.Compon
 		if comp.YamlEditTarget == nil {
 			return "", fmt.Errorf("could not update project's daml.yaml or multi-package.yaml with component's sha for component %q as the needed info to edit the yaml file is missing", uri)
 		}
-		if err := yamledit.EditYaml(*comp.YamlEditTarget, newUri); err != nil {
+		yamlTarget := comp.YamlEditTarget.Copy()
+		yamlTarget.LineComment = version
+		if err := yamledit.EditYaml(yamlTarget, newUri); err != nil {
 			return "", err
 		}
 	}

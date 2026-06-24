@@ -4,5 +4,5 @@ blah: blah
 # whatever
 whatever: whatever
 components:
-  - name: newly-added
+  - name: newly-added # some foo comment
     path: /newly/added
