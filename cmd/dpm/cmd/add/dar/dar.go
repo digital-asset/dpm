@@ -85,33 +85,29 @@ func findExistingDependency(uri, depsFieldName string) (*damlpackage.ParsedDarDe
 		deps = damlPackage.ParsedDarDependencies.DataDependencies
 	}
 
+	uriRef, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
+	if err != nil {
+		return nil, err
+	}
+
 	for _, dep := range deps {
 		if dep.FullUrl.Scheme != "oci" {
 			continue
 		}
 
-		// running 'dpm add' with the exact same uri as one in daml.yaml should behave like 'dpm update'.
-		// it will be a no-op, unless the cache has been cleared, in which case it will simply get re-downloaded
-		if dep.FullUrl.String() == uri {
-			return dep, nil
+		depUrl := dep.FullUrl.String()
+
+		depRef, err := registry.ParseReference(strings.TrimPrefix(depUrl, "oci://"))
+		if err != nil {
+			return nil, fmt.Errorf("invalid uri %q in daml.yaml or multi-package.yaml: %w", depUrl, err)
 		}
 
-		// running 'dpm add oci://blah/blah:<tag>' when daml.yaml has 'oci://blah/blah:<tag>@sha256'
-		// should update
-		if uri == RemoveDigestFromUri(dep.FullUrl.String()) {
+		if uriRef.Registry == depRef.Registry && uriRef.Repository == depRef.Repository {
 			return dep, nil
 		}
 	}
 
 	return nil, nil
-}
-
-// TODO move this to some proper package
-func RemoveDigestFromUri(uri string) string {
-	if i := strings.LastIndex(uri, "@sha256:"); i != -1 {
-		return uri[:i]
-	}
-	return ""
 }
 
 // AddOrUpdateDar will add when the passed index is -1, otherwise it will update at that index

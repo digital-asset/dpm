@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"daml.com/x/assistant/cmd/dpm/cmd/add/dar"
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
@@ -56,7 +55,10 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				components = obj.ComponentsList
 			}
 
-			index := findExistingComponent(components, uri)
+			index, err := findExistingComponent(components, uri)
+			if err != nil {
+				return err
+			}
 			if index != -1 {
 				fmt.Printf("component %q already exists, will be updated...\n", uri)
 			}
@@ -194,24 +196,30 @@ func modifyYamlManifest(path, component string, index int) error {
 	return os.WriteFile(path, []byte(out), 0644)
 }
 
-func findExistingComponent(components componentlist.ComponentList, uri string) int {
+func findExistingComponent(components componentlist.ComponentList, uri string) (int, error) {
+	uriRef, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
+	if err != nil {
+		return 0, err
+	}
+
 	for i, compEntry := range components {
-		comp := compEntry.StringBased
-		if comp == nil {
+		if compEntry.StringBased == nil {
+			continue
+		}
+		comp := *compEntry.StringBased
+
+		if !strings.HasPrefix(comp, "oci://") {
 			continue
 		}
 
-		// running 'dpm add' with the exact same uri as one in daml.yaml should behave like 'dpm update'.
-		// it will be a no-op, unless the cache has been cleared, in which case it will simply get re-downloaded
-		if *comp == uri {
-			return i
+		compRef, err := registry.ParseReference(strings.TrimPrefix(comp, "oci://"))
+		if err != nil {
+			return 0, fmt.Errorf("invalid uri %q in daml.yaml or multi-package.yaml: %w", comp, err)
 		}
 
-		// running 'dpm add oci://blah/blah:<tag>' when daml.yaml has 'oci://blah/blah:<tag>@sha256'
-		// should update
-		if uri == dar.RemoveDigestFromUri(*comp) {
-			return i
+		if uriRef.Registry == compRef.Registry && uriRef.Repository == compRef.Repository {
+			return i, nil
 		}
 	}
-	return -1
+	return -1, nil
 }
