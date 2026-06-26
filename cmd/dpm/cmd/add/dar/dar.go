@@ -56,7 +56,12 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 
 			// update
 			if existingDep != nil {
-				fmt.Printf("dependency %q already exists in daml.yaml, will be updated...\n", uri)
+				ref, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
+				if err != nil {
+					return err
+				}
+
+				fmt.Printf("dependency 'oci://%s/%s' already exists in daml.yaml, will be updated...\n", ref.Registry, ref.Reference)
 				yamlTarget.Index = existingDep.Index
 				return AddOrUpdateDar(ctx, config, uri, insecure, yamlTarget)
 			}

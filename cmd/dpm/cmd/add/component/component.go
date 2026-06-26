@@ -53,12 +53,17 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 				components = obj.ComponentsList
 			}
 
-			index, err := findExistingComponent(components, uri)
+			uriRef, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
+			if err != nil {
+				return err
+			}
+
+			index, err := findExistingComponent(components, uriRef)
 			if err != nil {
 				return err
 			}
 			if index != -1 {
-				fmt.Printf("component %q already exists, will be updated...\n", uri)
+				fmt.Printf("component 'oci://%s/%s' already exists, will be updated...\n", uriRef.Registry, uriRef.Repository)
 			}
 
 			return AddOrUpdateComponent(ctx, config, projectManifest, uri, insecure, index)
@@ -158,12 +163,7 @@ func getDamlYamlOrMultiPackageYaml() (string, string, error) {
 	return "", "", fmt.Errorf("not in a (single-package or multi-package) project directory")
 }
 
-func findExistingComponent(components componentlist.ComponentList, uri string) (int, error) {
-	uriRef, err := registry.ParseReference(strings.TrimPrefix(uri, "oci://"))
-	if err != nil {
-		return 0, err
-	}
-
+func findExistingComponent(components componentlist.ComponentList, uriRef registry.Reference) (int, error) {
 	for i, compEntry := range components {
 		if compEntry.StringBased == nil {
 			continue
