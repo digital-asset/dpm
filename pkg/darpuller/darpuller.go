@@ -2,8 +2,6 @@ package darpuller
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,7 +17,6 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
-	"oras.land/oras-go/v2/registry"
 )
 
 type OciDarPuller struct {
@@ -76,7 +73,9 @@ func (a *OciDarPuller) doPullDar(ctx context.Context, dar *damlpackage.ParsedDar
 		return nil, err
 	}
 
-	destPath := a.getPath(ref, version)
+	digestRef := *ref
+	digestRef.Reference = desc.Digest.String()
+	destPath := a.config.CachePathForDar(&digestRef)
 
 	ok, err := utils.DirExists(destPath)
 	if err != nil {
@@ -127,16 +126,6 @@ func (a *OciDarPuller) getVersion(ctx context.Context, repo oras.ReadOnlyTarget,
 		return nil, fmt.Errorf("version annotation %q in image manifest isn't a strict semver: %w", v, err)
 	}
 	return ver, nil
-}
-
-func (a *OciDarPuller) getPath(ref *registry.Reference, version *semver.Version) string {
-	// TODO maybe use a more human-readable path (but be sure to sanitize to not fail on Windows)
-	sha := sha256.Sum256([]byte(fmt.Sprintf("%s/%s:%s", ref.Registry, ref.Repository, version.String())))
-	return filepath.Join(
-		a.config.CachePath,
-		"dars",
-		hex.EncodeToString(sha[:]),
-	)
 }
 
 func getAnnotations(ctx context.Context, repo oras.ReadOnlyTarget, desc v1.Descriptor) (map[string]string, error) {

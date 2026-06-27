@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -47,6 +48,7 @@ func TestOciDarPuller(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, pulledDar.DarFilePath)
 	assert.NotEmpty(t, pulledDar.Descriptor.Digest)
+	assert.Contains(t, pulledDar.PulledImagePath, filepath.Join("dars", "sha256", strings.TrimPrefix(pulledDar.Descriptor.Digest.String(), "sha256:")))
 	assert.Equal(t, version, pulledDar.Version.String())
 }
 
