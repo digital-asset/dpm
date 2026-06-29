@@ -8,7 +8,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/goccy/go-yaml v1.19.2
-	github.com/google/go-containerregistry v0.21.6
+	github.com/google/go-containerregistry v0.21.7
 	github.com/jdx/go-netrc v1.0.0
 	github.com/juju/fslock v0.0.0-20160525022230-4d5c94c67b4b
 	github.com/opencontainers/go-digest v1.0.0
@@ -30,9 +30,9 @@ require (
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
-	github.com/cloudflare/circl v1.6.3 // indirect
+	github.com/cloudflare/circl v1.6.4 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
+	github.com/cyphar/filepath-securejoin v0.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
