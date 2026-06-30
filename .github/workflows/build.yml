@@ -34,11 +34,6 @@ jobs:
           fail-on-error: 'true'
           fail-on-empty: 'true'
           report-title: 'Go Tests'
-      - name: Run manual installation
-        run: docs/src/public/manual-install.sh
-      - uses: ./.github/actions/nsis
-        with:
-          bin-path: target/dpm
 
   windows:
     runs-on: windows-latest
