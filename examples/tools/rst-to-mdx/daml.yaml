@@ -1,0 +1,7 @@
+# Local-dev registration so `dpm` discovers the rst-to-mdx command when run
+# from this directory (e.g. `dpm rst-to-mdx …`), without an install step.
+# Uses the modern `components:` list; the older `override-components:` key is
+# deprecated in dpm 3.5.1.
+components:
+  - name: rst-to-mdx
+    path: .

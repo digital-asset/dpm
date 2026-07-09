@@ -1,0 +1,12 @@
+# $schema: https://raw.githubusercontent.com/DACH-NY/dpm/refs/heads/json-schema/schema/component.schema.json
+# DPM component manifest for the rst-to-mdx converter.
+# See tools/rst-to-mdx/README.md for development and publishing notes.
+
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: ./rst-to-mdx
+      name: rst-to-mdx
+      desc: Convert reStructuredText files to Mintlify MDX.
+      aliases: []

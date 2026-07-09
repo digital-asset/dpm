@@ -1,0 +1,13 @@
+# Windows-specific manifest. The DPM component model expects per-platform
+# manifests when the binary suffix differs; on Windows the binary is named
+# rst-to-mdx.exe.
+#
+# $schema: https://raw.githubusercontent.com/DACH-NY/dpm/refs/heads/json-schema/schema/component.schema.json
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: ./rst-to-mdx.exe
+      name: rst-to-mdx
+      desc: Convert reStructuredText files to Mintlify MDX.
+      aliases: []

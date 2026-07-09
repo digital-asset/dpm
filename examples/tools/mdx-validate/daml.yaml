@@ -1,0 +1,6 @@
+# Local-dev override so `dpm --help` discovers the mdx-validate command
+# when invoked from this directory. See the "Publishing Components" docs
+# in dpm/docs-internal/src/components/ for the full mechanism.
+override-components:
+  mdx-validate:
+    local-path: .

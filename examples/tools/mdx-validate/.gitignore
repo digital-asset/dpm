@@ -1,0 +1,7 @@
+# Compiled binary produced by `make build`.
+# Anchored with a leading slash so it only ignores the top-level binary,
+# not the cmd/mdx-validate/ source directory of the same name.
+/mdx-validate
+
+# Cross-compile output produced by `make release`.
+/dist/

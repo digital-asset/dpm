@@ -1,0 +1,12 @@
+# $schema: https://raw.githubusercontent.com/DACH-NY/dpm/refs/heads/json-schema/schema/component.schema.json
+# DPM component manifest for the mdx-validate validator.
+# See examples/tools/mdx-validate/README.md for development and publishing notes.
+
+apiVersion: digitalasset.com/v1
+kind: Component
+spec:
+  commands:
+    - path: ./mdx-validate
+      name: mdx-validate
+      desc: Validate Mintlify MDX documentation files.
+      aliases: []
