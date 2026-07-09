@@ -4,18 +4,11 @@ let
     # these packages are required both in CI and for local development
       bash
       gh
-      go
-      go-junit-report
-      gotools
-      goreleaser
-      gnumake
       jq
-      pkgs2411.google-cloud-sdk
+      openjdk21
+      sbt
       zip
-      (python3.withPackages (pkgs: [ pkgs.sphinx pkgs.sphinx-rtd-theme]))
   ] ++ (if ci then [
-    # these packages should only be installed on CI
-    openjdk17
   ] else [
     # these packages are only installed on developer machines locally
     circleci-cli

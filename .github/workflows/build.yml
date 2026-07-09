@@ -1,102 +1,62 @@
+# Copyright 2026 Copyright (c) 2026 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 name: build
+
 on:
-  push:
+  - push
 
 defaults:
   run:
-    shell: bash -euo pipefail -c "source nix.source && exec bash {0}"
+    shell: bash -euo pipefail -c "source nix.source && export PATH=$GITHUB_WORKSPACE/bin:$PATH && exec bash {0}"
 
 jobs:
-  linux:
+
+  test-mirror:
     runs-on: digital-asset-dpm
-    permissions:
-      contents: read
-      packages: write
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
       - uses: ./.github/actions/nix
 
-      - name: Run go build
-        run: go build -o target/ ./cmd/...
-
-      - name: Run Go tests and generate in json format
-        run: go test -json -v ./... | tee report.json; exit ${PIPESTATUS[0]}
-
-      - name: Check for stale generated docs
-        run: make check-stale-docs
-
-      - name: Publish Test Report
-        uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
-        with:
-          name: Go Tests
-          path: report.json
-          reporter: golang-json
-          fail-on-error: 'true'
-          fail-on-empty: 'true'
-          report-title: 'Go Tests'
-      - name: Run manual installation
-        run: docs/src/public/manual-install.sh
-      - uses: ./.github/actions/nsis
-        with:
-          bin-path: target/dpm
-
-  windows:
-    runs-on: windows-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version-file: 'go.mod'
-      - name: Check
+      - name: test-mirror
+        env:
+          SBT_MAVEN_MIRROR: "http://reposilite.reposilite:8080/maven-central-proxy"
         run: |
-            go mod tidy
-            git diff --exit-code --color go.mod go.sum || {
-              echo "::error::Please run 'go mod tidy'"
-              exit 1
-            }
-        shell: bash
-      - run: go build -o target/ ./cmd/...
-        shell: bash
-      - name: Run Go tests and generate in json format
-        run: go test -json -v ./... | tee report.json; exit ${PIPESTATUS[0]}
-        shell: bash
-      - name: Publish Test Report
-        uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
-        with:
-          name: Go Tests
-          path: report.json
-          reporter: golang-json
-
-  release-public:
-    runs-on: digital-asset-dpm
-    needs: 
-      - windows
-      - linux
-    if: success() && startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/tags/0.0.0-skiprelease'
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/release
-        with:
-          # todo - update once decided moved to CF
-          repo: "temp"
-          flags: "--clean --skip=announce,publish,validate"
-          gh_token: ${{ secrets.GITHUB_TOKEN }}
-
-  release-public-unstable:
-    runs-on: digital-asset-dpm
-    needs: 
-      - windows
-      - linux
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
-      - uses: ./.github/actions/release
-        with:
-          # todo - update once decided moved to CF
-          repo: "temp/temp"
-          flags: "--snapshot"
-          gh_token: ${{ secrets.GITHUB_TOKEN }}
+          set -xeuo pipefail
+          
+          echo "SBT_OPTS=$SBT_OPTS"
+          
+          mkdir -p /tmp/sbt-mirror-test/project
+          cd /tmp/sbt-mirror-test
+          
+          cat > build.sbt <<'EOF'
+          scalaVersion := "2.13.14"
+          libraryDependencies ++= Seq(
+            "org.typelevel" %% "cats-core" % "2.12.0",
+            "io.circe" %% "circe-core" % "0.14.9",
+            "org.apache.commons" % "commons-lang3" % "3.14.0"
+          )
+          
+          EOF
+          
+          cat > project/build.properties <<'EOF'
+          sbt.version=1.10.7
+          EOF
+          
+          echo "repositories:"
+          cat "$HOME/.sbt/repositories"
+          
+          sbt -debug update
