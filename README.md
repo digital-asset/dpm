@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 This repository hosts the code for `dpm`, the package manager that serves as the entry point for interacting with components developed by [Digital Asset](https://www.digitalasset.com/).
 
-Documentation for `dpm` is included in the overall docs for the Digital Asset SDK at docs.digitalasset.com.
+Documentation for `dpm` is included in the overall docs for the Digital Asset SDK at [docs.canton.network](https://docs.canton.network/appdev/tooling/development-tools-overview#dpm-daml-package-manager)
 
 `dpm` itself is:
 
