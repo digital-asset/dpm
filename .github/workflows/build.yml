@@ -94,4 +94,5 @@ jobs:
           # todo - update once decided moved to CF
           repo: "temp/temp"
           flags: "--snapshot"
-          gh_token: ${{ secrets.GITHUB_TOKEN }}
+          test_token: ${{ secrets.DACH_NY_TEST }}
+          gh_token: ${{secrets.GITHUB_TOKEN}}
