@@ -4,7 +4,7 @@ inputs:
   registry:
     type: string
     description: GAR registry to use when publishing
-    default: "ghcr.io/DACH-NY"
+    default: "ghcr.io/dach-ny"
   repo:
     type: string
     description: GAR repo to use when publishing
