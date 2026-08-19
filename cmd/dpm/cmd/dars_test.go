@@ -18,6 +18,9 @@ import (
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/testutil"
 	"daml.com/x/assistant/pkg/utils"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -231,4 +234,226 @@ func appendShaToRef(t *testing.T, ref registry.Reference, digest string) registr
 	result, err := registry.ParseReference(ref.String() + "@" + digest)
 	require.NoError(t, err)
 	return result
+}
+
+func (suite *MainSuite) TestResolutionOfGitDarDependencies() {
+	t := suite.T()
+	t.Setenv("DPM_TEST_ALLOW_FILE_GIT", "true")
+
+	config := testutil.MkConfig(t)
+	cloneURL := testutil.InitGitRepo(t, "packages/foo.dar", []byte("fake git dar contents"))
+	gitDep := "git:" + cloneURL + "#main?path=packages/foo.dar"
+
+	projectDir := testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
+dependencies:
+  - %s
+`, gitDep))
+
+	var res *resolution.Package
+
+	t.Run("dpm install package", func(t *testing.T) {
+		require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
+	})
+
+	t.Run("install pins commit in daml.yaml", func(t *testing.T) {
+		pkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
+		require.NoError(t, err)
+		require.Len(t, pkg.Dependencies, 1)
+		value, err := pkg.Dependencies[0].Value()
+		require.NoError(t, err)
+		dep := lo.Values(pkg.ParsedDarDependencies.Dependencies)[0]
+		assert.False(t, damlpackage.GitRefIsMutable(dep.GitRef), "expected commit SHA pin in yaml ref")
+		assert.NotEqual(t, "main", dep.GitRef)
+		assert.Contains(t, value, dep.GitRef)
+	})
+
+	t.Run("should execute dpm resolve without errors", func(t *testing.T) {
+		output := runResolveCommand(t)
+		res = lo.Values(output.Packages)[0]
+	})
+
+	t.Run("resolution output should contain cached git dar path", func(t *testing.T) {
+		require.NotEmpty(t, res.GetResolvedDependencies())
+		cachedPath := res.GetResolvedDependencies()[0]
+		assert.True(t, filepath.IsAbs(cachedPath))
+		assert.Contains(t, cachedPath, filepath.Join("cache", "git"))
+		assert.Contains(t, cachedPath, "packages/foo.dar")
+		assert.FileExists(t, cachedPath)
+
+		pkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
+		require.NoError(t, err)
+		dep := lo.Values(pkg.ParsedDarDependencies.Dependencies)[0]
+		expected, err := config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, dep.GitRef)
+		require.NoError(t, err)
+		assert.Equal(t, expected, cachedPath)
+	})
+
+	t.Run("dpm update --check passes when pinned", func(t *testing.T) {
+		require.NoError(t, createStdTestRootCmd(t, "update", "--check").Execute())
+	})
+}
+
+func (suite *MainSuite) TestInstallGitDarWithCommitPinInYaml() {
+	t := suite.T()
+	t.Setenv("DPM_TEST_ALLOW_FILE_GIT", "true")
+
+	config := testutil.MkConfig(t)
+	cloneURL := testutil.InitGitRepo(t, "packages/foo.dar", []byte("first dar version"))
+
+	repoPath := strings.TrimPrefix(cloneURL, "file://")
+	repo, err := git.PlainOpen(repoPath)
+	require.NoError(t, err)
+	head, err := repo.Head()
+	require.NoError(t, err)
+	firstCommit := head.Hash().String()
+
+	w, err := repo.Worktree()
+	require.NoError(t, err)
+	darAbs := filepath.Join(repoPath, "packages", "foo.dar")
+	require.NoError(t, os.WriteFile(darAbs, []byte("second dar version"), 0o644))
+	_, err = w.Add("packages/foo.dar")
+	require.NoError(t, err)
+	secondCommit, err := w.Commit("update dar", &git.CommitOptions{
+		Author: &object.Signature{Name: "test", Email: "test@test"},
+	})
+	require.NoError(t, err)
+
+	secondDep := fmt.Sprintf("git:%s#%s?path=packages/foo.dar", cloneURL, secondCommit.String())
+	testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
+dependencies:
+  - %s
+`, secondDep))
+
+	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
+
+	secondCached, err := damlpackage.ParseGitDependency(secondDep)
+	require.NoError(t, err)
+	secondCachedPath, err := config.CachePathForGitDependency(secondCached.CloneURL, secondCached.DarPath, secondCommit.String())
+	require.NoError(t, err)
+	assert.FileExists(t, secondCachedPath)
+	secondContent, err := os.ReadFile(secondCachedPath)
+	require.NoError(t, err)
+	assert.Equal(t, "second dar version", string(secondContent))
+
+	firstDep := fmt.Sprintf("git:%s#%s?path=packages/foo.dar", cloneURL, firstCommit)
+	projectDir := testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
+dependencies:
+  - %s
+`, firstDep))
+	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
+
+	firstCached, err := damlpackage.ParseGitDependency(firstDep)
+	require.NoError(t, err)
+	firstCachedPath, err := config.CachePathForGitDependency(firstCached.CloneURL, firstCached.DarPath, firstCommit)
+	require.NoError(t, err)
+	firstContent, err := os.ReadFile(firstCachedPath)
+	require.NoError(t, err)
+	assert.Equal(t, "first dar version", string(firstContent))
+
+	newYaml := fmt.Sprintf(`
+dependencies:
+  - %s
+`, secondDep)
+	require.NoError(t, os.WriteFile(filepath.Join(projectDir, "daml.yaml"), []byte(newYaml), 0o644))
+	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
+
+	secondContent, err = os.ReadFile(secondCachedPath)
+	require.NoError(t, err)
+	assert.Equal(t, "second dar version", string(secondContent))
+	assert.NotEqual(t, string(firstContent), string(secondContent))
+}
+
+func (suite *MainSuite) TestResolutionOfGitDarDataDependencies() {
+	t := suite.T()
+	t.Setenv("DPM_TEST_ALLOW_FILE_GIT", "true")
+
+	config := testutil.MkConfig(t)
+	cloneURL := testutil.InitGitRepo(t, "packages/foo.dar", []byte("fake git data dar contents"))
+	const packageID = "data-main-package"
+	projectDir := testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
+data-dependencies:
+  - value: git:%s#main?path=packages/foo.dar
+    main-package-id: %s
+`, cloneURL, packageID))
+
+	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
+
+	pkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
+	require.NoError(t, err)
+	dep := lo.Values(pkg.ParsedDarDependencies.DataDependencies)[0]
+	assert.False(t, damlpackage.GitRefIsMutable(dep.GitRef))
+	require.NotNil(t, pkg.DataDependencies[0].GetMainPackageId())
+	assert.Equal(t, packageID, *pkg.DataDependencies[0].GetMainPackageId())
+
+	output := runResolveCommand(t)
+	res := lo.Values(output.Packages)[0]
+	require.Empty(t, res.GetResolvedDependencies())
+	require.Len(t, res.GetResolvedDataDependencies(), 1)
+	cachedPath := res.GetResolvedDataDependencies()[0]
+	assert.FileExists(t, cachedPath)
+	expected, err := config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, dep.GitRef)
+	require.NoError(t, err)
+	assert.Equal(t, expected, cachedPath)
+
+	require.NoError(t, createStdTestRootCmd(t, "update", "--check").Execute())
+}
+
+func (suite *MainSuite) TestResolutionOfGitDarDependenciesWithAlias() {
+	t := suite.T()
+	t.Setenv("DPM_TEST_ALLOW_FILE_GIT", "true")
+
+	config := testutil.MkConfig(t)
+	cloneURL := testutil.InitGitRepo(t, "packages/foo.dar", []byte("foo dar contents"))
+	repoPath := strings.TrimPrefix(cloneURL, "file://")
+	barAbs := filepath.Join(repoPath, "packages", "bar.dar")
+	require.NoError(t, os.WriteFile(barAbs, []byte("bar dar contents"), 0o644))
+	repo, err := git.PlainOpen(repoPath)
+	require.NoError(t, err)
+	w, err := repo.Worktree()
+	require.NoError(t, err)
+	_, err = w.Add("packages/bar.dar")
+	require.NoError(t, err)
+	commit, err := w.Commit("add bar dar", &git.CommitOptions{
+		Author: &object.Signature{Name: "test", Email: "test@test"},
+	})
+	require.NoError(t, err)
+	require.NoError(t, repo.Storer.SetReference(plumbing.NewHashReference(
+		plumbing.NewBranchReferenceName("main"),
+		commit,
+	)))
+
+	projectDir := testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
+dependencies:
+  - "@shared-repo#main?path=packages/foo.dar"
+  - "@shared-repo#main?path=packages/bar.dar"
+
+artifact-locations:
+  "@shared-repo":
+    url: git:%s
+`, cloneURL))
+
+	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
+
+	pkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
+	require.NoError(t, err)
+	require.Len(t, pkg.Dependencies, 2)
+
+	for _, raw := range pkg.Dependencies {
+		value, err := raw.Value()
+		require.NoError(t, err)
+		assert.True(t, strings.HasPrefix(value, "git:"), "expected expanded git pin, got %q", value)
+		assert.NotContains(t, value, "#main?")
+		dep := pkg.ParsedDarDependencies.Dependencies[value]
+		require.NotNil(t, dep)
+		assert.False(t, damlpackage.GitRefIsMutable(dep.GitRef))
+		assert.Contains(t, []string{"packages/foo.dar", "packages/bar.dar"}, dep.DarPath)
+
+		cached, err := config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, dep.GitRef)
+		require.NoError(t, err)
+		assert.FileExists(t, cached)
+	}
+
+	output := runResolveCommand(t)
+	res := lo.Values(output.Packages)[0]
+	require.Len(t, res.GetResolvedDependencies(), 2)
 }

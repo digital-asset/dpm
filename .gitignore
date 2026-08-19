@@ -43,3 +43,4 @@ generated/
 
 dpm.lock
 multi-package.lock
+bin/

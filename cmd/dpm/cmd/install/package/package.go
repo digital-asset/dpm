@@ -23,6 +23,7 @@ import (
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/gitpuller"
 	"daml.com/x/assistant/pkg/sdkinstall"
 	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/cobra"
@@ -116,11 +117,25 @@ func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assista
 		}
 	}
 
+	damlPackage, fetched, err := gitpuller.PrepareGitDependencies(ctx, config, damlPath)
+	if err != nil {
+		return err
+	}
+	releaseDeps := gitpuller.GitReleaseAssets(append(
+		lo.Values(damlPackage.ParsedDarDependencies.Dependencies),
+		lo.Values(damlPackage.ParsedDarDependencies.DataDependencies)...,
+	))
+	if fetched > 0 {
+		fmt.Printf("Fetched %d git release assets\n", fetched)
+	} else if cached, total := gitpuller.CountCachedReleaseAssets(config, releaseDeps); total > 0 && cached == total {
+		fmt.Printf("All %d git release assets already cached\n", total)
+	}
+
 	yamlTarget := yamledit.YamlTarget{
 		YamlFilePath: damlPath,
 		FieldName:    "dependencies",
 	}
-	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.Dependencies), yamlTarget); err != nil {
+	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.Dependencies), damlPackage.Dependencies, yamlTarget); err != nil {
 		return err
 	}
 
@@ -128,34 +143,53 @@ func processDamlPackage(ctx context.Context, cmd *cobra.Command, config *assista
 		YamlFilePath: damlPath,
 		FieldName:    "data-dependencies",
 	}
-	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.DataDependencies), yamlTarget.Copy()); err != nil {
+	if err := installDars(ctx, config, lo.Values(damlPackage.ParsedDarDependencies.DataDependencies), damlPackage.DataDependencies, yamlTarget.Copy()); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func installDars(ctx context.Context, config *assistantconfig.Config, dars []*damlpackage.ParsedDarDependency, yamlTarget yamledit.YamlTarget) error {
+func installDars(ctx context.Context, config *assistantconfig.Config, dars []*damlpackage.ParsedDarDependency, rawDars []*damlpackage.RawDependency, yamlTarget yamledit.YamlTarget) error {
 	for _, d := range dars {
 		updatedDar, version, err := InstallDar(ctx, config, d)
 		if err != nil {
 			return err
 		}
 
-		// now update daml.yaml if we had to append a @sha256
 		if updatedDar != nil {
-			quotedUri := fmt.Sprintf("\"%s\"", updatedDar.StringWithAlias())
-			yamlTarget = yamlTarget.Copy()
-			yamlTarget.Index = updatedDar.Index
-			yamlTarget.LineComment = version
-			return yamledit.EditYaml(yamlTarget, quotedUri)
+			var uri string
+			if updatedDar.Scheme() == "git" {
+				uri = damlpackage.FormatGitYamlLine(updatedDar)
+			} else {
+				uri = updatedDar.StringWithAlias()
+			}
+			item := fmt.Sprintf("%q", uri)
+			if updatedDar.Index >= 0 && updatedDar.Index < len(rawDars) {
+				item, err = damlpackage.MarshalDependencyWithValue(rawDars[updatedDar.Index], uri)
+				if err != nil {
+					return err
+				}
+			}
+			target := yamlTarget.Copy()
+			target.Index = updatedDar.Index
+			if updatedDar.Scheme() != "git" {
+				target.LineComment = version
+			}
+			if err := yamledit.EditYaml(target, item); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
 func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpackage.ParsedDarDependency) (updatedDar *damlpackage.ParsedDarDependency, version string, err error) {
-	if dar.FullUrl.Scheme != "oci" {
+	if dar.Scheme() == "git" {
+		updatedDar, err = installGitDar(ctx, config, dar)
+		return updatedDar, "", err
+	}
+	if dar.FullUrl == nil || dar.FullUrl.Scheme != "oci" {
 		return nil, "", nil
 	}
 	fmt.Printf("installing dar %q...\n", dar.FullUrl.String())
@@ -212,6 +246,30 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 	return updatedDar, version, nil
 }
 
+func installGitDar(ctx context.Context, config *assistantconfig.Config, dar *damlpackage.ParsedDarDependency) (*damlpackage.ParsedDarDependency, error) {
+	if dar.GitRelease {
+		if gitpuller.DarIsCached(config, dar) {
+			return nil, nil
+		}
+		fmt.Printf("installing git release asset %q...\n", dar.DarPath)
+	} else {
+		fmt.Printf("installing git dar %q...\n", damlpackage.FormatGitYamlLine(dar))
+		if gitpuller.DarIsCached(config, dar) {
+			return nil, nil
+		}
+	}
+
+	result, err := gitpuller.PullGitDar(ctx, config, dar)
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Pinned != nil {
+		return result.Pinned, nil
+	}
+	return nil, nil
+}
+
 func installMultiPackageYamlComponentsOnly(ctx context.Context, cmd *cobra.Command, config *assistantconfig.Config) error {
 	puller, err := remotepuller.NewFromRemoteConfig(config)
 	if err != nil {
@@ -264,7 +322,9 @@ func installSdk(ctx context.Context, cmd *cobra.Command, config *assistantconfig
 	_, err := assistantconfig.GetInstalledSdkVersion(config, sdkVersion)
 	if err == nil {
 		cmd.Printf("SDK version %s is already installed\n", sdkVersion.String())
-	} else if !errors.Is(err, assistantconfig.ErrTargetSdkNotInstalled) {
+		return nil
+	}
+	if !errors.Is(err, assistantconfig.ErrTargetSdkNotInstalled) {
 		return err
 	}
 

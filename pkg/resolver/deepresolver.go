@@ -17,6 +17,7 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/darmanifest"
+	"daml.com/x/assistant/pkg/gitpuller"
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/packagelock"
 	"daml.com/x/assistant/pkg/resolution"
@@ -123,14 +124,18 @@ func (d *DeepResolver) resolvePackageAndDars(ctx context.Context, absPath string
 		return nil, err
 	}
 
+	applyLockedDars(result.ShallowResolution, lock)
+
+	return result.ShallowResolution, nil
+}
+
+func applyLockedDars(pkg *resolution.Package, lock *packagelock.PackageLock) {
 	paths := lo.Map(lock.Dars, func(d *packagelock.Dar, _ int) string {
 		return d.Path
 	})
 	if len(paths) > 0 {
-		result.ShallowResolution.Imports[resolution.DarImportsFields] = paths
+		pkg.Imports[resolution.ResolvedDependenciesField] = paths
 	}
-
-	return result.ShallowResolution, nil
 }
 
 func (d *DeepResolver) resolvePackage(ctx context.Context, absPath string) (*assembler.AssemblyResult, error) {
@@ -160,12 +165,17 @@ func (d *DeepResolver) resolvePackageDars(absPath string) (deps []string, dataDe
 		return nil, nil, err
 	}
 
-	var errs []error
+	var missing []*damlpackage.ParsedDarDependency
+	var otherErrs []error
 
 	for _, dar := range p.ParsedDarDependencies.Dependencies {
 		r, err := d.resolveDar(dar)
 		if err != nil {
-			errs = append(errs, err)
+			if isDarNotInstalled(err) {
+				missing = append(missing, dar)
+			} else {
+				otherErrs = append(otherErrs, err)
+			}
 			continue
 		}
 		deps = append(deps, r...)
@@ -174,13 +184,20 @@ func (d *DeepResolver) resolvePackageDars(absPath string) (deps []string, dataDe
 	for _, dar := range p.ParsedDarDependencies.DataDependencies {
 		r, err := d.resolveDar(dar)
 		if err != nil {
-			errs = append(errs, err)
+			if isDarNotInstalled(err) {
+				missing = append(missing, dar)
+			} else {
+				otherErrs = append(otherErrs, err)
+			}
 			continue
 		}
 		dataDeps = append(dataDeps, r...)
 	}
 
-	if err := errors.Join(errs...); err != nil {
+	if len(missing) > 0 {
+		otherErrs = append(otherErrs, formatMissingDarsError(missing))
+	}
+	if err := errors.Join(otherErrs...); err != nil {
 		return nil, nil, err
 	}
 
@@ -188,7 +205,7 @@ func (d *DeepResolver) resolvePackageDars(absPath string) (deps []string, dataDe
 }
 
 func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]string, error) {
-	scheme := dar.FullUrl.Scheme
+	scheme := dar.Scheme()
 
 	if scheme == "builtin" || scheme == "file" {
 		return []string{strings.TrimPrefix(dar.FullUrl.String(), scheme+"://")}, nil
@@ -219,6 +236,49 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]strin
 			dars = append(dars, utils.ResolvePath(darDir, obj.Path))
 		}
 		return dars, nil
+	}
+	if scheme == "git" {
+		if dar.GitRelease {
+			if strings.TrimSpace(dar.DarPath) == "" {
+				return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf(
+					"git release %q is not expanded; run 'dpm update' to expand release dependencies",
+					gitReleaseBaseLine(dar),
+				))
+			}
+			if !gitpuller.DarIsCached(d.config, dar) {
+				return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf("%s is not installed", missingDarLabel(dar)))
+			}
+			cachedDar, err := d.config.CachePathForGitRelease(dar.CloneURL, dar.GitRef, dar.DarPath)
+			if err != nil {
+				return nil, err
+			}
+			absPath, err := filepath.Abs(cachedDar)
+			if err != nil {
+				return nil, err
+			}
+			return []string{absPath}, nil
+		}
+		if damlpackage.GitRefIsMutable(dar.GitRef) {
+			return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf(
+				"%s is not installed. Run 'dpm install package' or 'dpm update' to pin and fetch it",
+				damlpackage.FormatGitYamlLine(dar),
+			))
+		}
+		if !gitpuller.DarIsCached(d.config, dar) {
+			return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf(
+				"%s is not installed. Run 'dpm install package' or 'dpm update'",
+				damlpackage.FormatGitYamlLine(dar),
+			))
+		}
+		cachedDar, err := d.config.CachePathForGitDependency(dar.CloneURL, dar.DarPath, dar.GitRef)
+		if err != nil {
+			return nil, err
+		}
+		absPath, err := filepath.Abs(cachedDar)
+		if err != nil {
+			return nil, err
+		}
+		return []string{absPath}, nil
 	}
 
 	return nil, fmt.Errorf("unsupported schema %s", scheme)

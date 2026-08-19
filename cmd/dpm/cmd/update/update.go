@@ -12,17 +12,20 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/gitpuller"
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/yamledit"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"oras.land/oras-go/v2/registry"
 )
 
 type updateCmd struct {
 	forceInsecure bool
+	checkOnly     bool
 	config        *assistantconfig.Config
 	printer       *cobra.Command
 }
@@ -39,6 +42,10 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 
 			c.config = config
 			c.printer = cmd
+
+			if c.checkOnly {
+				return c.checkGitDependencies(ctx)
+			}
 
 			pkgs, multiPkg, err := c.packagesToUpdate()
 			if err != nil {
@@ -64,6 +71,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&c.forceInsecure, "force-insecure", false, "ignoring ArtifactLocations and force http instead of https for OCI registry")
+	cmd.Flags().BoolVar(&c.checkOnly, "check", false, "verify git dependencies are installed and match yaml commit pins")
 
 	return cmd
 }
@@ -138,6 +146,20 @@ func (c *updateCmd) updatePackage(ctx context.Context, damlPackage *damlpackage.
 		}
 	}
 
+	damlPackage, fetched, err := gitpuller.PrepareGitDependencies(ctx, c.config, damlPackage.AbsolutePath)
+	if err != nil {
+		return err
+	}
+	releaseDeps := gitpuller.GitReleaseAssets(append(
+		lo.Values(damlPackage.ParsedDarDependencies.Dependencies),
+		lo.Values(damlPackage.ParsedDarDependencies.DataDependencies)...,
+	))
+	if fetched > 0 {
+		fmt.Printf("Fetched %d git release assets\n\n", fetched)
+	} else if cached, total := gitpuller.CountCachedReleaseAssets(c.config, releaseDeps); total > 0 && cached == total {
+		fmt.Printf("All %d git release assets already cached\n\n", total)
+	}
+
 	for _, dep := range damlPackage.ParsedDarDependencies.Dependencies {
 		yamlTarget := yamledit.YamlTarget{
 			YamlFilePath: damlPackage.AbsolutePath,
@@ -162,7 +184,10 @@ func (c *updateCmd) updatePackage(ctx context.Context, damlPackage *damlpackage.
 }
 
 func (c *updateCmd) updateDar(ctx context.Context, dep *damlpackage.ParsedDarDependency, yamlTarget yamledit.YamlTarget) error {
-	if dep.FullUrl.Scheme != "oci" {
+	if dep.Scheme() == "git" {
+		return c.updateGitDar(ctx, dep, yamlTarget)
+	}
+	if dep.FullUrl == nil || dep.FullUrl.Scheme != "oci" {
 		return nil
 	}
 
@@ -183,12 +208,114 @@ func (c *updateCmd) updateDar(ctx context.Context, dep *damlpackage.ParsedDarDep
 	}
 
 	insecure := c.forceInsecure || (dep.Location != nil && dep.Location.Insecure)
-	yamlTarget.Index = dep.Index
-	if err := dar.AddOrUpdateDar(ctx, c.config, uri, insecure, yamlTarget); err != nil {
+	target := yamlTarget.Copy()
+	target.Index = dep.Index
+	if err := dar.AddOrUpdateDar(ctx, c.config, uri, insecure, target); err != nil {
 		return err
 	}
 
 	fmt.Printf("Successfully updated %q\n\n", uri)
+	return nil
+}
+
+func (c *updateCmd) updateGitDar(ctx context.Context, dep *damlpackage.ParsedDarDependency, yamlTarget yamledit.YamlTarget) error {
+	if dep.GitRelease {
+		return nil
+	}
+
+	uri := damlpackage.FormatGitYamlLine(dep)
+
+	if damlpackage.GitRefIsMutable(dep.GitRef) {
+		fmt.Printf("Updating git dar %q...\n", uri)
+
+		target := yamlTarget.Copy()
+		target.Index = dep.Index
+		if err := dar.AddOrUpdateDar(ctx, c.config, uri, false, target); err != nil {
+			return err
+		}
+
+		fmt.Printf("Successfully updated %q\n\n", uri)
+		return nil
+	}
+
+	if gitpuller.DarIsCached(c.config, dep) {
+		return nil
+	}
+
+	fmt.Printf("Fetching git dar %q...\n", uri)
+	if _, err := gitpuller.PullGitDar(ctx, c.config, dep); err != nil {
+		return fmt.Errorf("git dependency %q: %w", uri, err)
+	}
+	fmt.Printf("Successfully fetched %q\n\n", uri)
+	return nil
+}
+
+func (c *updateCmd) checkGitDependencies(ctx context.Context) error {
+	pkgs, _, err := c.packagesToUpdate()
+	if err != nil {
+		return err
+	}
+
+	for _, pkg := range pkgs {
+		deps := append(
+			lo.Values(pkg.ParsedDarDependencies.Dependencies),
+			lo.Values(pkg.ParsedDarDependencies.DataDependencies)...,
+		)
+		for _, dep := range deps {
+			if dep.Scheme() != "git" {
+				continue
+			}
+			if err := checkGitDependency(ctx, c.config, dep); err != nil {
+				return err
+			}
+		}
+	}
+
+	fmt.Println("All git dependencies are up to date.")
+	return nil
+}
+
+func checkGitDependency(ctx context.Context, config *assistantconfig.Config, dep *damlpackage.ParsedDarDependency) error {
+	if dep.GitRelease {
+		if strings.TrimSpace(dep.DarPath) == "" {
+			return fmt.Errorf(
+				"git release %q has no asset; run dpm update to expand release dependencies",
+				dep.GitRef,
+			)
+		}
+		if !gitpuller.DarIsCached(config, dep) {
+			return fmt.Errorf(
+				"git release dependency %q is not installed; run 'dpm update'",
+				damlpackage.FormatGitYamlLine(dep),
+			)
+		}
+		return nil
+	}
+
+	if damlpackage.GitRefIsMutable(dep.GitRef) {
+		return damlpackage.GitMissingPinError(dep)
+	}
+
+	if !gitpuller.DarIsCached(config, dep) {
+		return fmt.Errorf(
+			"git dependency %q is not installed; run 'dpm install package' or 'dpm update'",
+			damlpackage.FormatGitYamlLine(dep),
+		)
+	}
+
+	result, err := gitpuller.PullGitDar(ctx, config, dep)
+	if err != nil {
+		return fmt.Errorf("git dependency %q: %w", damlpackage.FormatGitYamlLine(dep), err)
+	}
+
+	cachedDar, err := config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, dep.GitRef)
+	if err != nil {
+		return fmt.Errorf("git dependency %q: %w", damlpackage.FormatGitYamlLine(dep), err)
+	}
+	if result.Pulled.DarFilePath != cachedDar {
+		return fmt.Errorf("git dependency %q cache path mismatch", damlpackage.FormatGitYamlLine(dep))
+	}
+
 	return nil
 }
 

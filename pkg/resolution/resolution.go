@@ -13,8 +13,6 @@ import (
 const (
 	ApiVersion = "v1"
 	Kind       = "Resolution"
-
-	DarImportsFields = "resolved-data-dependencies"
 )
 
 type Resolution struct {
