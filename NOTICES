@@ -1,6 +1,6 @@
 Copyright 2026
 
-[digital-asset/dpm : dependabot/go_modules/go_modules-2891b22f9b]
+[digital-asset/dpm : uptick-libs]
 
 Phase: DEVELOPMENT
 Distribution: EXTERNAL
@@ -22,6 +22,7 @@ clipperhouse/uax29 v2.7.0: https://github.com/clipperhouse/uax29 : MIT License
 cloudflare/circl v1.6.5: https://github.com/cloudflare/circl : BSD 3-clause "New" or "Revised" License
 cpuguy83-go-md2man 2.0.7: https://github.com/cpuguy83/go-md2man : MIT License
 cyphar/filepath-securejoin v0.7.0: https://github.com/cyphar/filepath-securejoin : (BSD 3-clause "New" or "Revised" License AND Mozilla Public License 2.0)
+docker-cli v29.7.2: https://github.com/docker/cli : Apache License 2.0
 docker-org v0.9.3: https://github.com/docker/migrator : Apache License 2.0
 emirpasic-gods v1.18.1: https://github.com/emirpasic/gods : (BSD 2-clause "Simplified" License AND ISC License)
 exp 20260409-snapshot-746e56fc: http://code.google.com/p/go.exp : BSD 3-clause "New" or "Revised" License
@@ -32,12 +33,12 @@ github.com/charmbracelet/x ansi/v0.11.8: https://github.com/charmbracelet/x : MI
 github.com/charmbracelet/x cellbuf/v0.0.15: https://github.com/charmbracelet/x : MIT License
 github.com/charmbracelet/x term/v0.2.2: https://github.com/charmbracelet/x : MIT License
 github.com/go-git/gcfg 20230307-snapshot-3a3c6141: https://github.com/go-git/gcfg : BSD 3-clause "New" or "Revised" License
-github.com/google/go-containerregistry 0.21.9: https://github.com/google/go-containerregistry : Apache License 2.0
+github.com/google/go-containerregistry v0.22.1: https://github.com/google/go-containerregistry : Apache License 2.0
 github.com/jdx/go-netrc v1.0.0 : MIT License
 github.com/pjbgf/sha1cd v0.6.0: https://github.com/pjbgf/sha1cd : Apache License 2.0
 github.com/rivo/uniseg v0.4.7: https://github.com/rivo/uniseg : MIT License
 github.com/samber/lo v1.53.0: https://github.com/samber/lo : MIT License
-github.com/skeema/knownhosts 1.3.2: https://github.com/skeema/knownhosts : Apache License 2.0
+github.com/skeema/knownhosts v1.3.3: https://github.com/skeema/knownhosts : Apache License 2.0
 gliderlabs/ssh v0.3.8: https://godoc.org/github.com/gliderlabs/ssh : BSD 3-clause "New" or "Revised" License
 goccy/go-yaml v1.19.2: https://github.com/goccy/go-yaml : MIT License
 go-check-check 20201130-snapshot-10cb9826: http://labix.org/gocheck : BSD 2-clause "Simplified" License
@@ -47,19 +48,13 @@ go-git/go-billy v5.9.1: https://github.com/go-git/go-billy : Apache License 2.0
 go-git/go-git v5.19.2: https://github.com/go-git/go-git : Apache License 2.0
 go-git/go-git-fixtures 20231010-snapshot-55a94097: https://github.com/go-git/go-git-fixtures : Apache License 2.0
 golang-github-spf13-pflag-dev v1.0.10: https://github.com/spf13/pflag : BSD 3-clause "New" or "Revised" License
-golang.org/x/crypto v0.55.0: https://godoc.org/golang.org/x/crypto : BSD 3-clause "New" or "Revised" License
-golang.org/x/mod v0.38.0: https://go.googlesource.com/mod : BSD 3-clause "New" or "Revised" License
-golang.org/x/sys v0.47.0: https://pkg.go.dev/golang.org/x/sys : BSD 3-clause "New" or "Revised" License
-golang.org/x/term v0.45.0: https://go.googlesource.com/term : BSD 3-clause "New" or "Revised" License
-golang.org/x/tools v0.48.0: https://pkg.go.dev/golang.org/x/tools : BSD 3-clause "New" or "Revised" License
-golang/sync v0.22.0: https://pkg.go.dev/golang.org/x/sync : BSD 3-clause "New" or "Revised" License
-golang/text v0.41.0: https://github.com/golang/text : BSD 3-clause "New" or "Revised" License
+golang.org/x/mod v0.41.0: https://go.googlesource.com/mod : BSD 3-clause "New" or "Revised" License
+golang.org/x/tools v0.49.0: https://pkg.go.dev/golang.org/x/tools : BSD 3-clause "New" or "Revised" License
 Go Logrus v1.9.4: https://github.com/sirupsen/logrus : MIT License
 gomega 1.34.1: https://github.com/onsi/gomega : MIT License
 google/go-cmp v0.7.0: https://github.com/google/go-cmp : BSD 3-clause "New" or "Revised" License
 goproxy v1.7.2: https://github.com/elazarl/goproxy : BSD 3-clause "New" or "Revised" License
-go-spew v1.1.1: https://github.com/davecgh/go-spew : ISC License
-Go Testify v1.11.1: https://github.com/stretchr/testify : MIT License
+Go Testify v1.12.1: https://github.com/stretchr/testify : MIT License
 go-warnings/warnings v0.1.2: https://github.com/go-warnings/warnings : BSD 2-clause "Simplified" License
 go.yaml.in/yaml/v2 v3.0.5: https://github.com/yaml/go-yaml : Apache License 2.0
 groupcache 20241129-snapshot-2c02b820: https://github.com/golang/groupcache : Apache License 2.0
@@ -67,13 +62,13 @@ inconshreveable/mousetrap v1.1.0: https://github.com/inconshreveable/mousetrap :
 jbenet/go-context 20150711-snapshot-d14ea06f: https://github.com/jbenet/go-context : MIT License
 juju/fslock 20160525-snapshot-4d5c94c6 : GNU Lesser General Public License v3.0 or later
 kevinburke/ssh_config v1.6.0: https://github.com/kevinburke/ssh_config : (X.Net License AND MIT License)
-klauspost-compress v1.19.1: https://github.com/klauspost/compress : BSD 3-clause "New" or "Revised" License
+klauspost-compress v1.19.2: https://github.com/klauspost/compress : BSD 3-clause "New" or "Revised" License
 klauspost-cpuid v2.4.0: https://github.com/klauspost/cpuid : MIT License
 kr/pretty v0.3.1: https://github.com/kr/pretty : MIT License
 Masterminds-semver v3.5.0: https://github.com/Masterminds/semver : MIT License
 mattn-go-colorable v0.1.15: http://godoc.org/github.com/mattn/go-colorable : MIT License
 mattn-go-isatty v0.0.24: http://godoc.org/github.com/mattn/go-isatty : MIT License
-mattn-go-runewidth v0.0.27: https://github.com/mattn/go-runewidth : MIT License
+mattn-go-runewidth v0.0.29: https://github.com/mattn/go-runewidth : MIT License
 mergo v1.0.2: https://github.com/imdario/mergo : BSD 3-clause "New" or "Revised" License
 Microsoft-go-winio v0.6.2: https://github.com/Microsoft/go-winio/ : MIT License
 muesli/termenv v0.16.0: https://github.com/muesli/termenv : MIT License
@@ -81,19 +76,18 @@ opencontainers/go-digest 1.0.0: https://www.opencontainers.org/ : Apache License
 opencontainers/image-spec v1.1.1: https://www.opencontainers.org/ : Apache License 2.0
 oras.land/oras-go v2.6.2: https://github.com/oras-project/oras-go : Apache License 2.0
 pkg/errors v0.9.1: https://github.com/pkg/errors : BSD 2-clause "Simplified" License
-pmezard-go-difflib 1.0.0: https://github.com/pmezard/go-difflib : BSD 3-clause "New" or "Revised" License
 ProtonMail/go-crypto v1.4.1-proton: https://github.com/ProtonMail/go-crypto : BSD 3-clause "New" or "Revised" License
 rogpeppe/go-internal v1.14.1: http://github.com/rogpeppe/go-internal/ : BSD 3-clause "New" or "Revised" License
 sergi/go-diff v1.4.0: https://github.com/sergi/go-diff : MIT License
 spf13-cobra 1.10.2: https://github.com/spf13/cobra : Apache License 2.0
 xanzy-ssh-agent v0.3.3: https://github.com/xanzy/ssh-agent : Apache License 2.0
 xo/terminfo v1.0.0: https://github.com/xo/terminfo : MIT License
-yaml for Go v3.0.1: https://github.com/go-yaml/yaml/tree/v2 : (MIT License AND Apache License 2.0)
+yaml for Go v3.0.1: https://github.com/go-yaml/yaml : (MIT License AND Apache License 2.0)
 
 Licenses: 
 
 Apache License 2.0
-(docker-org v0.9.3, fatih-color 1.19.0, github.com/google/go-containerregistry 0.21.9, github.com/pjbgf/sha1cd v0.6.0, github.com/skeema/knownhosts 1.3.2, go-git/go-billy v5.9.1, go-git/go-git v5.19.2, go-git/go-git-fixtures 20231010-snapshot-55a94097, go.yaml.in/yaml/v2 v3.0.5, groupcache 20241129-snapshot-2c02b820, inconshreveable/mousetrap v1.1.0, opencontainers/go-digest 1.0.0, opencontainers/image-spec v1.1.1, oras.land/oras-go v2.6.2, spf13-cobra 1.10.2, xanzy-ssh-agent v0.3.3, yaml for Go v3.0.1)
+(docker-cli v29.7.2, docker-org v0.9.3, fatih-color 1.19.0, github.com/google/go-containerregistry v0.22.1, github.com/pjbgf/sha1cd v0.6.0, github.com/skeema/knownhosts v1.3.3, go-git/go-billy v5.9.1, go-git/go-git v5.19.2, go-git/go-git-fixtures 20231010-snapshot-55a94097, go.yaml.in/yaml/v2 v3.0.5, groupcache 20241129-snapshot-2c02b820, inconshreveable/mousetrap v1.1.0, opencontainers/go-digest 1.0.0, opencontainers/image-spec v1.1.1, oras.land/oras-go v2.6.2, spf13-cobra 1.10.2, xanzy-ssh-agent v0.3.3, yaml for Go v3.0.1)
 
 Apache License
 Version 2.0, January 2004
@@ -368,51 +362,7 @@ DAMAGE.
 ---
 
 BSD 3-clause "New" or "Revised" License
-(pmezard-go-difflib 1.0.0)
-
-Source: https://github.com/pmezard/go-difflib
-
-Files: *
-Copyright: 2013 Patrick M?zard
-License: BSD-3-clause
-
-Files: debian/*
-Copyright: 2016 Dmitry Smirnov <onlyjob@debian.org>
-License: BSD-3-clause
-
-License: BSD-3-clause
-
-Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions are
- met:
- .
-    Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
- .
-    Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
- .
-    The names of its contributors may not be used to endorse or promote
-    products derived from this software without specific prior written
-    permission.
- .
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
- IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
- TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
-
----
-
-BSD 3-clause "New" or "Revised" License
-(aymanbagabas/go-udiff v0.2.0, cloudflare/circl v1.6.5, cyphar/filepath-securejoin v0.7.0, exp 20260409-snapshot-746e56fc, fatih-color 1.19.0, github.com/go-git/gcfg 20230307-snapshot-3a3c6141, gliderlabs/ssh v0.3.8, golang-github-spf13-pflag-dev v1.0.10, golang.org/x/crypto v0.55.0, golang.org/x/mod v0.38.0, golang.org/x/sys v0.47.0, golang.org/x/term v0.45.0, golang.org/x/tools v0.48.0, golang/sync v0.22.0, golang/text v0.41.0, google/go-cmp v0.7.0, goproxy v1.7.2, klauspost-compress v1.19.1, mergo v1.0.2, ProtonMail/go-crypto v1.4.1-proton, rogpeppe/go-internal v1.14.1)
+(aymanbagabas/go-udiff v0.2.0, cloudflare/circl v1.6.5, cyphar/filepath-securejoin v0.7.0, exp 20260409-snapshot-746e56fc, fatih-color 1.19.0, github.com/go-git/gcfg 20230307-snapshot-3a3c6141, gliderlabs/ssh v0.3.8, golang-github-spf13-pflag-dev v1.0.10, golang.org/x/mod v0.41.0, golang.org/x/tools v0.49.0, google/go-cmp v0.7.0, goproxy v1.7.2, klauspost-compress v1.19.2, mergo v1.0.2, ProtonMail/go-crypto v1.4.1-proton, rogpeppe/go-internal v1.14.1)
 
 Copyright (c) <YEAR>, <OWNER>
 All rights reserved.
@@ -1288,27 +1238,6 @@ THIS SOFTWARE.
 
 ---
 
-ISC License
-(go-spew v1.1.1)
-
-ISC License
-
-Copyright (c) 2012-2016 Dave Collins <dave@davec.name>
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE
-
----
-
 MIT License
 (jbenet/go-context 20150711-snapshot-d14ea06f)
 
@@ -1400,7 +1329,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 ---
 
 MIT License
-(aymanbagabas/go-osc52 v2.0.1, charmbracelet/lipgloss v1.1.0, clipperhouse/uax29 v2.7.0, cpuguy83-go-md2man 2.0.7, fatih-color 1.19.0, github.com/charmbracelet/colorprofile v0.4.3, github.com/charmbracelet/x 20240806-snapshot-69247e0a, github.com/charmbracelet/x ansi/v0.11.8, github.com/charmbracelet/x cellbuf/v0.0.15, github.com/charmbracelet/x term/v0.2.2, github.com/jdx/go-netrc v1.0.0, github.com/rivo/uniseg v0.4.7, github.com/samber/lo v1.53.0, Go Logrus v1.9.4, Go Testify v1.11.1, go-colorful v1.4.1, goccy/go-yaml v1.19.2, gomega 1.34.1, kevinburke/ssh_config v1.6.0, klauspost-cpuid v2.4.0, kr/pretty v0.3.1, Masterminds-semver v3.5.0, mattn-go-colorable v0.1.15, mattn-go-isatty v0.0.24, mattn-go-runewidth v0.0.27, Microsoft-go-winio v0.6.2, muesli/termenv v0.16.0, sergi/go-diff v1.4.0, xo/terminfo v1.0.0, yaml for Go v3.0.1)
+(aymanbagabas/go-osc52 v2.0.1, charmbracelet/lipgloss v1.1.0, clipperhouse/uax29 v2.7.0, cpuguy83-go-md2man 2.0.7, fatih-color 1.19.0, github.com/charmbracelet/colorprofile v0.4.3, github.com/charmbracelet/x 20240806-snapshot-69247e0a, github.com/charmbracelet/x ansi/v0.11.8, github.com/charmbracelet/x cellbuf/v0.0.15, github.com/charmbracelet/x term/v0.2.2, github.com/jdx/go-netrc v1.0.0, github.com/rivo/uniseg v0.4.7, github.com/samber/lo v1.53.0, Go Logrus v1.9.4, Go Testify v1.12.1, go-colorful v1.4.1, goccy/go-yaml v1.19.2, gomega 1.34.1, kevinburke/ssh_config v1.6.0, klauspost-cpuid v2.4.0, kr/pretty v0.3.1, Masterminds-semver v3.5.0, mattn-go-colorable v0.1.15, mattn-go-isatty v0.0.24, mattn-go-runewidth v0.0.29, Microsoft-go-winio v0.6.2, muesli/termenv v0.16.0, sergi/go-diff v1.4.0, xo/terminfo v1.0.0, yaml for Go v3.0.1)
 
 The MIT License
 ===============
