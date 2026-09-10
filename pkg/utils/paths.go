@@ -12,6 +12,11 @@ import (
 )
 
 // ResolvePath
+func IsDarPath(path string) bool {
+	return strings.HasSuffix(strings.ToLower(path), ".dar")
+}
+
+// ResolvePath
 func ResolvePath(basePath, p string) string {
 	if filepath.IsAbs(p) {
 		return filepath.Clean(p)

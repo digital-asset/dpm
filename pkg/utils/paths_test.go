@@ -6,6 +6,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestIsDarPath(t *testing.T) {
+	assert.True(t, IsDarPath("foo.dar"))
+	assert.True(t, IsDarPath("Foo.DAR"))
+	assert.True(t, IsDarPath("dist/foo.dar"))
+	assert.False(t, IsDarPath("foo.dalf"))
+	assert.False(t, IsDarPath("foo.dar.bak"))
+}
+
 func TestUrlToFilePath(t *testing.T) {
 	tests := []struct {
 		in       string

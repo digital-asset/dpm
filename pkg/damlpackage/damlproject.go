@@ -38,6 +38,28 @@ type DamlPackage struct {
 	AbsolutePath string `yaml:"-"`
 }
 
+func (p *DamlPackage) Deps(field string) []*RawDependency {
+	if p == nil {
+		return nil
+	}
+	if field == "data-dependencies" {
+		return p.DataDependencies
+	}
+	return p.Dependencies
+}
+
+func (p *DamlPackage) RawAndParsed(field string) ([]*RawDependency, map[string]*ParsedDarDependency) {
+	raw := p.Deps(field)
+	if p == nil || p.ParsedDarDependencies == nil {
+		return raw, nil
+	}
+	parsed := p.ParsedDarDependencies.Dependencies
+	if field == "data-dependencies" {
+		parsed = p.ParsedDarDependencies.DataDependencies
+	}
+	return raw, parsed
+}
+
 func Read(absoluteFilePath string) (*DamlPackage, error) {
 	bytes, err := os.ReadFile(absoluteFilePath)
 	if err != nil {

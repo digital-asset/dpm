@@ -170,6 +170,81 @@ func ReplaceItemInList(raw []byte, field string, index int, replacement string) 
 	return replace(raw, fmt.Sprintf("$.%s[%d]", field, index), replacement)
 }
 
+// ReplaceListAny replaces the entire list at field with marshaled items.
+func ReplaceListAny(raw []byte, field string, items any) (string, error) {
+	listYAML, err := yaml.MarshalWithOptions(items, yaml.Indent(2))
+	if err != nil {
+		return "", err
+	}
+	return replaceListNode(raw, field, listYAML)
+}
+
+// ReplaceListAnyPreservingComments replaces a list, carrying source item comments to derived items.
+func ReplaceListAnyPreservingComments(raw []byte, field string, items any, sourceIndices []int) (string, error) {
+	comments := yaml.CommentMap{}
+	var document any
+	if err := yaml.UnmarshalWithOptions(raw, &document, yaml.CommentToMap(comments)); err != nil {
+		return "", err
+	}
+
+	listComments := yaml.CommentMap{}
+	usedSources := map[int]struct{}{}
+	fieldPrefix := "$." + field
+	for outputIndex, sourceIndex := range sourceIndices {
+		if _, used := usedSources[sourceIndex]; used {
+			continue
+		}
+		usedSources[sourceIndex] = struct{}{}
+
+		sourcePrefix := fmt.Sprintf("%s[%d]", fieldPrefix, sourceIndex)
+		outputPrefix := fmt.Sprintf("$[%d]", outputIndex)
+		for path, pathComments := range comments {
+			if path != sourcePrefix &&
+				!strings.HasPrefix(path, sourcePrefix+".") &&
+				!strings.HasPrefix(path, sourcePrefix+"[") {
+				continue
+			}
+			listComments[outputPrefix+strings.TrimPrefix(path, sourcePrefix)] = pathComments
+		}
+	}
+
+	plainListYAML, err := yaml.MarshalWithOptions(items, yaml.Indent(2))
+	if err != nil {
+		return "", err
+	}
+	var commentableItems any
+	if err := yaml.UnmarshalWithOptions(plainListYAML, &commentableItems, yaml.UseOrderedMap()); err != nil {
+		return "", err
+	}
+	listYAML, err := yaml.MarshalWithOptions(commentableItems, yaml.Indent(2), yaml.WithComment(listComments))
+	if err != nil {
+		return "", err
+	}
+	return replaceListNode(raw, field, listYAML)
+}
+
+func replaceListNode(raw []byte, field string, listYAML []byte) (string, error) {
+	f, err := parser.ParseBytes(raw, parser.ParseComments)
+	if err != nil {
+		return "", err
+	}
+
+	p, err := yaml.PathString("$." + field)
+	if err != nil {
+		return "", err
+	}
+
+	replacement, err := parser.ParseBytes(listYAML, parser.ParseComments)
+	if err != nil {
+		return "", err
+	}
+	if err := p.ReplaceWithFile(f, replacement); err != nil {
+		return "", err
+	}
+
+	return f.String(), nil
+}
+
 func replace(raw []byte, path string, replacement string) (string, error) {
 	f, err := parser.ParseBytes(raw, parser.ParseComments)
 	if err != nil {
