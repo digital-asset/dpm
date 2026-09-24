@@ -32,6 +32,7 @@ https://docs.digitalasset.com once the definitive SDK release is made.
    Getting Started <getting-started>
    Configuration <configuration>
    Installing the SDK <install-sdk>
+   Testing Git DAR dependencies <testing-git-dar-dependencies>
    Frequently Asked Question <faq>
 
 .. toctree::

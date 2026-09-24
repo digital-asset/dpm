@@ -141,27 +141,35 @@ func (l *Locker) checkLockfile(expectedLockfile *PackageLock, lockfilePath strin
 }
 
 func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath string) (*PackageLock, error) {
+	existingPins := gitPinsFromExistingLock(lockfilePath)
+
 	for _, d := range expected.Dars {
-		if d.URI.Scheme == "builtin" {
+		switch d.URI.Scheme {
+		case "builtin":
 			d.Path = d.URI.Host
 			continue
-		}
+		case "git":
+			if err := l.resolveGitDar(ctx, d, existingPins); err != nil {
+				return nil, err
+			}
+			continue
+		default:
+			pulledDar, err := darpuller.New(l.config).PullDar(ctx, d.Dependency)
+			if err != nil {
+				return nil, err
+			}
+			d.Digest = pulledDar.Descriptor.Digest.String()
 
-		pulledDar, err := darpuller.New(l.config).PullDar(ctx, d.Dependency)
-		if err != nil {
-			return nil, err
-		}
-		d.Digest = pulledDar.Descriptor.Digest.String()
+			ref, err := registry.ParseReference(strings.TrimPrefix(d.URI.String(), "oci://"))
+			if err != nil {
+				return nil, err
+			}
 
-		ref, err := registry.ParseReference(strings.TrimPrefix(d.URI.String(), "oci://"))
-		if err != nil {
-			return nil, err
+			// TODO this doesn't work for @sha256 pinned refs
+			resolvedRef := ":" + pulledDar.Version.String()
+			d.URI, _ = url.Parse(fmt.Sprintf("oci://%s/%s%s", ref.Registry, ref.Repository, resolvedRef))
+			d.Path = pulledDar.DarFilePath
 		}
-
-		// TODO this doesn't work for @sha256 pinned refs
-		resolvedRef := ":" + pulledDar.Version.String()
-		d.URI, _ = url.Parse(fmt.Sprintf("oci://%s/%s%s", ref.Registry, ref.Repository, resolvedRef))
-		d.Path = pulledDar.DarFilePath
 	}
 
 	data, err := yaml.Marshal(expected)

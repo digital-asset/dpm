@@ -64,7 +64,7 @@ func testInstallPackage(t *testing.T, installCommand []string) {
 		assert.NoError(t, w.Close())
 		output, err := io.ReadAll(r)
 		require.NoError(t, err)
-		assert.Contains(t, string(output), "Successfully installed SDK "+sdkVersion)
+		assert.Contains(t, string(output), "SDK version "+sdkVersion+" is already installed")
 		assert.Contains(t, string(output), "No opt-in components to install")
 	})
 

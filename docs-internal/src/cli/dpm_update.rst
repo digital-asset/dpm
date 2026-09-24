@@ -23,6 +23,7 @@ Options
 
 ::
 
+      --check            verify git dependencies are installed and match yaml commit pins
       --force-insecure   ignoring ArtifactLocations and force http instead of https for OCI registry
   -h, --help             help for update
 

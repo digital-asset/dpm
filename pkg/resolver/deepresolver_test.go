@@ -9,6 +9,7 @@ import (
 
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assistantconfig"
+	"daml.com/x/assistant/pkg/packagelock"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/testutil"
@@ -53,6 +54,19 @@ func TestMultiPackage(t *testing.T) {
 		assert.Equal(t, resolution.Kind, result.Kind)
 		assert.Equal(t, resolution.ApiVersion, result.APIVersion)
 	})
+}
+
+func TestApplyLockedDarsPreservesDataDependencies(t *testing.T) {
+	pkg := &resolution.Package{Imports: resolution.Imports{
+		resolution.ResolvedDependenciesField:     {"yaml-dependency.dar"},
+		resolution.ResolvedDataDependenciesField: {"data-dependency.dar"},
+	}}
+	lock := &packagelock.PackageLock{Dars: []*packagelock.Dar{{Path: "locked-dependency.dar"}}}
+
+	applyLockedDars(pkg, lock)
+
+	assert.Equal(t, []string{"locked-dependency.dar"}, pkg.GetResolvedDependencies())
+	assert.Equal(t, []string{"data-dependency.dar"}, pkg.GetResolvedDataDependencies())
 }
 
 func withResolver(t *testing.T, damlPackagePath string, testFn func(*DeepResolver)) {

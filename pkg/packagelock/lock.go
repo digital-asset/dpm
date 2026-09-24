@@ -100,6 +100,11 @@ func (l *PackageLock) toDiffableMap() (map[string]stringset.StringSet, error) {
 			continue
 		}
 
+		if d.URI.Scheme == "git" {
+			addGitDarToDiffableMap(m, d.URI)
+			continue
+		}
+
 		ref, err := registry.ParseReference(strings.TrimPrefix(d.URI.String(), "oci://"))
 		if err != nil {
 			return nil, err
@@ -142,6 +147,9 @@ func (l *PackageLock) isInSync(expected *PackageLock) (bool, error) {
 
 		for x := range xs {
 			if strings.HasPrefix(k, "oci://") && ocilister.IsFloaty(x) {
+				continue
+			}
+			if gitRefIgnorableForSync(k, x) {
 				continue
 			}
 			if !ys.Contains(x) {

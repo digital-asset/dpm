@@ -16,7 +16,7 @@ add or update a dar in the project
 
 ::
 
-  dpm add dar <oci-uri> <--dependencies | --data-dependencies> [flags]
+  dpm add dar <oci-uri|git-uri> <--dependencies | --data-dependencies> [flags]
 
 Options
 ~~~~~~~
