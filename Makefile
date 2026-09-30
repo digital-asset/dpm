@@ -32,30 +32,4 @@ publish-release-to-gar:
 clean:
 	rm -rfv dist/
 
-.PHONY: generate-cli-ref
-generate-cli-ref:
-	rm -rf docs-internal/src/cli
-	go run cmd/docs/docs.go docs-internal/src/cli --format=rst
 
-.PHONY: check-stale-docs
-check-stale-docs:
-	@echo "Checking for stale CLI docs..."
-	@$(MAKE) generate-cli-ref
-	@git diff --quiet -- docs-internal/src/cli || ( \
-		echo "❌ CLI docs are stale. Run 'make generate-cli-ref' and commit the changes."; \
-		git --no-pager diff -- docs-internal/src/cli; \
-		exit 1; \
-	)
-	@echo "✅ CLI docs are up to date."
-
-.PHONY: generate-sphinx
-generate-sphinx:
-	rm -rf docs-internal/generated
-	sphinx-build -vvv -b html docs-internal/src/ docs-internal/generated/html
-
-.PHONY: run-internal-docs
-run-internal-docs: generate-cli-ref generate-sphinx
-	open docs-internal/generated/html/index.html
-
-.PHONY: run-docs
-run-docs: run-internal-docs

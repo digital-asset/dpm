@@ -36,8 +36,6 @@ dist/
 
 Gemfile.lock
 Gemfile.lock
-docs/_site/
-docs-internal/_site/
 _build/
 generated/
 
