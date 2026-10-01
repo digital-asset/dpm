@@ -11,7 +11,8 @@ jobs:
   linux:
     # Never execute fork PR code on the self-hosted runner.
     # Trusted pushes to the canonical repository may use the self-hosted runner.
-    runs-on: ${{ github.event_name == 'push' && github.repository == 'digital-asset/dpm' && 'digital-asset-dpm' || 'ubuntu-latest' }}
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name && 'ubuntu-latest' || 'digital-asset-dpm' }}
+
     permissions:
       contents: read
       packages: write
@@ -68,7 +69,7 @@ jobs:
   release-public:
     # Never execute fork PR code on the self-hosted runner.
     # Trusted pushes to the canonical repository may use the self-hosted runner.
-    runs-on: ${{ github.event_name == 'push' && github.repository == 'digital-asset/dpm' && 'digital-asset-dpm' || 'ubuntu-latest' }}
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name && 'ubuntu-latest' || 'digital-asset-dpm' }}
     needs: 
       - windows
       - linux
@@ -86,7 +87,7 @@ jobs:
   release-public-unstable:
     # Never execute fork PR code on the self-hosted runner.
     # Trusted pushes to the canonical repository may use the self-hosted runner.
-    runs-on: ${{ github.event_name == 'push' && github.repository == 'digital-asset/dpm' && 'digital-asset-dpm' || 'ubuntu-latest' }}
+    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name && 'ubuntu-latest' || 'digital-asset-dpm' }}
     needs:
       - windows
       - linux
