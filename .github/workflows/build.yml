@@ -11,11 +11,17 @@ jobs:
   linux:
     # Never execute fork PR code on the self-hosted runner.
     # Trusted pushes to the canonical repository may use the self-hosted runner.
-    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name && 'ubuntu-latest' || 'digital-asset-dpm' }}
+    runs-on: >-
+      ${{
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name &&
+        'ubuntu-latest' ||
+        'digital-asset-dpm'
+      }}
+    
 
     permissions:
       contents: read
-      packages: write
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
       - uses: ./.github/actions/nix
@@ -67,13 +73,15 @@ jobs:
           reporter: golang-json
 
   release-public:
-    # Never execute fork PR code on the self-hosted runner.
-    # Trusted pushes to the canonical repository may use the self-hosted runner.
-    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name && 'ubuntu-latest' || 'digital-asset-dpm' }}
+    runs-on: 'digital-asset-dpm'
     needs: 
       - windows
       - linux
-    if: success() && startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/tags/0.0.0-skiprelease' && github.event_name == 'push'
+    if: >
+      github.repository == 'digital-asset/dpm' &&
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/') &&
+      github.ref != 'refs/tags/0.0.0-skiprelease'
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
         with:
@@ -85,14 +93,14 @@ jobs:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
 
   release-public-unstable:
-    # Never execute fork PR code on the self-hosted runner.
-    # Trusted pushes to the canonical repository may use the self-hosted runner.
-    runs-on: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name && 'ubuntu-latest' || 'digital-asset-dpm' }}
+    runs-on: 'digital-asset-dpm'
     needs:
       - windows
       - linux
     # Restrict unstable releases to push events only (never run on PRs)
-    if: github.event_name == 'push'
+    if: >
+      github.repository == 'digital-asset/dpm' &&
+      github.event_name == 'push'
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
       - uses: ./.github/actions/release
