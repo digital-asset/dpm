@@ -3,6 +3,21 @@ description: Setup Nix
 runs:
   using: composite
   steps:
+
+    - name: Install Nix
+      # if we are on a fork we need to install nix
+      if: github.repository != 'digital-asset/dpm'
+      uses: NixOS/nix-installer-action@6b8548fe06acfb0155a50ab5d561accb215764cc
+      with:
+        extra-conf: |
+          experimental-features = nix-command flakes      
+
+    - name: Verify Nix installation
+      # if we are on a fork we need to install nix
+      if: github.repository != 'digital-asset/dpm'
+      run: nix --version
+      shell: bash
+
     - name: 'Nix Setup'
       run: 'nix --extra-experimental-features "nix-command flakes" print-dev-env .#ci > nix.source'
       shell: bash

@@ -9,7 +9,9 @@ defaults:
 
 jobs:
   linux:
-    runs-on: digital-asset-dpm
+    # Never execute fork PR code on the self-hosted runner.
+    # Trusted pushes to the canonical repository may use the self-hosted runner.
+    runs-on: ${{ github.event_name == 'push' && github.repository == 'digital-asset/dpm' && 'digital-asset-dpm' || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write
@@ -64,7 +66,9 @@ jobs:
           reporter: golang-json
 
   release-public:
-    runs-on: digital-asset-dpm
+    # Never execute fork PR code on the self-hosted runner.
+    # Trusted pushes to the canonical repository may use the self-hosted runner.
+    runs-on: ${{ github.event_name == 'push' && github.repository == 'digital-asset/dpm' && 'digital-asset-dpm' || 'ubuntu-latest' }}
     needs: 
       - windows
       - linux
@@ -80,7 +84,9 @@ jobs:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
 
   release-public-unstable:
-    runs-on: digital-asset-dpm
+    # Never execute fork PR code on the self-hosted runner.
+    # Trusted pushes to the canonical repository may use the self-hosted runner.
+    runs-on: ${{ github.event_name == 'push' && github.repository == 'digital-asset/dpm' && 'digital-asset-dpm' || 'ubuntu-latest' }}
     needs:
       - windows
       - linux
