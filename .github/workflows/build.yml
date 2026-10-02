@@ -97,6 +97,8 @@ jobs:
     needs: 
       - windows
       - linux
+    permissions:
+      packages: write
     if: >
       github.repository == 'digital-asset/dpm' &&
       github.event_name == 'push' &&
@@ -117,6 +119,8 @@ jobs:
     needs:
       - windows
       - linux
+    permissions:
+      packages: write
     # Restrict unstable releases to push events only (never run on PRs)
     if: >
       github.repository == 'digital-asset/dpm' &&
