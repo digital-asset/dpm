@@ -36,6 +36,6 @@ jobs:
           
           pattern='^(.*/?(go\.mod|go\.sum|requirements.*\.txt|pyproject\.toml|poetry\.lock|Pipfile|Pipfile\.lock|uv\.lock|build\.sbt|pom\.xml|flake\.lock|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|Gemfile\.lock))$'
           if echo "$files" | grep -qE "$pattern"; then
-              echo "::warning title=Dependency changes::Pull requests from forks should not modify dependency/lock files."
+              echo "::error title=Dependency changes::Pull requests from forks should not modify dependency/lock files."
               exit 1
           fi
