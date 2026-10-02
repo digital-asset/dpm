@@ -5,7 +5,7 @@ runs:
   steps:
 
     - name: Install Nix
-      # GitHub-hosted runners do not have Nix preinstalled.
+      # GitHub-hosted runners do not have Nix preinstalled
       if: runner.environment == 'github-hosted'
       uses: NixOS/nix-installer-action@6b8548fe06acfb0155a50ab5d561accb215764cc
       with:
