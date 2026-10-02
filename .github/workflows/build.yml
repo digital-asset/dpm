@@ -96,7 +96,7 @@ jobs:
       - windows
       - linux
     permissions:
-      contents: read
+      contents: write
       packages: write
     if: >
       github.repository == 'digital-asset/dpm' &&
