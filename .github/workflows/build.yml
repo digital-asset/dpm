@@ -48,14 +48,14 @@ jobs:
 
       - name: Publish Test Report
         if: env.IS_FORK_PR == 'false'
-        uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 #v3
         with:
           name: Go Tests
           path: report.json
           reporter: golang-json
           fail-on-error: 'true'
           fail-on-empty: 'true'
-          report-title: 'Go Tests'
+          report-title: 'Go Tests (Linux)'
 
   windows:
     runs-on: windows-latest
@@ -82,11 +82,14 @@ jobs:
         shell: bash
       - name: Publish Test Report
         if: env.IS_FORK_PR == 'false'
-        uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 #v3
         with:
           name: Go Tests
           path: report.json
           reporter: golang-json
+          fail-on-error: 'true'
+          fail-on-empty: 'true'
+          report-title: 'Go Tests (Windows)'
 
   release-public:
     runs-on: 'digital-asset-dpm'
