@@ -96,6 +96,7 @@ jobs:
       - windows
       - linux
     permissions:
+      contents: read
       packages: write
     if: >
       github.repository == 'digital-asset/dpm' &&
@@ -118,6 +119,7 @@ jobs:
       - windows
       - linux
     permissions:
+      contents: read
       packages: write
     # Restrict unstable releases to push events only (never run on PRs)
     if: >
