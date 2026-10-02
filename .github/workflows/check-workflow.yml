@@ -11,9 +11,14 @@ jobs:
   workflow-policy:
     runs-on: ubuntu-latest
 
-    if: github.event.pull_request.head.repo.fork == true
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Lint Actions Yaml
+        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2
+
       - name: Check for workflow changes
+        if: ${{ github.event.pull_request.head.repo.fork == true }}
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -33,4 +38,4 @@ jobs:
           if echo "$files" | grep -qE "$pattern"; then
               echo "::error::Pull requests from forks are not allowed to modify dependency/lock files."
               exit 1
-          1
+          fi
