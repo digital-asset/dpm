@@ -32,8 +32,6 @@ jobs:
         'ubuntu-latest' ||
         'digital-asset-dpm'
       }}
-    
-
     permissions:
       contents: read
       checks: write
@@ -94,7 +92,7 @@ jobs:
 
   release-public:
     runs-on: digital-asset-dpm
-    needs: 
+    needs:
       - windows
       - linux
     permissions:
