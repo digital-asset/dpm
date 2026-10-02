@@ -7,9 +7,10 @@ on:
       - '*'
   pull_request:
 
+permissions:
+  contents: read
 
 env:
-
   IS_FORK_PR: >-
     ${{ 
       github.event_name == 'pull_request' && 
