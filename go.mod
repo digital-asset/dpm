@@ -8,6 +8,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/goccy/go-yaml v1.19.2
+	github.com/gofrs/flock v0.13.1
 	github.com/google/go-containerregistry v0.22.1
 	github.com/jdx/go-netrc v1.0.0
 	github.com/juju/fslock v0.0.0-20160525022230-4d5c94c67b4b

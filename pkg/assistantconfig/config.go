@@ -4,7 +4,10 @@
 package assistantconfig
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -399,4 +402,106 @@ func (c *Config) CachePathForDar(ref *registry.Reference) string {
 		return filepath.Join(c.CachePath, "dars", "sha256", sha)
 	}
 	return filepath.Join(c.CachePath, "dars", utils.UrlToFilePath(fmt.Sprintf("%s/%s", ref.Registry, ref.Repository)), ref.Reference)
+}
+
+func safeGitCacheSegment(name, value string) (string, error) {
+	if value == "" || value == "." || value == ".." {
+		return "", fmt.Errorf("invalid git cache %s segment %q", name, value)
+	}
+	if filepath.IsAbs(value) || strings.ContainsAny(value, `/\`) {
+		return "", fmt.Errorf("invalid git cache %s segment %q", name, value)
+	}
+	return value, nil
+}
+
+func gitRepoSegments(cloneURL *url.URL) (host, org, repo string, err error) {
+	if cloneURL == nil {
+		return "", "", "", fmt.Errorf("missing git clone URL")
+	}
+
+	host = cloneURL.Host
+	if cloneURL.Scheme == "file" {
+		host = "local"
+	}
+	host, err = safeGitCacheSegment("host", host)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	repoPath := strings.TrimPrefix(cloneURL.Path, "/")
+	repoPath = strings.TrimSuffix(repoPath, ".git")
+	parts := strings.Split(repoPath, "/")
+	if len(parts) == 0 || parts[0] == "" {
+		return "", "", "", fmt.Errorf("missing git repository path")
+	}
+	for _, part := range parts {
+		if _, err := safeGitCacheSegment("repo path", part); err != nil {
+			return "", "", "", err
+		}
+	}
+
+	if len(parts) == 1 {
+		return host, parts[0], parts[0], nil
+	}
+	org = strings.Join(parts[:len(parts)-1], "/")
+	repo = parts[len(parts)-1]
+	return host, org, repo, nil
+}
+
+// CachePathForGit returns ~/.dpm/cache/git/<host>/<org>/<repo>/<ref-hash>/path/to/foo.dar
+func (c *Config) CachePathForGit(host, org, repo, refHash, darPath string) (string, error) {
+	for name, value := range map[string]string{
+		"host": host,
+		"repo": repo,
+		"ref":  refHash,
+	} {
+		if _, err := safeGitCacheSegment(name, value); err != nil {
+			return "", err
+		}
+	}
+	for part := range strings.SplitSeq(org, "/") {
+		if _, err := safeGitCacheSegment("org", part); err != nil {
+			return "", err
+		}
+	}
+
+	cleanDarPath := filepath.ToSlash(filepath.Clean(darPath))
+	if cleanDarPath == "." || cleanDarPath == ".." || strings.HasPrefix(cleanDarPath, "../") || filepath.IsAbs(darPath) {
+		return "", fmt.Errorf("invalid git cache dar path %q", darPath)
+	}
+
+	return filepath.Join(c.CachePath, "git", host, org, repo, refHash, filepath.FromSlash(cleanDarPath)), nil
+}
+
+// CachePathForGitDependency resolves cache segments from a clone URL and ref hash.
+func (c *Config) CachePathForGitDependency(cloneURL *url.URL, darPath, refHash string) (string, error) {
+	host, org, repo, err := gitRepoSegments(cloneURL)
+	if err != nil {
+		return "", err
+	}
+	return c.CachePathForGit(host, org, repo, refHash, darPath)
+}
+
+// GitWorkPathForRepo returns the clone work directory for a git repository.
+func (c *Config) GitWorkPathForRepo(cloneURL *url.URL) (string, error) {
+	host, org, repo, err := gitRepoSegments(cloneURL)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(c.CachePath, "git", host, org, repo, ".work"), nil
+}
+
+// CachePathForGitRelease returns the cached .dar path for a git release asset.
+func (c *Config) CachePathForGitRelease(cloneURL *url.URL, releaseTag, asset string) (string, error) {
+	host, org, repo, err := gitRepoSegments(cloneURL)
+	if err != nil {
+		return "", err
+	}
+	refHash := sha256Hex(releaseTag + "\x00" + asset)
+	return c.CachePathForGit(host, org, repo, refHash, asset)
+}
+
+func sha256Hex(s string) string {
+	h := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(h[:])
 }

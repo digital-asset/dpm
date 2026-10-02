@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/utils"
 	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote/auth"
@@ -33,6 +34,8 @@ type ParsedDarDependency struct {
 	// can be nil when the corresponding dependency is already fully qualified and doesn't rely on an artifact-location
 	Location *ArtifactLocation
 
+	Git gitparse.GitSource
+
 	MainPackageId *string
 
 	// the index of this dependency in the list in daml.yaml.
@@ -40,7 +43,14 @@ type ParsedDarDependency struct {
 	Index int
 }
 
-// StringWithAlias will reconstruct the original '@<alias>/<rest of uri>' for oci-based dars
+func (d *ParsedDarDependency) Scheme() string {
+	if d.FullUrl == nil {
+		return ""
+	}
+	return d.FullUrl.Scheme
+}
+
+// StringWithAlias reconstructs the original '@<alias>/...' form for OCI dars.
 func (d *ParsedDarDependency) StringWithAlias() string {
 	if d.FullUrl == nil {
 		return ""
@@ -79,7 +89,8 @@ func (d *ParsedDarDependency) GetOciRemote() (*assistantremote.Remote, *registry
 	return assistantRemote, &ref, nil
 }
 
-var regex = regexp.MustCompile(`^(@[a-zA-Z0-9_-]+)/`)
+// artifactLocationAliasRegex captures '@alias' at the start of a dependency entry.
+var artifactLocationAliasRegex = regexp.MustCompile(`^(@[a-zA-Z0-9_-]+)`)
 
 func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations ArtifactLocations) (map[string]*ParsedDarDependency, error) {
 	parsedLocations := map[string]*ParsedDarDependency{}
@@ -104,11 +115,62 @@ func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations
 				MainPackageId: rawDep.GetMainPackageId(),
 				Index:         i,
 			}
+		} else if gitparse.IsGitDependencyLine(d) {
+			gitDep, err := gitparse.ParseGitDependency(d)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			parsedLocations[d] = FromGit(gitDep)
+			parsedLocations[d].MainPackageId = rawDep.GetMainPackageId()
+			parsedLocations[d].Index = i
 		} else if strings.HasPrefix(d, "http://") || strings.HasPrefix(d, "https://") {
 			// TODO
 			errs = append(errs, fmt.Errorf("couldn't parse dependency %q: http dependencies not yet supported", d))
 			continue
-		} else if strings.HasSuffix(d, ".dar") {
+		} else if strings.HasPrefix(d, "@") {
+			alias, location, err := lookupArtifactLocation(d, artifactLocations)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+
+			if isGitLocationURL(location.Url) {
+				if strings.ContainsAny(location.Url, "#?") {
+					errs = append(errs, fmt.Errorf("git artifact location %q must be a bare repository URL (no #ref or query); put the #ref and ?path=/?release= on the dependency line", alias))
+					continue
+				}
+				gitDep, err := gitparse.ParseGitDependency(strings.Replace(d, alias, location.Url, 1))
+				if err != nil {
+					errs = append(errs, fmt.Errorf("dependency %q: %w", d, err))
+					continue
+				}
+				parsed := FromGit(gitDep)
+				parsed.Location = location
+				parsed.MainPackageId = rawDep.GetMainPackageId()
+				parsed.Index = i
+				parsedLocations[d] = parsed
+				continue
+			}
+
+			if !strings.HasPrefix(strings.TrimPrefix(d, alias), "/") {
+				errs = append(errs, fmt.Errorf("error parsing dependency %q: OCI dependencies beginning with @ must be of the form '@<artifact-location>/<suffix>'", d))
+				continue
+			}
+
+			rawUrl := strings.Replace(d, alias, location.Url, 1)
+			u, err := url.Parse(rawUrl)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("couldn't parse full url %q for dependency %q: ", rawUrl, d))
+				continue
+			}
+			parsedLocations[d] = &ParsedDarDependency{
+				Location:      location,
+				FullUrl:       u,
+				MainPackageId: rawDep.GetMainPackageId(),
+				Index:         i,
+			}
+		} else if utils.IsDarPath(d) {
 			absPath := utils.ResolvePath(filepath.Dir(p.AbsolutePath), d)
 			u, err := url.Parse("file://" + filepath.ToSlash(absPath))
 			if err != nil {
@@ -117,35 +179,6 @@ func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations
 			}
 			parsedLocations[d] = &ParsedDarDependency{
 				Location:      nil,
-				FullUrl:       u,
-				MainPackageId: rawDep.GetMainPackageId(),
-				Index:         i,
-			}
-		} else if strings.HasPrefix(d, "@") {
-			parsed := regex.FindStringSubmatch(d)
-			if len(parsed) < 2 {
-				errs = append(errs, fmt.Errorf("error parsing dependency %q: Dependencies beginning with @ must be of the form '@<artifact-location>/<suffix>'", d))
-				continue
-			}
-			location, ok := artifactLocations[parsed[1]]
-			if !ok {
-				errs = append(errs, fmt.Errorf("dependency %q has no corresponding artifact location", d))
-				continue
-			}
-
-			if location.Url == "" {
-				errs = append(errs, fmt.Errorf("invalid artifact location %q. Must have a non-empty url", location.Url))
-				continue
-			}
-
-			rawUrl := strings.Replace(d, parsed[1], location.Url, 1)
-			u, err := url.Parse(rawUrl)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("couldn't parse full url %q for dependency %q: ", rawUrl, d))
-				continue
-			}
-			parsedLocations[d] = &ParsedDarDependency{
-				Location:      location,
 				FullUrl:       u,
 				MainPackageId: rawDep.GetMainPackageId(),
 				Index:         i,
@@ -176,4 +209,54 @@ func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations
 	}
 
 	return parsedLocations, nil
+}
+
+func lookupArtifactLocation(dep string, artifactLocations ArtifactLocations) (alias string, location *ArtifactLocation, err error) {
+	parsed := artifactLocationAliasRegex.FindStringSubmatch(dep)
+	if len(parsed) < 2 {
+		return "", nil, fmt.Errorf("error parsing dependency %q: dependencies beginning with @ must use an artifact-locations alias", dep)
+	}
+	alias = parsed[1]
+	location, ok := artifactLocations[alias]
+	if !ok {
+		return "", nil, fmt.Errorf("dependency %q has no corresponding artifact location", dep)
+	}
+	if location.Url == "" {
+		return "", nil, fmt.Errorf("invalid artifact location %q: must have a non-empty url", alias)
+	}
+	return alias, location, nil
+}
+
+func isGitLocationURL(locationURL string) bool {
+	return gitparse.IsGitDependencyLine(locationURL)
+}
+
+// ArtifactLocationAlias returns the '@alias' prefix of a dependency entry, if any.
+func ArtifactLocationAlias(dep string) (string, bool) {
+	parsed := artifactLocationAliasRegex.FindStringSubmatch(dep)
+	if len(parsed) < 2 {
+		return "", false
+	}
+	return parsed[1], true
+}
+
+// FromGit copies a parsed git: dependency into a ParsedDarDependency.
+func FromGit(d *gitparse.Dependency) *ParsedDarDependency {
+	if d == nil {
+		return nil
+	}
+	return &ParsedDarDependency{
+		FullUrl: d.FullUrl,
+		Git:     d.Git,
+	}
+}
+
+// WithGitRef returns a copy pinned to ref, updating the canonical git:// URL.
+func (d *ParsedDarDependency) WithGitRef(ref string) *ParsedDarDependency {
+	if d == nil {
+		return nil
+	}
+	copy := *d
+	copy.FullUrl, copy.Git = gitparse.WithGitRef(d.FullUrl, d.Git, ref)
+	return &copy
 }
