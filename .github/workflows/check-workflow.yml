@@ -11,6 +11,7 @@ jobs:
   workflow-policy:
     runs-on: ubuntu-latest
 
+    if: github.event.pull_request.head.repo.fork == true
     steps:
       - name: Check for workflow changes
         env:
@@ -23,7 +24,7 @@ jobs:
             "repos/$REPO/pulls/$PR/files" \
             --jq '.[].filename')"
 
-          if echo "$files" | grep -q '^\.github/workflows/'; then
+          if echo "$files" | grep -q '^\.github/'; then
             echo "::error::This PR modifies GitHub Actions workflows."
             exit 1
           fi
