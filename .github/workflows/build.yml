@@ -102,7 +102,7 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/release
         with:
-          repo: "temp"
+          repo: ""
           flags: "--clean --skip=announce,publish,validate"
           gh_token: ${{ secrets.GITHUB_TOKEN }}
 
