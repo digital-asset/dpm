@@ -29,10 +29,9 @@ jobs:
       ${{
         github.event_name == 'pull_request' &&
         github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name &&
-        'ubuntu-latest' ||
-        'digital-asset-dpm'
+        ubuntu-latest ||
+        digital-asset-dpm
       }}
-    
 
     permissions:
       contents: read
@@ -93,7 +92,7 @@ jobs:
           report-title: 'Go Tests (Windows)'
 
   release-public:
-    runs-on: 'digital-asset-dpm'
+    runs-on: digital-asset-dpm
     needs: 
       - windows
       - linux
@@ -113,7 +112,7 @@ jobs:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
 
   release-public-unstable:
-    runs-on: 'digital-asset-dpm'
+    runs-on: digital-asset-dpm
     needs:
       - windows
       - linux
