@@ -10,13 +10,11 @@ on:
 
 env:
 
-  IS_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name }}
-  IS_TRUSTED_PR: >-
+  IS_FORK_PR: >-
     ${{ 
-      github.event_name != 'pull_request' || 
-      github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name 
+      github.event_name == 'pull_request' && 
+      github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name 
     }}
-
 
 defaults:
   run:
@@ -81,7 +79,7 @@ jobs:
         run: go test -json -v ./... | tee report.json; exit "${PIPESTATUS[0]}"
         shell: bash
       - name: Publish Test Report
-        if: env.IS_FORK_PR == 'true'
+        if: env.IS_FORK_PR == 'false'
         uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
         with:
           name: Go Tests

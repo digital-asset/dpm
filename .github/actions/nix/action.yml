@@ -9,6 +9,7 @@ runs:
       if: runner.environment == 'github-hosted'
       uses: NixOS/nix-installer-action@6b8548fe06acfb0155a50ab5d561accb215764cc
       with:
+        installer-version: "2.35.2"
         extra-conf: |
           experimental-features = nix-command flakes      
 
