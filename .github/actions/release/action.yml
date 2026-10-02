@@ -2,15 +2,12 @@ name: release
 description: release
 inputs:
   registry:
-    type: string
     description: GAR registry to use when publishing
     default: "ghcr.io/digital-asset"
   repo:
-    type: string
     description: GAR repo to use when publishing
     required: true
   flags:
-    type: string
     description: Additional flags to pass to goreleaser
     default: "--snapshot"
   gh_token:

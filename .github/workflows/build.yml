@@ -4,6 +4,8 @@ on:
   pull_request:
 
 env:
+
+  IS_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name }}
   IS_TRUSTED_PR: >-
     ${{ 
       github.event_name != 'pull_request' || 
@@ -21,9 +23,10 @@ jobs:
     # Trusted pushes to the canonical repository may use the self-hosted runner.
     runs-on: >-
       ${{
-        env.IS_TRUSTED_PR == 'true' &&
-        'digital-asset-dpm' || 
-        'ubuntu-latest'
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name &&
+        'ubuntu-latest' ||
+        'digital-asset-dpm'
       }}
     
 
@@ -37,10 +40,10 @@ jobs:
         run: go build -o target/ ./cmd/...
 
       - name: Run Go tests and generate in json format
-        run: go test -json -v ./... | tee report.json; exit ${PIPESTATUS[0]}
+        run: go test -json -v ./... | tee report.json; exit "${PIPESTATUS[0]}"
 
       - name: Publish Test Report
-        if: env.IS_TRUSTED_PR == 'true'
+        if: env.IS_FORK_PR == 'false'
         uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
         with:
           name: Go Tests
@@ -70,10 +73,10 @@ jobs:
       - run: go build -o target/ ./cmd/...
         shell: bash
       - name: Run Go tests and generate in json format
-        run: go test -json -v ./... | tee report.json; exit ${PIPESTATUS[0]}
+        run: go test -json -v ./... | tee report.json; exit "${PIPESTATUS[0]}"
         shell: bash
       - name: Publish Test Report
-        if: env.IS_TRUSTED_PR == 'true'
+        if: env.IS_FORK_PR == 'true'
         uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8
         with:
           name: Go Tests
@@ -106,7 +109,15 @@ jobs:
       - windows
       - linux
     # Restrict unstable releases to push events only (never run on PRs)
-    if: env.IS_TRUSTED_PR == 'true'
+    if: >
+      github.repository == 'digital-asset/dpm' &&
+      (
+        github.event_name == 'push' ||
+        (
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == 'digital-asset/dpm'
+        )
+      )
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
       - uses: ./.github/actions/release
