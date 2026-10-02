@@ -57,6 +57,33 @@ jobs:
           fail-on-empty: 'true'
           report-title: 'Go Tests (Linux)'
 
+  osx:
+    runs-on: macos-latest-xlarge
+
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
+      - uses: ./.github/actions/nix
+
+      - name: Run go build
+        run: go build -o target/ ./cmd/...
+
+      - name: Run Go tests and generate in json format
+        run: go test -json -v ./... | tee report.json; exit "${PIPESTATUS[0]}"
+
+      - name: Publish Test Report
+        if: env.IS_FORK_PR == 'false'
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 #v3
+        with:
+          name: Go Tests
+          path: report.json
+          reporter: golang-json
+          fail-on-error: 'true'
+          fail-on-empty: 'true'
+          report-title: 'Go Tests (OSX)'
+
   windows:
     runs-on: windows-latest
     permissions:
