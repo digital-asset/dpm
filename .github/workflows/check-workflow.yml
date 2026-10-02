@@ -28,3 +28,9 @@ jobs:
             echo "::error::This PR modifies GitHub Actions workflows."
             exit 1
           fi
+          
+          pattern='^(.*/?(go\.mod|go\.sum|requirements.*\.txt|pyproject\.toml|poetry\.lock|Pipfile|Pipfile\.lock|uv\.lock|build\.sbt|pom\.xml|flake\.lock|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|Gemfile\.lock))$'
+          if echo "$files" | grep -qE "$pattern"; then
+              echo "::error::Pull requests from forks are not allowed to modify dependency/lock files."
+              exit 1
+          1
