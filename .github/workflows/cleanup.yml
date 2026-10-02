@@ -4,10 +4,10 @@ on:
   schedule:
     # Runs at 06:00 UTC every day
     - cron: '0 6 * * *'
-  workflow_dispatch: # Allows manual triggering for testing
 
 jobs:
   cleanup:
+    if: github.ref == 'refs/heads/main'
     concurrency:
       group: cleanup-ghcr-images
       cancel-in-progress: false

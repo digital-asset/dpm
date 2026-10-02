@@ -1,0 +1,29 @@
+name: Check workflow changes
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  workflow-policy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for workflow changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          files="$(gh api \
+            --paginate \
+            "repos/$REPO/pulls/$PR/files" \
+            --jq '.[].filename')"
+
+          if echo "$files" | grep -q '^\.github/workflows/'; then
+            echo "::error::This PR modifies GitHub Actions workflows."
+            exit 1
+          fi

@@ -18,6 +18,7 @@ env:
 
 jobs:
   scan:
+    if: github.event.pull_request.head.repo.fork == false
     runs-on: digital-asset-dpm
     permissions:
       contents: write
