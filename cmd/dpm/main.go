@@ -11,6 +11,7 @@ import (
 
 	dpm "daml.com/x/assistant/cmd/dpm/cmd"
 	"daml.com/x/assistant/pkg/assistant"
+	_ "github.com/gofrs/flock"
 )
 
 func main() {
