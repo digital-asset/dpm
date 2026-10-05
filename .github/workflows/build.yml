@@ -39,6 +39,15 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
       - uses: ./.github/actions/nix
 
+      - name: Check
+        run: |
+          go mod tidy
+          git diff --exit-code --color go.mod go.sum || {
+            echo "::error::Please run 'go mod tidy'"
+            exit 1
+          }
+        shell: bash
+
       - name: Run go build
         run: go build -o target/ ./cmd/...
 
