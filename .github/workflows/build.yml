@@ -46,7 +46,6 @@ jobs:
             echo "::error::Please run 'go mod tidy'"
             exit 1
           }
-        shell: bash
 
       - name: Run go build
         run: go build -o target/ ./cmd/...
