@@ -1,0 +1,3 @@
+# Without this override, the repo-wide *.yaml rule makes Git normalize binary image data as text,
+# causing the 'literally-a-cat-picture/daml.yaml' fixture to show up as modified in `git status`.
+daml.yaml -text

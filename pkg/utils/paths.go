@@ -12,6 +12,11 @@ import (
 )
 
 // ResolvePath
+func IsDarPath(path string) bool {
+	return strings.HasSuffix(strings.ToLower(path), ".dar")
+}
+
+// ResolvePath
 func ResolvePath(basePath, p string) string {
 	if filepath.IsAbs(p) {
 		return filepath.Clean(p)
@@ -89,6 +94,12 @@ func safeSegment(s string) string {
 	}
 
 	return out
+}
+
+// SafePathSegment returns s as a single directory name. Characters that Windows
+// rejects in a path segment, such as ":", are rewritten to "_".
+func SafePathSegment(s string) string {
+	return safeSegment(s)
 }
 
 // UrlToFilePath converts given url (without the scheme) to string usable as filepath.

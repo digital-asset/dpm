@@ -2,6 +2,7 @@ package damlpackage
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/goccy/go-yaml"
 )
@@ -47,6 +48,9 @@ func (r *RawDependency) UnmarshalYAML(b []byte) error {
 
 	var obj withPackageId
 	if err := yaml.Unmarshal(b, &obj); err == nil {
+		if strings.TrimSpace(obj.Value) == "" {
+			return RawDependenciesSchemaErr
+		}
 		r.WithPackageId = &obj
 		return nil
 	}

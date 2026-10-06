@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
@@ -122,9 +126,213 @@ data-dependencies:
 	assertContainsComment(t, filepath.Join(projectDir, "daml.yaml"), "# 4.5.6")
 }
 
+func (suite *MainSuite) TestDpmAddGitDarCommand() {
+	t := suite.T()
+	t.Setenv("DPM_TEST_ALLOW_FILE_GIT", "true")
+
+	cloneURL := testutil.InitGitRepo(t, "foo.dar", []byte("add command dar"))
+	gitURI := "git:" + cloneURL + "#main?path=foo.dar"
+
+	projectDir := testutil.ActivateDamlYamlForTest(t, `
+dependencies:
+  - daml-script
+`)
+
+	cmd := createStdTestRootCmd(t, "add", "dar", "--dependencies", gitURI)
+	require.NoError(t, cmd.Execute())
+
+	newContent, err := os.ReadFile(filepath.Join(projectDir, "daml.yaml"))
+	require.NoError(t, err)
+	assert.Contains(t, string(newContent), "git:"+cloneURL)
+	assert.NotContains(t, string(newContent), "#main?")
+	assert.Regexp(t, `#[0-9a-f]{40}\?path=foo\.dar`, string(newContent))
+}
+
+func (suite *MainSuite) TestDpmAddGitReleaseDarCommand() {
+	t := suite.T()
+
+	const tag = "v1.0.0"
+	const assetA = "foo-1.0.0.dar"
+	const assetB = "bar-1.0.0.dar"
+
+	host := testutil.GitHubReleaseServer(t, true,
+		testutil.GitHubReleaseAsset{Name: assetA, Body: []byte("release dar")},
+		testutil.GitHubReleaseAsset{Name: assetB, Body: []byte("release dar")},
+	)
+
+	projectDir := testutil.ActivateDamlYamlForTest(t, `
+dependencies:
+  - daml-script
+`)
+
+	releaseURI := "git:http://" + host + "/org/repo?release=" + tag
+	cmd := createStdTestRootCmd(t, "add", "dar", "--dependencies", releaseURI)
+	require.NoError(t, cmd.Execute())
+
+	newContent, err := os.ReadFile(filepath.Join(projectDir, "daml.yaml"))
+	require.NoError(t, err)
+	assert.Contains(t, string(newContent), assetA)
+	assert.Contains(t, string(newContent), assetB)
+}
+
+func (suite *MainSuite) TestDpmAddGitReleaseDarExpandsExistingLine() {
+	t := suite.T()
+
+	const tag = "v1.0.0"
+	const assetA = "foo-1.0.0.dar"
+	const assetB = "bar-1.0.0.dar"
+
+	host := testutil.GitHubReleaseServer(t, true,
+		testutil.GitHubReleaseAsset{Name: assetA, Body: []byte("release dar")},
+		testutil.GitHubReleaseAsset{Name: assetB, Body: []byte("release dar")},
+	)
+
+	releaseLine := "git:http://" + host + "/org/repo?release=" + tag
+	projectDir := testutil.ActivateDamlYamlForTest(t, fmt.Sprintf(`
+dependencies:
+  - daml-script
+  - %s
+`, releaseLine))
+
+	cmd := createStdTestRootCmd(t, "add", "dar", "--dependencies", releaseLine)
+	require.NoError(t, cmd.Execute())
+
+	damlPkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
+	require.NoError(t, err)
+	assert.Len(t, damlPkg.Dependencies, 3)
+
+	yamlContent := string(mustReadFile(t, filepath.Join(projectDir, "daml.yaml")))
+	assert.NotContains(t, yamlContent, releaseLine)
+
+	assetCount := 0
+	for _, dep := range damlPkg.Dependencies {
+		line, err := dep.Value()
+		require.NoError(t, err)
+		if strings.Contains(line, assetA) || strings.Contains(line, assetB) {
+			assetCount++
+		}
+	}
+	assert.Equal(t, 2, assetCount)
+}
+
+func (suite *MainSuite) TestDpmAddGitReleaseDarRejectsNonGitHubHostWithoutEditingYaml() {
+	t := suite.T()
+
+	const original = `
+dependencies:
+  - daml-script
+`
+	projectDir := testutil.ActivateDamlYamlForTest(t, original)
+	yamlPath := filepath.Join(projectDir, "daml.yaml")
+	before := mustReadFile(t, yamlPath)
+
+	cmd := createStdTestRootCmd(t, "add", "dar", "--dependencies", "git:gitlab.com/org/repo?release=v1.0.0")
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "only supported for github.com")
+	assert.Contains(t, err.Error(), "?path=")
+
+	assert.Equal(t, string(before), string(mustReadFile(t, yamlPath)),
+		"daml.yaml must be untouched when the release host is unsupported")
+}
+
+func (suite *MainSuite) TestDpmAddGitReleaseDarRollsBackYamlWhenExpansionFails() {
+	t := suite.T()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+
+	t.Setenv("DPM_TEST_GITHUB_API_BASE", srv.URL)
+	host := srv.Listener.Addr().String()
+	t.Setenv("DPM_TEST_GITHUB_RELEASE_HOST", host)
+
+	projectDir := testutil.ActivateDamlYamlForTest(t, `
+dependencies:
+  - daml-script
+`)
+	yamlPath := filepath.Join(projectDir, "daml.yaml")
+	before := mustReadFile(t, yamlPath)
+
+	cmd := createStdTestRootCmd(t, "add", "dar", "--dependencies", "git:http://"+host+"/org/repo?release=missing-tag")
+	require.Error(t, cmd.Execute())
+
+	after := mustReadFile(t, yamlPath)
+	assert.Equal(t, string(before), string(after),
+		"daml.yaml must be restored when release expansion fails")
+	assert.NotContains(t, string(after), "missing-tag")
+}
+
+func (suite *MainSuite) TestDpmAddGitReleaseDarKeepsExpandedLinesWhenDownloadFails() {
+	t := suite.T()
+
+	const tag = "v1.0.0"
+	const asset = "foo-1.0.0.dar"
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.Contains(r.URL.Path, "/releases/tags/"):
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"assets": []map[string]string{{"name": asset}},
+			})
+		case strings.Contains(r.URL.Path, "/releases/download/"):
+			http.Error(w, "boom", http.StatusInternalServerError)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	t.Setenv("DPM_TEST_GITHUB_API_BASE", srv.URL)
+	host := srv.Listener.Addr().String()
+	t.Setenv("DPM_TEST_GITHUB_RELEASE_HOST", host)
+
+	projectDir := testutil.ActivateDamlYamlForTest(t, `
+dependencies:
+  - daml-script
+`)
+	yamlPath := filepath.Join(projectDir, "daml.yaml")
+
+	releaseURI := "git:http://" + host + "/org/repo?release=" + tag
+	cmd := createStdTestRootCmd(t, "add", "dar", "--dependencies", releaseURI)
+	require.Error(t, cmd.Execute())
+
+	after := string(mustReadFile(t, yamlPath))
+	assert.Contains(t, after, asset,
+		"the expanded per-asset line must survive so install can retry the download")
+	assert.NotContains(t, after, releaseURI,
+		"the unexpanded base line must not be left behind")
+}
+
+func mustReadFile(t *testing.T, path string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	require.NoError(t, err)
+	return b
+}
+
 func (suite *MainSuite) TestDpmAddDarCommandNegativeCases() {
 	t := suite.T()
 	t.Setenv(assistantconfig.DpmShaPinningEnabled, "true")
+
+	t.Run("git dar can be added to data-dependencies", func(t *testing.T) {
+		t.Setenv("DPM_TEST_ALLOW_FILE_GIT", "true")
+		cloneURL := testutil.InitGitRepo(t, "foo.dar", []byte("x"))
+		gitURI := "git:" + cloneURL + "#main?path=foo.dar"
+
+		projectDir := testutil.ActivateDamlYamlForTest(t, `
+dependencies:
+  - daml-script
+`)
+
+		cmd := createStdTestRootCmd(t, "add", "dar", "--data-dependencies", gitURI)
+		require.NoError(t, cmd.Execute())
+
+		pkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
+		require.NoError(t, err)
+		require.Len(t, pkg.ParsedDarDependencies.DataDependencies, 1)
+	})
 
 	t.Run("add new dar to both data-dependencies and dependencies fails in single-package project", func(t *testing.T) {
 		_ = testutil.ActivateDamlYamlForTest(t, `
