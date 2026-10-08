@@ -37,7 +37,7 @@ runs:
         ref_name=${{ github.ref_name }}
         sanitized_ref_name="${ref_name//\//-}"
         
-        EXTRA_TAGS="-t ${sanitized_ref_name}"
+        EXTRA_TAGS="-t ${sanitized_ref_name} -t main"
         if [[ "${{ github.ref_type }}" == "tag" ]]; then
           EXTRA_TAGS="$EXTRA_TAGS -t latest"
         fi
