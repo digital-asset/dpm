@@ -5,6 +5,7 @@ let
       actionlint
       bash
       gh
+      gitMinimal
       go
       go-junit-report
       gotools
