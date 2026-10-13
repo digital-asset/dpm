@@ -137,6 +137,7 @@ jobs:
     needs:
       - windows
       - linux
+      - osx
     permissions:
       contents: write
       packages: write
@@ -160,6 +161,7 @@ jobs:
     needs:
       - windows
       - linux
+      - osx
     permissions:
       contents: read
       packages: write
