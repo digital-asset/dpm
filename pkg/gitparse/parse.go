@@ -55,24 +55,12 @@ func parseGitReleaseDependency(remainder, raw string) (*Dependency, error) {
 		return nil, err
 	}
 
-	canonicalStr := fmt.Sprintf("git://%s/%s@%s", host, repoPath, url.PathEscape(releaseTag))
-	if asset != "" {
-		canonicalStr += "?asset=" + url.QueryEscape(asset)
-	}
-	canonical, err := url.Parse(canonicalStr)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't build canonical git release url for dependency %q: %w", raw, err)
-	}
-
-	return &Dependency{
-		FullUrl: canonical,
-		Git: GitSource{
-			Ref:      releaseTag,
-			DarPath:  asset,
-			CloneURL: cloneURL,
-			Release:  true,
-		},
-	}, nil
+	return newGitDependency(GitSource{
+		Ref:      releaseTag,
+		DarPath:  asset,
+		CloneURL: cloneURL,
+		Release:  true,
+	}, host, repoPath)
 }
 
 func parseGitRepoDependency(remainder, raw string) (*Dependency, error) {
@@ -112,24 +100,33 @@ func parseGitRepoDependency(remainder, raw string) (*Dependency, error) {
 		return nil, err
 	}
 
-	canonical, err := url.Parse(fmt.Sprintf("git://%s/%s@%s?path=%s",
-		host,
-		repoPath,
-		url.PathEscape(gitRef),
-		url.QueryEscape(darPath),
-	))
-	if err != nil {
-		return nil, fmt.Errorf("couldn't build canonical git url for dependency %q: %w", raw, err)
-	}
+	return newGitDependency(GitSource{
+		Ref:      gitRef,
+		DarPath:  darPath,
+		CloneURL: cloneURL,
+	}, host, repoPath)
+}
 
-	return &Dependency{
-		FullUrl: canonical,
-		Git: GitSource{
-			Ref:      gitRef,
-			DarPath:  darPath,
-			CloneURL: cloneURL,
-		},
-	}, nil
+func newGitDependency(git GitSource, host, repoPath string) (*Dependency, error) {
+	var canonicalStr string
+	if git.Release {
+		canonicalStr = fmt.Sprintf("git://%s/%s@%s", host, repoPath, url.PathEscape(git.Ref))
+		if git.DarPath != "" {
+			canonicalStr += "?asset=" + url.QueryEscape(git.DarPath)
+		}
+	} else {
+		canonicalStr = fmt.Sprintf("git://%s/%s@%s?path=%s",
+			host,
+			repoPath,
+			url.PathEscape(git.Ref),
+			url.QueryEscape(git.DarPath),
+		)
+	}
+	canonical, err := url.Parse(canonicalStr)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't build canonical git url: %w", err)
+	}
+	return &Dependency{FullUrl: canonical, Git: git}, nil
 }
 
 // parseGitCloneBase parses a git clone URL.
