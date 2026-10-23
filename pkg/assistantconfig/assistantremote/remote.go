@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote/readonlydynamicstore"
@@ -55,12 +56,25 @@ func NewWithCustomClient(registry string, client *auth.Client, insecure bool) *R
 }
 
 func New(registry string, authConfigPath string, insecure bool) (*Remote, error) {
-	// This client has some default caching (e.g. for auth tokens) and retry settings
-	client := auth.DefaultClient
+	// auth.DefaultClient is a package-level pointer, so assigning to its fields
+	// would write this Remote's credential onto state shared with every other
+	// Remote in the process. Copy it instead, keeping its default retry
+	// settings, and give each Remote its own header map and token cache.
+	clientCopy := *auth.DefaultClient
+	client := &clientCopy
+	client.Header = auth.DefaultClient.Header.Clone()
+	client.Cache = auth.NewCache()
 	client.SetUserAgent(assistantconfig.GetAssistantUserAgent())
 
 	if authConfigPath != "" {
 		slog.Info("using custom auth for registry", "path", authConfigPath)
+		// oras returns an empty config and no error when the file is missing,
+		// so without this check an unreadable path silently produces an
+		// unauthenticated client and the registry answers 401 or 403 later,
+		// pointing at permissions rather than at the real cause.
+		if _, err := os.Stat(authConfigPath); err != nil {
+			return nil, fmt.Errorf("failed to read registry auth config %q: %w", authConfigPath, err)
+		}
 		ds, err := credentials.NewStore(authConfigPath, credentials.StoreOptions{})
 		if err != nil {
 			return nil, err
