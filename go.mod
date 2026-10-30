@@ -2,7 +2,6 @@ module daml.com/x/assistant
 
 go 1.26.6
 
-
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/charmbracelet/lipgloss v1.1.0 //
