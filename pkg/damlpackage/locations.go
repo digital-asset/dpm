@@ -98,6 +98,19 @@ func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations
 	var errs []error
 
 	for i, rawDep := range rawDeps {
+		if rawDep.GitStructured != nil {
+			gitDep, err := gitparse.ParseGitStructured(rawDep.GitStructured)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			parsed := FromGit(gitDep)
+			parsed.MainPackageId = rawDep.GetMainPackageId()
+			parsed.Index = i
+			parsedLocations[gitparse.FormatGitYamlLine(gitDep.Git)] = parsed
+			continue
+		}
+
 		d, err := rawDep.Value()
 		if err != nil {
 			errs = append(errs, err)

@@ -12,8 +12,21 @@ import (
 	"daml.com/x/assistant/pkg/componentlist"
 	"daml.com/x/assistant/pkg/sdkmanifest"
 	"daml.com/x/assistant/pkg/yamledit"
+	"github.com/Masterminds/semver/v3"
 	"github.com/goccy/go-yaml"
 )
+
+// structuredGitConstraint matches SDK versions whose damlc accepts map entries in
+// dependencies and data-dependencies. The -0 pre-release includes 3.6 snapshots.
+var structuredGitConstraint = mustStructuredGitConstraint()
+
+func mustStructuredGitConstraint() *semver.Constraints {
+	constraint, err := semver.NewConstraint(">= 3.6.0-0")
+	if err != nil {
+		panic(err)
+	}
+	return constraint
+}
 
 type ParsedDarDependencies struct {
 	Dependencies     map[string]*ParsedDarDependency
@@ -131,6 +144,51 @@ func ReadFromContents(contents []byte, absoluteFilePath string) (*DamlPackage, e
 	}
 
 	return &obj, nil
+}
+
+// StructuredGitSDKError reports that this package uses a structured git dependency
+// which the SDK about to run damlc cannot read.
+// sdkVersion is that effective version, in the same order dpm selects an SDK:
+// DPM_SDK_VERSION if set, otherwise the package sdk-version, otherwise the
+// multi-package.yaml version. An empty version is
+// unsupported when a structured entry is present. Packages with no structured
+// entry always pass.
+func (p *DamlPackage) StructuredGitSDKError(sdkVersion string) error {
+	if p == nil || (!hasStructuredGit(p.Dependencies) && !hasStructuredGit(p.DataDependencies)) {
+		return nil
+	}
+	sdkVersion = strings.TrimSpace(sdkVersion)
+	if sdkVersion == "" {
+		return p.structuredGitSDKError("not set")
+	}
+	version, err := semver.StrictNewVersion(sdkVersion)
+	if err != nil {
+		return fmt.Errorf("structured git dependencies%s: invalid sdk version %q: %w", structuredGitWhere(p), sdkVersion, err)
+	}
+	if structuredGitConstraint.Check(version) {
+		return nil
+	}
+	return p.structuredGitSDKError(sdkVersion)
+}
+
+func (p *DamlPackage) structuredGitSDKError(version string) error {
+	return fmt.Errorf("structured git dependencies%s are only supported on SDK 3.6 and later (sdk-version is %s); use a git: one-liner instead", structuredGitWhere(p), version)
+}
+
+func structuredGitWhere(p *DamlPackage) string {
+	if p == nil || p.AbsolutePath == "" {
+		return ""
+	}
+	return " in " + p.AbsolutePath
+}
+
+func hasStructuredGit(deps []*RawDependency) bool {
+	for _, dep := range deps {
+		if dep != nil && dep.GitStructured != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func expandEnv(contents []byte) ([]byte, error) {

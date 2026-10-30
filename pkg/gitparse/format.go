@@ -56,6 +56,20 @@ func FormatGitReleaseLine(cloneURL, releaseTag, asset string) string {
 	return "git:" + formatted
 }
 
+// FormatGitStructuredLine renders a git: one-liner from structured fields.
+// The fields are parsed first, so the line is a rendering of the validated source.
+func FormatGitStructuredLine(fields *GitStructuredFields) (string, error) {
+	dep, err := ParseGitStructured(fields)
+	if err != nil {
+		return "", err
+	}
+	line := FormatGitYamlLine(dep.Git)
+	if line == "" {
+		return "", fmt.Errorf("git dependency: url is required")
+	}
+	return line, nil
+}
+
 // FormatGitReleaseBaseLine returns the git release dependency line without an asset.
 func FormatGitReleaseBaseLine(git GitSource) string {
 	if git.CloneURL == nil {
