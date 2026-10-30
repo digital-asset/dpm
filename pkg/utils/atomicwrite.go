@@ -21,7 +21,27 @@ const windowsAccessDenied syscall.Errno = 5
 var destinationLocks sync.Map // map[string]*sync.Mutex
 
 // AtomicWriteFile writes r to dst via a temporary file in the same directory.
+// dst keeps the mode it already had; a destination that does not exist yet is
+// created 0644.
 func AtomicWriteFile(dst string, r io.Reader) error {
+	mode := os.FileMode(0644)
+	if fi, err := os.Stat(dst); err == nil {
+		mode = fi.Mode().Perm()
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return atomicWriteFileMode(dst, r, mode)
+}
+
+// atomicWriteFileMode publishes r as dst with exactly the given mode.
+//
+// The chmod is not optional. os.CreateTemp always creates 0600 and ignores the
+// process umask, so a rename with no chmod publishes every destination 0600 and
+// silently narrows one that already existed. A file's mode is a deliberate
+// invariant here: it travels as the OCI file-mode annotation on push and is
+// applied again on pull (pkg/utils/fileinfo), so an artifact arriving by another
+// route should land with the mode it would have had coming from a registry.
+func atomicWriteFileMode(dst string, r io.Reader, mode os.FileMode) error {
 	if err := EnsureDirs(filepath.Dir(dst)); err != nil {
 		return err
 	}
@@ -32,9 +52,14 @@ func AtomicWriteFile(dst string, r io.Reader) error {
 	}
 	tmp := out.Name()
 
+	chmodErr := out.Chmod(mode)
 	_, copyErr := io.Copy(out, r)
 	syncErr := out.Sync()
 	closeErr := out.Close()
+	if chmodErr != nil {
+		_ = os.Remove(tmp)
+		return chmodErr
+	}
 	if copyErr != nil {
 		_ = os.Remove(tmp)
 		return copyErr
@@ -89,12 +114,17 @@ func lockDestination(dst string) func() {
 	return func() { mu.(*sync.Mutex).Unlock() }
 }
 
-// AtomicCopyFile copies src to dst via a temporary file in the same directory.
+// AtomicCopyFile copies src to dst via a temporary file in the same directory,
+// giving dst the mode src has. An executable copied this way stays executable.
 func AtomicCopyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = in.Close() }()
-	return AtomicWriteFile(dst, in)
+	fi, err := in.Stat()
+	if err != nil {
+		return err
+	}
+	return atomicWriteFileMode(dst, in, fi.Mode().Perm())
 }
