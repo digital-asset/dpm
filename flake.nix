@@ -13,15 +13,12 @@
             inherit system;
             overlays = import ./nix/overlays.nix;
           };
-          pkgs2411 = import nixpkgs-2411 {
-            inherit system;
-          };
           assistant = import ./hosted.nix  { inherit pkgs ; inherit self; };
         in
         {
           packages.assistant = assistant;
-          devShells.default = import ./nix/shell.nix { inherit pkgs pkgs2411; ci = false; };
-          devShells.ci = import ./nix/shell.nix { inherit pkgs pkgs2411; ci = true; };
+          devShells.default = import ./nix/shell.nix { inherit pkgs; ci = false; };
+          devShells.ci = import ./nix/shell.nix { inherit pkgs; ci = true; };
         }
       );
 }
