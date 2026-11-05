@@ -1,11 +1,10 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-25.11";
+    nixpkgs.url = "nixpkgs/nixos-26.05";
     flake-utils.url = "github:numtide/flake-utils";
-    nixpkgs-2411.url = "nixpkgs/nixos-24.11";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-2411, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem
       (system:
         let
