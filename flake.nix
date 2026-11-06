@@ -12,10 +12,8 @@
             inherit system;
             overlays = import ./nix/overlays.nix;
           };
-          assistant = import ./hosted.nix  { inherit pkgs ; inherit self; };
         in
         {
-          packages.assistant = assistant;
           devShells.default = import ./nix/shell.nix { inherit pkgs; ci = false; };
           devShells.ci = import ./nix/shell.nix { inherit pkgs; ci = true; };
         }
