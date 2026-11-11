@@ -185,11 +185,9 @@ func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations
 			}
 		} else if utils.IsDarPath(d) {
 			absPath := utils.ResolvePath(filepath.Dir(p.AbsolutePath), d)
-			u, err := url.Parse("file://" + filepath.ToSlash(absPath))
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
+			// A filesystem path is not a URL string: parsing it would treat
+			// literal %, # and ? as escapes, a fragment or a query.
+			u := &url.URL{Scheme: "file", Path: filepath.ToSlash(absPath)}
 			parsedLocations[d] = &ParsedDarDependency{
 				Location:      nil,
 				FullUrl:       u,
