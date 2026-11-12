@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 
 	dpm "daml.com/x/assistant/cmd/dpm/cmd"
 	"daml.com/x/assistant/pkg/assistant"
@@ -15,7 +16,7 @@ import (
 )
 
 func main() {
-	ctx, cancelFn := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	ctx, cancelFn := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancelFn()
 
 	da := assistant.DamlAssistant{
