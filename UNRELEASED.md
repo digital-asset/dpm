@@ -2,6 +2,10 @@
 
 Unreleased Changes since last tagged release (1.0.22)
 
+## Fixes
+
+- Preserve filesystem paths when resolving local DAR dependencies, including spaces, Unicode and literal `%`, `#` and `?` in filenames. Components receive local paths rather than URL-escaped strings.
+
 ## Additions
 
 - **Git dependencies.** You can depend on a pre-built `.dar` stored in a Git repository, as well as on one published to an OCI registry. Declare it in `dependencies` or `data-dependencies` in `daml.yaml`, or add it with `dpm add dar <git-uri> --dependencies` (or `--data-dependencies`).
