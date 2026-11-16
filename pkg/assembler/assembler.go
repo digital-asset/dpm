@@ -119,10 +119,12 @@ func (a *Assembler) AssembleManyWithOverlay(ctx context.Context, assemblyManifes
 				return component.AbsolutePath
 			}),
 			ComponentsV2: lo.MapValues(components, func(component *ResolvedComponent, name string) map[string]string {
-				return map[string]string{
-					"path":    component.AbsolutePath,
-					"version": component.Version,
+				v2 := map[string]string{"path": component.AbsolutePath}
+				// local components have no version
+				if component.Version != "" {
+					v2["version"] = component.Version
 				}
+				return v2
 			}), // Split path and versions for readability
 		},
 	}
@@ -349,7 +351,10 @@ func (a *Assembler) collectComponent(ctx context.Context, basePath string, comp 
 		return nil, err
 	}
 
-	version := filepath.Base(absPath)
+	var version string
+	if comp.LocalPath == nil {
+		version = filepath.Base(absPath)
+	}
 
 	return &ResolvedComponent{
 		Component:     parsedComp,

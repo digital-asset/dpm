@@ -178,7 +178,9 @@ components:
 		require.NoError(t, cmd.Execute())
 
 		deepResolution := runResolveCommand(t)
-		assert.Equal(t, localComponentPath, lo.Values(deepResolution.Packages)[0].ComponentsV2["my-local-component"]["path"])
+		comp := lo.Values(deepResolution.Packages)[0].ComponentsV2["my-local-component"]
+		assert.Equal(t, localComponentPath, comp["path"])
+		assert.NotContains(t, comp, "version")
 	})
 }
 

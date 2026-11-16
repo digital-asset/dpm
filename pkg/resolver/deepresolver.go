@@ -208,8 +208,13 @@ func (d *DeepResolver) resolvePackageDars(absPath string) (deps []string, dataDe
 func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]string, error) {
 	scheme := dar.Scheme()
 
-	if scheme == "builtin" || scheme == "file" {
-		return []string{strings.TrimPrefix(dar.FullUrl.String(), scheme+"://")}, nil
+	if scheme == "builtin" {
+		return []string{dar.FullUrl.Host}, nil
+	}
+	if scheme == "file" {
+		// Components consume filesystem paths, not escaped URL strings.
+		// Host preserves drive prefixes in existing file://C:/... URLs.
+		return []string{dar.FullUrl.Host + dar.FullUrl.Path}, nil
 	}
 	if scheme == "oci" {
 		_, ref, err := dar.GetOciRemote()

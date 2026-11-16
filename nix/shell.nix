@@ -1,4 +1,4 @@
-{ pkgs, pkgs2411, ci }:
+{ pkgs, ci }:
 let
   requiredPackages = with pkgs; ([
     # these packages are required both in CI and for local development
@@ -6,18 +6,17 @@ let
       bash
       gh
       gitMinimal
-      go
+      go_1_26
       go-junit-report
       gotools
       goreleaser
       gnumake
       jq
-      pkgs2411.google-cloud-sdk
+      google-cloud-sdk
       zip
-      (python3.withPackages (pkgs: [ pkgs.sphinx pkgs.sphinx-rtd-theme]))
   ] ++ (if ci then [
     # these packages should only be installed on CI
-    openjdk17
+    openjdk21
   ] else [
     # these packages are only installed on developer machines locally
     circleci-cli
