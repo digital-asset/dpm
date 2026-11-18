@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"daml.com/x/assistant/pkg/assembler"
 	"daml.com/x/assistant/pkg/assembler/assemblyplan"
@@ -261,6 +262,11 @@ func multiPackageUsesComponents() (bool, error) {
 	return len(multi.Components) > 0, nil
 }
 
+// componentShutdownGrace is how long a component may take to handle SIGTERM
+// before os/exec escalates to SIGKILL. It is the escalation policy, stated in
+// one place rather than implied by a default.
+const componentShutdownGrace = 10 * time.Second
+
 func (da *DamlAssistant) execSdkCommand(ctx context.Context, path string, args []string, extraEnv map[string]string) (int, error) {
 	cmd := exec.CommandContext(ctx, path, args...)
 	cmd.Stdin = da.Stdin
@@ -273,6 +279,17 @@ func (da *DamlAssistant) execSdkCommand(ctx context.Context, path string, args [
 	env = append(env, os.Environ()...)
 	cmd.Env = env
 
+	// exec.CommandContext kills the component with SIGKILL when ctx is done,
+	// so a long-running component gets no chance to flush state or release a
+	// lock. Ask it to stop instead, and keep a defined escalation policy:
+	// WaitDelay bounds how long a component may ignore SIGTERM before the
+	// os/exec package kills it and closes its pipes.
+	cmd.Cancel = func() error { return terminateProcess(cmd.Process) }
+	cmd.WaitDelay = componentShutdownGrace
+
+	// Set before the hook on purpose: CmdPreRunHook already exists as the
+	// testing seam for this command, so a test can shorten WaitDelay without
+	// any new exported API.
 	if da.CmdPreRunHook != nil {
 		da.CmdPreRunHook(cmd)
 	}
