@@ -12,6 +12,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"daml.com/x/assistant/pkg/assembler"
@@ -40,6 +41,8 @@ type Config struct {
 	DryRun, IncludeGitInfo bool
 	Annotations            map[string]string
 	ExtraTags              []string
+	// AppendIndex appends the given platforms to an already existing index instead of skipping the publish
+	AppendIndex bool
 
 	Destination  *Destination
 	AuthFilePath string
@@ -104,7 +107,8 @@ func (p *Publisher) Publish(ctx context.Context) (err error) {
 		return err
 	}
 
-	// skip pushing both index and platforms' images if index already exists
+	// skip pushing both index and platforms' images when the index already exists
+	// and no --append-index flag was given
 	existingVersions, err := ocilister.ListComponentVersions(ctx, p.config.Destination.Artifact.RepoName(), client)
 	if err != nil {
 		return err
@@ -113,40 +117,82 @@ func (p *Publisher) Publish(ctx context.Context) (err error) {
 		return v.String()
 	}), p.config.Version.String())
 
+	var existing []v1.Descriptor
+	var existingAnnotations map[string]string
 	if alreadyExists {
-		p.printer.Println("skipped pushing because component's index already exists in remote")
-	} else {
-		var descriptors []v1.Descriptor
-		for _, pushOp := range pushOps {
-			desc, err := p.push(ctx, client, pushOp)
-			if err != nil {
-				return err
-			}
-			switch p := pushOp.Platform().(type) {
-			case *simpleplatform.NonGeneric:
-				desc.Platform = p.ToOras()
-			case *simpleplatform.Generic:
-			default:
-				return fmt.Errorf("unknown platform type %t", p)
-			}
-			descriptors = append(descriptors, *desc)
+		if !p.config.AppendIndex {
+			p.printer.Println("skipped pushing because component's index already exists in remote")
+			return p.pushExtraTags(ctx, client)
 		}
-		coloredDest := color.GreenString(fmt.Sprintf("%s/%s", p.config.Name, p.config.Version.String()))
-		p.printer.Println("📖 Pushing index " + coloredDest)
-		tag := p.config.Version.String()
-
-		indexDesc, err := ociindex.PushIndex(ctx, client, p.config.indexOpts(tag, descriptors))
+		index, _, err := ociindex.FetchIndex(ctx, client, p.config.Destination.Artifact.RepoName(), p.config.Version.String())
 		if err != nil {
 			return err
 		}
-		descriptorJson, err := json.MarshalIndent(indexDesc, "", "  ")
-		if err != nil {
+		if err := checkNoOverlap(index.Manifests, pushOps); err != nil {
 			return err
 		}
-		p.printer.Printf("\n%s\n", string(descriptorJson))
-		p.printer.Println("successfully published index " + coloredDest)
+		existing = index.Manifests
+		existingAnnotations = index.Annotations
 	}
 
+	descriptors := slices.Clone(existing)
+	for _, pushOp := range pushOps {
+		desc, err := p.push(ctx, client, pushOp)
+		if err != nil {
+			return err
+		}
+		switch p := pushOp.Platform().(type) {
+		case *simpleplatform.NonGeneric:
+			desc.Platform = p.ToOras()
+		case *simpleplatform.Generic:
+		default:
+			return fmt.Errorf("unknown platform type %t", p)
+		}
+		descriptors = append(descriptors, *desc)
+	}
+	coloredDest := color.GreenString(fmt.Sprintf("%s/%s", p.config.Name, p.config.Version.String()))
+	p.printer.Println("📖 Pushing index " + coloredDest)
+	tag := p.config.Version.String()
+
+	opts := p.config.indexOpts(tag, descriptors)
+	if existingAnnotations != nil {
+		// keep the annotations of the existing index; the new ones take precedence
+		merged := maps.Clone(existingAnnotations)
+		maps.Copy(merged, p.config.Annotations)
+		opts.ExtraAnnotations = merged
+	}
+	indexDesc, err := ociindex.PushIndex(ctx, client, opts)
+	if err != nil {
+		return err
+	}
+	descriptorJson, err := json.MarshalIndent(indexDesc, "", "  ")
+	if err != nil {
+		return err
+	}
+	p.printer.Printf("\n%s\n", string(descriptorJson))
+	p.printer.Println("successfully published index " + coloredDest)
+
+	return p.pushExtraTags(ctx, client)
+}
+
+// checkNoOverlap fails if any platform being pushed already exists in the index
+func checkNoOverlap(existing []v1.Descriptor, pushOps []*ocipusher.PushOperation) error {
+	var overlap []string
+	for _, pushOp := range pushOps {
+		for _, d := range existing {
+			if simpleplatform.FromOras(d.Platform).Equal(pushOp.Platform()) {
+				overlap = append(overlap, pushOp.Platform().String())
+				break
+			}
+		}
+	}
+	if len(overlap) > 0 {
+		return fmt.Errorf("cannot append to existing index: platforms already exist in remote: %v", overlap)
+	}
+	return nil
+}
+
+func (p *Publisher) pushExtraTags(ctx context.Context, client *assistantremote.Remote) error {
 	if p.config.ExtraTags != nil && len(p.config.ExtraTags) > 0 {
 		p.printer.Println("pushing extra tags...")
 		err := ociindex.Tag(ctx, client, p.config.Destination.Artifact, p.config.Version, p.config.ExtraTags)

@@ -20,6 +20,7 @@ type PublishCmd struct {
 	Platforms              map[string]string
 	ExtraTags              []string
 
+	AppendIndex  bool
 	Insecure     bool
 	Registry     string
 	RegistryAuth string

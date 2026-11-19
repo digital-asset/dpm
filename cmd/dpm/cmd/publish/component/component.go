@@ -75,6 +75,7 @@ func Cmd() *cobra.Command {
 				AuthFilePath:   c.RegistryAuth,
 				Insecure:       c.Insecure,
 				ExtraTags:      c.ExtraTags,
+				AppendIndex:    c.AppendIndex,
 			}
 			return publish.New(publishConfig, cmd).Publish(cmd.Context())
 		},
@@ -89,6 +90,7 @@ func Cmd() *cobra.Command {
 
 	cmd.Flags().StringSliceVarP(&c.ExtraTags, "extra-tags", "t", []string{}, "publish extra tags besides the semver")
 
+	cmd.Flags().BoolVar(&c.AppendIndex, "append-index", false, "if the component already exists in the remote, append the given platforms to the existing OCI index instead of skipping publishing altogether. Existing annotations will be overwritten with new ones, if provided.")
 	cmd.Flags().BoolVar(&c.Insecure, "insecure", false, "use http instead of https for OCI registry")
 	cmd.Flags().StringVar(&c.RegistryAuth, "auth", "", "path to a config file similar to docker’s config.json to use for authenticating to the OCI registry. Defaults to docker's config.json")
 

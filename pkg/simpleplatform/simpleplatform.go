@@ -57,7 +57,7 @@ type NonGeneric struct {
 
 func (p *NonGeneric) Equal(platform Platform) bool {
 	nonGeneric, ok := platform.(*NonGeneric)
-	return ok && nonGeneric.OS == p.OS && nonGeneric.Architecture == nonGeneric.Architecture
+	return ok && nonGeneric.OS == p.OS && nonGeneric.Architecture == p.Architecture
 }
 
 func (p *NonGeneric) IsGeneric() bool {
